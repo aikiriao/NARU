@@ -1,7 +1,6 @@
-# ANL
+# NARU
 
-Autoregressive Natural-gradient Lossless audio system.
-(A New Lossless audio codec)
+Natural-gradient AutoRegressive Unlossy audio compressor
 
 # Lisence
 
