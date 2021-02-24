@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.1)
 
+set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+
 # プロジェクト名
-project(BitStream C)
+project(NARUBitStream C)
 
 # ライブラリ名
-set(LIB_NAME bit_stream)
+set(LIB_NAME naru_bit_stream)
 
 # 静的ライブラリ指定
 add_library(${LIB_NAME} STATIC)
@@ -14,6 +16,9 @@ add_subdirectory(src)
 
 # インクルードパス
 target_include_directories(${LIB_NAME}
+  PRIVATE
+    ${PROJECT_ROOT_PATH}/include
+    ${PROJECT_ROOT_PATH}/libs/NARUInternal/include
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

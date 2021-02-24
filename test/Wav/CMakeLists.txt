@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
+set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+
 # テスト名
 set(TEST_NAME wav_test)
 
@@ -7,7 +9,6 @@ set(TEST_NAME wav_test)
 add_executable(${TEST_NAME} main.cpp)
 
 # インクルードディレクトリ
-set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 include_directories(${PROJECT_ROOT_PATH}/libs/Wav/include)
 
 # リンクするライブラリ
