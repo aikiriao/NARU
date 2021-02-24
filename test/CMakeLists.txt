@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
-add_subdirectory(CommandLineParser)
-add_subdirectory(Wav)
-add_subdirectory(ByteArray)
-add_subdirectory(NARUBitStream)
-add_subdirectory(NARUCoder)
+add_subdirectory(command_line_parser)
+add_subdirectory(wav)
+add_subdirectory(byte_array)
+add_subdirectory(naru_bit_stream)
+add_subdirectory(naru_coder)
