@@ -4,7 +4,11 @@ cmake_minimum_required(VERSION 3.1)
 set(TEST_NAME bit_stream_test)
 
 # 実行形式ファイル
-add_executable(${TEST_NAME} main.cpp)
+add_executable(${TEST_NAME}
+  main.cpp
+  bit_stream_test.cpp 
+  byte_array_test.cpp
+  )
 
 # インクルードディレクトリ
 set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../..)
