@@ -27,12 +27,3 @@ else()
   set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 endif()
 set_target_properties(${LIB_NAME} PROPERTIES C_STANDARD 90 C_EXTENSIONS OFF)
-
-# テスト
-if(NOT without-test)
-    enable_testing()
-    project(BitStreamTest CXX)
-    include(../../cmake/gtest.cmake)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-    add_subdirectory(test)
-endif()

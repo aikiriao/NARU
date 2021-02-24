@@ -5,7 +5,7 @@
 
 /* テスト対象のモジュール */
 extern "C" {
-#include "../src/bit_stream.c"
+#include "../../libs/BitStream/src/bit_stream.c"
 }
 
 /* インスタンス作成破棄テスト */

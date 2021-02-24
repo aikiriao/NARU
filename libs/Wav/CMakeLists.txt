@@ -27,18 +27,3 @@ else()
   set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 endif()
 set_target_properties(${LIB_NAME} PROPERTIES C_STANDARD 90 C_EXTENSIONS OFF)
-
-# テスト
-if(NOT without-test)
-    enable_testing()
-    project(WavTest CXX)
-    include(../../cmake/gtest.cmake)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-    add_subdirectory(test)
-    # ビルド後にテストリソースを持ってくる
-    add_custom_command(
-      TARGET ${LIB_NAME}
-      POST_BUILD
-      COMMAND
-      ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/test/a.wav $<TARGET_FILE_DIR:${LIB_NAME}>/test/)
-endif()
