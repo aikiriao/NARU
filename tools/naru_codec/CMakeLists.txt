@@ -12,10 +12,10 @@ set(APP_NAME naru)
 add_executable(${APP_NAME} naru_codec.c)
 
 # 依存するサブディレクトリを追加
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/NARUBitStream ${CMAKE_CURRENT_BINARY_DIR}/NARUBitStream)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/CommandLineParser ${CMAKE_CURRENT_BINARY_DIR}/CommandLineParser)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/LPCCalculator ${CMAKE_CURRENT_BINARY_DIR}/LPCCalculator)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/Wav ${CMAKE_CURRENT_BINARY_DIR}/Wav)
+add_subdirectory(${PROJECT_ROOT_PATH}/libs/naru_bit_stream ${CMAKE_CURRENT_BINARY_DIR}/naru_bit_stream)
+add_subdirectory(${PROJECT_ROOT_PATH}/libs/command_line_parser ${CMAKE_CURRENT_BINARY_DIR}/command_line_parser)
+add_subdirectory(${PROJECT_ROOT_PATH}/libs/lpc_calculator ${CMAKE_CURRENT_BINARY_DIR}/lpc_calculator)
+add_subdirectory(${PROJECT_ROOT_PATH}/libs/wav ${CMAKE_CURRENT_BINARY_DIR}/wav)
 
 # インクルードパス
 target_include_directories(${APP_NAME}
