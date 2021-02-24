@@ -1,5 +1,5 @@
-#ifndef NARUCODER_H_INCLUDED
-#define NARUCODER_H_INCLUDED
+#ifndef NARU_CODER_H_INCLUDED
+#define NARU_CODER_H_INCLUDED
 
 #include "NARUBitStream.h"
 #include "NARUStdint.h"
@@ -48,4 +48,4 @@ void NARUCoder_GetDataArray(
 }
 #endif 
 
-#endif /* NARUCODER_H_INCLUDED */
+#endif /* NARU_CODER_H_INCLUDED */

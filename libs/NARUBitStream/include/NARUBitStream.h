@@ -1,11 +1,11 @@
-#ifndef NARUBITSTREAM_H_INCLUDED
-#define NARUBITSTREAM_H_INCLUDED
+#ifndef NARU_BITSTREAM_H_INCLUDED
+#define NARU_BITSTREAM_H_INCLUDED
 
 #include "NARUStdint.h"
 #include <stdio.h>
 
 /* マクロ展開して処理を行うか？ */
-#define NARUBITSTREAM_PROCESS_BY_MACRO
+#define NARUBITSTREAM_PROCESS_BY_MACRO 1
 
 /* NARUBitStream_Seek関数の探索コード */
 #define NARUBITSTREAM_SEEK_SET  (int32_t)SEEK_SET
@@ -388,4 +388,4 @@ void NARUBitStream_Flush(struct NARUBitStream* stream);
 
 #endif /* NARUBITSTREAM_PROCESS_BY_MACRO */
 
-#endif /* NARUBITSTREAM_H_INCLUDED */
+#endif /* NARU_BITSTREAM_H_INCLUDED */
