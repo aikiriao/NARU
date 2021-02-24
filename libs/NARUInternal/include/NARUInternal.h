@@ -8,12 +8,13 @@
 #define NARUCODER_QUOTPART_THRESHOULD                16      /* 再帰的ライス符号の商部分の閾値 これ以上の大きさの商はガンマ符号化 */
 
 /* NULLチェックと領域解放 */
-#define NARU_NULLCHECK_AND_FREE(ptr) {  \
-  if ((ptr) != NULL) {                  \
-    free(ptr);                          \
-    (ptr) = NULL;                       \
-  }                                     \
-}
+#define NARU_NULLCHECK_AND_FREE(ptr)\
+  do {\
+    if ((ptr) != NULL) {\
+      free(ptr);\
+      (ptr) = NULL;\
+    }\
+  } while (0);
 
 /* アサート */
 #ifdef NDEBUG
