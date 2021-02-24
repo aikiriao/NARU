@@ -5,7 +5,7 @@
 
 /* テスト対象のモジュール */
 extern "C" {
-#include "../../libs/Wav/src/wav.c"
+#include "../../libs/wav/src/wav.c"
 }
 
 /* WAVファイルフォーマット取得テスト */

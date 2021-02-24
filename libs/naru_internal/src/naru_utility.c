@@ -1,5 +1,5 @@
-#include "NARUUtility.h"
-#include "NARUInternal.h"
+#include "naru_utility.h"
+#include "naru_internal.h"
 
 #include <math.h>
 #include <stdlib.h>

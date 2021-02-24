@@ -1,6 +1,6 @@
-#include "NARUBitStream.h"
-#include "NARUInternal.h"
-#include "NARUUtility.h"
+#include "naru_bit_stream.h"
+#include "naru_internal.h"
+#include "naru_utility.h"
 
 #include <string.h>
 #include <stdlib.h>

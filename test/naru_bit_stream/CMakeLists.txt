@@ -9,8 +9,7 @@ set(TEST_NAME naru_bit_stream_test)
 add_executable(${TEST_NAME} main.cpp)
 
 # インクルードディレクトリ
-include_directories(${PROJECT_ROOT_PATH}/libs/NARUBitStream/include)
-include_directories(${PROJECT_ROOT_PATH}/libs/NARUInternal/include)
+include_directories(${PROJECT_ROOT_PATH}/libs/naru_bit_stream/include)
 
 # リンクするライブラリ
 target_link_libraries(${TEST_NAME} naru_internal) 

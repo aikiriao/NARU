@@ -1,7 +1,7 @@
 #ifndef NARU_BITSTREAM_H_INCLUDED
 #define NARU_BITSTREAM_H_INCLUDED
 
-#include "NARUStdint.h"
+#include "naru_stdint.h"
 #include <stdio.h>
 
 /* マクロ展開して処理を行うか？ */
@@ -29,8 +29,8 @@ struct NARUBitStream {
 
 #if defined(NARUBITSTREAM_PROCESS_BY_MACRO) 
 
-#include "NARUInternal.h"
-#include "NARUUtility.h"
+#include "naru_internal.h"
+#include "naru_utility.h"
 
 /* valの下位nbitsを取得 */
 #define NARUBITSTREAM_GETLOWERBITS(val, nbits) ((val) & g_naru_bitstream_lower_bits_mask[(nbits)])

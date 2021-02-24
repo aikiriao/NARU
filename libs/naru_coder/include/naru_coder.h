@@ -1,8 +1,8 @@
 #ifndef NARU_CODER_H_INCLUDED
 #define NARU_CODER_H_INCLUDED
 
-#include "NARUBitStream.h"
-#include "NARUStdint.h"
+#include "naru_stdint.h"
+#include "naru_bit_stream.h"
 
 /* 符号化ハンドル */
 struct NARUCoder;

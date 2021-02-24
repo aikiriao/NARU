@@ -5,7 +5,7 @@
 
 /* テスト対象のモジュール */
 extern "C" {
-#include "../../libs/NARUBitStream/src/NARUBitStream.c"
+#include "../../libs/naru_bit_stream/src/naru_bit_stream.c"
 }
 
 /* インスタンス作成破棄テスト */

@@ -5,7 +5,7 @@
 
 /* テスト対象のモジュール */
 extern "C" {
-#include "../../libs/NARUCoder/src/NARUCoder.c"
+#include "../../libs/naru_coder/src/naru_coder.c"
 }
 
 /* 再帰的ライス符号テスト */

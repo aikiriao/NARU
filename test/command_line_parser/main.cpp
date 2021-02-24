@@ -5,7 +5,7 @@
 
 /* テスト対象のモジュール */
 extern "C" {
-#include "../../libs/CommandLineParser/src/command_line_parser.c"
+#include "../../libs/command_line_parser/src/command_line_parser.c"
 }
 
 /* ショートオプションの取得テスト */

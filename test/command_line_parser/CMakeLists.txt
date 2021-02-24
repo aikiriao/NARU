@@ -9,7 +9,7 @@ set(TEST_NAME command_line_parser_test)
 add_executable(${TEST_NAME} main.cpp)
 
 # インクルードディレクトリ
-include_directories(${PROJECT_ROOT_PATH}/libs/CommandLineParser/include)
+include_directories(${PROJECT_ROOT_PATH}/libs/command_line_parser/include)
 
 # リンクするライブラリ
 target_link_libraries(${TEST_NAME} gtest) 

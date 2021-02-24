@@ -1,6 +1,6 @@
-#include "NARUCoder.h"
-#include "NARUUtility.h"
-#include "NARUInternal.h"
+#include "naru_coder.h"
+#include "naru_utility.h"
+#include "naru_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>

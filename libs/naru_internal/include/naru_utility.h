@@ -1,7 +1,7 @@
 #ifndef NARU_UTILITY_H_INCLUDED
 #define NARU_UTILITY_H_INCLUDED
 
-#include "NARUStdint.h"
+#include "naru_stdint.h"
 
 /* 円周率 */
 #define NARU_PI              3.1415926535897932384626433832795029
