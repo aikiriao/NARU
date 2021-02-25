@@ -47,8 +47,8 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
 #define NARUBitReader_Open(stream, memory, size)\
   do {\
     /* 引数チェック */\
-    NARU_Assert((void *)(stream) != NULL);\
-    NARU_Assert((void *)(memory) != NULL);\
+    NARU_ASSERT((void *)(stream) != NULL);\
+    NARU_ASSERT((void *)(memory) != NULL);\
 \
     /* 内部状態リセット */\
     (stream)->flags = 0;\
@@ -72,8 +72,8 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
 #define NARUBitWriter_Open(stream, memory, size)\
   do {\
     /* 引数チェック */\
-    NARU_Assert((void *)(stream) != NULL);\
-    NARU_Assert((void *)(memory) != NULL);\
+    NARU_ASSERT((void *)(stream) != NULL);\
+    NARU_ASSERT((void *)(memory) != NULL);\
 \
     /* 内部状態リセット */\
     (stream)->flags = 0;\
@@ -97,7 +97,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
 #define NARUBitStream_Close(stream)\
   do {\
     /* 引数チェック */\
-    NARU_Assert((void *)(stream) != NULL);\
+    NARU_ASSERT((void *)(stream) != NULL);\
 \
     /* 残ったデータをフラッシュ */\
     NARUBitStream_Flush(stream);\
@@ -120,7 +120,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     uint8_t* __pos = NULL;\
 \
     /* 引数チェック */\
-    NARU_Assert((void *)(stream) != NULL);\
+    NARU_ASSERT((void *)(stream) != NULL);\
 \
     /* 内部バッファをクリア（副作用が起こる） */\
     NARUBitStream_Flush(stream);\
@@ -138,16 +138,16 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
             + ((stream)->memory_size - 1));\
         break;\
       default:\
-        NARU_Assert(0);\
+        NARU_ASSERT(0);\
     }\
 \
     /* オフセット分動かす */\
     __pos += (offset);\
 \
     /* 範囲チェック */\
-    NARU_Assert(__pos\
+    NARU_ASSERT(__pos\
         < ((stream)->memory_image + (stream)->memory_size));\
-    NARU_Assert(__pos >= (stream)->memory_image);\
+    NARU_ASSERT(__pos >= (stream)->memory_image);\
 \
     /* 結果の保存 */\
     (stream)->memory_p = __pos;\
@@ -157,8 +157,8 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
 #define NARUBitStream_Tell(stream, result)\
   do {\
     /* 引数チェック */\
-    NARU_Assert((void *)(stream) != NULL);\
-    NARU_Assert((void *)(result) != NULL);\
+    NARU_ASSERT((void *)(stream) != NULL);\
+    NARU_ASSERT((void *)(result) != NULL);\
 \
     /* アクセスオフセットを返す */\
     (*result) = (int32_t)\
@@ -171,16 +171,16 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     uint32_t __nbits;\
 \
     /* 引数チェック */\
-    NARU_Assert((void *)(stream) != NULL);\
+    NARU_ASSERT((void *)(stream) != NULL);\
 \
     /* 読み込みモードでは実行不可能 */\
-    NARU_Assert(!((stream)->flags & NARUBITSTREAM_FLAGS_MODE_READ));\
+    NARU_ASSERT(!((stream)->flags & NARUBITSTREAM_FLAGS_MODE_READ));\
 \
     /* 出力可能な最大ビット数を越えている */\
-    NARU_Assert((nbits) <= (sizeof(uint64_t) * 8));\
+    NARU_ASSERT((nbits) <= (sizeof(uint64_t) * 8));\
 \
     /* 0ビット出力は冗長なのでアサートで落とす */\
-    NARU_Assert((nbits) > 0);\
+    NARU_ASSERT((nbits) > 0);\
 \
     /* valの上位ビットから順次出力\
      * 初回ループでは端数（出力に必要なビット数）分を埋め出力\
@@ -211,7 +211,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
 \
     /* 端数ビットの処理:\
      * 残った分をバッファの上位ビットにセット */\
-    NARU_Assert(__nbits <= 8);\
+    NARU_ASSERT(__nbits <= 8);\
     (stream)->bit_count  -= __nbits;\
     (stream)->bit_buffer\
       |= (uint32_t)NARUBITSTREAM_GETLOWERBITS(\
@@ -226,14 +226,14 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     uint64_t __tmp = 0;\
 \
     /* 引数チェック */\
-    NARU_Assert((void *)(stream) != NULL);\
-    NARU_Assert((void *)(val) != NULL);\
+    NARU_ASSERT((void *)(stream) != NULL);\
+    NARU_ASSERT((void *)(val) != NULL);\
 \
     /* 読み込みモードでない場合はアサート */\
-    NARU_Assert((stream)->flags & NARUBITSTREAM_FLAGS_MODE_READ);\
+    NARU_ASSERT((stream)->flags & NARUBITSTREAM_FLAGS_MODE_READ);\
 \
     /* 入力可能な最大ビット数を越えている */\
-    NARU_Assert((nbits) <= (sizeof(uint64_t) * 8));\
+    NARU_ASSERT((nbits) <= (sizeof(uint64_t) * 8));\
 \
     /* 最上位ビットからデータを埋めていく\
      * 初回ループではtmpの上位ビットにセット\
@@ -278,8 +278,8 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     uint32_t __run;\
 \
     /* 引数チェック */\
-    NARU_Assert((void *)(stream) != NULL);\
-    NARU_Assert((void *)(runlength) != NULL);\
+    NARU_ASSERT((void *)(stream) != NULL);\
+    NARU_ASSERT((void *)(runlength) != NULL);\
 \
     /* 上位ビットからの連続する0をNLZで計測 */\
     /* (1 << (31 - (stream)->bit_count)) はラン長が\
@@ -332,7 +332,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
 #define NARUBitStream_Flush(stream)\
   do {\
     /* 引数チェック */\
-    NARU_Assert((void *)(stream) != NULL);\
+    NARU_ASSERT((void *)(stream) != NULL);\
 \
     /* 既に先頭にあるときは何もしない */\
     if ((stream)->bit_count < 8) {\

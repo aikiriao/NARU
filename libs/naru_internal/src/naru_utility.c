@@ -26,7 +26,7 @@ void NARUUtility_ApplyWindow(const double* window, double* data, uint32_t num_sa
 {
   uint32_t smpl;
 
-  NARU_Assert(window != NULL && data != NULL);
+  NARU_ASSERT(window != NULL && data != NULL);
 
   for (smpl = 0; smpl < num_samples; smpl++) {
     data[smpl] *= window[smpl];
@@ -39,7 +39,7 @@ void NARUUtility_MakeSinWindow(double* window, uint32_t window_size)
   uint32_t  smpl;
   double    x;
 
-  NARU_Assert(window != NULL);
+  NARU_ASSERT(window != NULL);
 
   /* 0除算対策 */
   if (window_size == 1) {
@@ -88,10 +88,10 @@ void NARUUtility_LRtoMSDouble(double **data,
   uint32_t  smpl;
   double    mid, side;
 
-  NARU_Assert(data != NULL);
-  NARU_Assert(data[0] != NULL);
-  NARU_Assert(data[1] != NULL);
-  NARU_Assert(num_channels >= 2);
+  NARU_ASSERT(data != NULL);
+  NARU_ASSERT(data[0] != NULL);
+  NARU_ASSERT(data[1] != NULL);
+  NARU_ASSERT(num_channels >= 2);
 
   for (smpl = 0; smpl < num_samples; smpl++) {
     mid   = (data[0][smpl] + data[1][smpl]) / 2;
@@ -108,17 +108,17 @@ void NARUUtility_LRtoMSInt32(int32_t **data,
   uint32_t  smpl;
   int32_t   mid, side;
 
-  NARU_Assert(data != NULL);
-  NARU_Assert(data[0] != NULL);
-  NARU_Assert(data[1] != NULL);
-  NARU_Assert(num_channels >= 2);
+  NARU_ASSERT(data != NULL);
+  NARU_ASSERT(data[0] != NULL);
+  NARU_ASSERT(data[1] != NULL);
+  NARU_ASSERT(num_channels >= 2);
 
   for (smpl = 0; smpl < num_samples; smpl++) {
     mid   = (data[0][smpl] + data[1][smpl]) >> 1; /* 注意: 右シフト必須(/2ではだめ。0方向に丸められる) */
     side  = data[0][smpl] - data[1][smpl];
     /* 戻るかその場で確認 */
-    NARU_Assert(data[0][smpl] == ((((mid << 1) | (side & 1)) + side) >> 1));
-    NARU_Assert(data[1][smpl] == ((((mid << 1) | (side & 1)) - side) >> 1));
+    NARU_ASSERT(data[0][smpl] == ((((mid << 1) | (side & 1)) + side) >> 1));
+    NARU_ASSERT(data[1][smpl] == ((((mid << 1) | (side & 1)) - side) >> 1));
     data[0][smpl] = mid; 
     data[1][smpl] = side;
   }
@@ -131,10 +131,10 @@ void NARUUtility_MStoLRInt32(int32_t **data,
   uint32_t  smpl;
   int32_t   mid, side;
 
-  NARU_Assert(data != NULL);
-  NARU_Assert(data[0] != NULL);
-  NARU_Assert(data[1] != NULL);
-  NARU_Assert(num_channels >= 2);
+  NARU_ASSERT(data != NULL);
+  NARU_ASSERT(data[0] != NULL);
+  NARU_ASSERT(data[1] != NULL);
+  NARU_ASSERT(num_channels >= 2);
 
   for (smpl = 0; smpl < num_samples; smpl++) {
     side  = data[1][smpl];
@@ -165,7 +165,7 @@ uint32_t NARUUtility_GetDataBitWidth(
   uint32_t smpl;
   uint32_t maxabs, abs;
 
-  NARU_Assert(data != NULL);
+  NARU_ASSERT(data != NULL);
 
   /* 最大絶対値の計測 */
   maxabs = 0;

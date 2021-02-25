@@ -49,8 +49,8 @@ static void NARUGolomb_PutCode(struct NARUBitStream* strm, uint32_t m, uint32_t 
   uint32_t rest;
   uint32_t b, two_b;
 
-  NARU_Assert(strm != NULL);
-  NARU_Assert(m != 0);
+  NARU_ASSERT(strm != NULL);
+  NARU_ASSERT(m != 0);
 
   /* 商部分長と剰余部分の計算 */
   quot = val / m;
@@ -89,8 +89,8 @@ static uint32_t NARUGolomb_GetCode(struct NARUBitStream* strm, uint32_t m)
   uint64_t rest;
   uint32_t b, two_b;
 
-  NARU_Assert(strm != NULL);
-  NARU_Assert(m != 0);
+  NARU_ASSERT(strm != NULL);
+  NARU_ASSERT(m != 0);
 
   /* 前半のunary符号部分を読み取り */
   NARUBitReader_GetZeroRunLength(strm, &quot);
@@ -123,7 +123,7 @@ static void NARUGamma_PutCode(struct NARUBitStream* strm, uint32_t val)
 {
   uint32_t ndigit;
 
-  NARU_Assert(strm != NULL);
+  NARU_ASSERT(strm != NULL);
 
   if (val == 0) {
     /* 符号化対象が0ならば1を出力して終了 */
@@ -145,7 +145,7 @@ static uint32_t NARUGamma_GetCode(struct NARUBitStream* strm)
   uint32_t ndigit;
   uint64_t bitsbuf;
 
-  NARU_Assert(strm != NULL);
+  NARU_ASSERT(strm != NULL);
 
   /* 桁数を取得 */
   /* 1が出現するまで桁数を増加 */
@@ -167,7 +167,7 @@ static uint32_t NARUGamma_GetCode(struct NARUBitStream* strm)
 static void NARURecursiveRice_PutQuotPart(
     struct NARUBitStream* strm, uint32_t quot)
 {
-  NARU_Assert(strm != NULL);
+  NARU_ASSERT(strm != NULL);
 
   while (quot > 0) {
     NARUBitWriter_PutBits(strm, 0, 1);
@@ -181,7 +181,7 @@ static uint32_t NARURecursiveRice_GetQuotPart(struct NARUBitStream* strm)
 {
   uint32_t quot;
   
-  NARU_Assert(strm != NULL);
+  NARU_ASSERT(strm != NULL);
 
   NARUBitReader_GetZeroRunLength(strm, &quot);
 
@@ -192,9 +192,9 @@ static uint32_t NARURecursiveRice_GetQuotPart(struct NARUBitStream* strm)
 static void NARURecursiveRice_PutRestPart(
     struct NARUBitStream* strm, uint32_t val, uint32_t m)
 {
-  NARU_Assert(strm != NULL);
-  NARU_Assert(m != 0);
-  NARU_Assert(NARUUTILITY_IS_POWERED_OF_2(m));
+  NARU_ASSERT(strm != NULL);
+  NARU_ASSERT(m != 0);
+  NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(m));
 
   /* m == 1の時はスキップ（剰余は0で確定だから） */
   if (m != 1) {
@@ -207,9 +207,9 @@ static uint32_t NARURecursiveRice_GetRestPart(struct NARUBitStream* strm, uint32
 {
   uint64_t rest;
 
-  NARU_Assert(strm != NULL);
-  NARU_Assert(m != 0);
-  NARU_Assert(NARUUTILITY_IS_POWERED_OF_2(m));
+  NARU_ASSERT(strm != NULL);
+  NARU_ASSERT(m != 0);
+  NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(m));
 
   /* 1の剰余は0 */
   if (m == 1) {
@@ -228,10 +228,10 @@ static void NARURecursiveRice_PutCode(
 {
   uint32_t i, reduced_val, param;
 
-  NARU_Assert(strm != NULL);
-  NARU_Assert(rice_parameters != NULL);
-  NARU_Assert(num_params != 0);
-  NARU_Assert(NARUCODER_PARAMETER_GET(rice_parameters, 0) != 0);
+  NARU_ASSERT(strm != NULL);
+  NARU_ASSERT(rice_parameters != NULL);
+  NARU_ASSERT(num_params != 0);
+  NARU_ASSERT(NARUCODER_PARAMETER_GET(rice_parameters, 0) != 0);
 
   reduced_val = val;
   for (i = 0; i < (num_params - 1); i++) {
@@ -256,7 +256,7 @@ static void NARURecursiveRice_PutCode(
   if (i == (num_params - 1)) {
     uint32_t tail_param = NARURICE_CALCULATE_RICE_PARAMETER(rice_parameters, i);
     uint32_t tail_quot  = i + reduced_val / tail_param;
-    NARU_Assert(NARUUTILITY_IS_POWERED_OF_2(tail_param));
+    NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(tail_param));
     /* 商が大きい場合はガンマ符号を使用する */
     if (tail_quot < NARUCODER_QUOTPART_THRESHOULD) {
       NARURecursiveRice_PutQuotPart(strm, tail_quot);
@@ -278,10 +278,10 @@ static uint32_t NARURecursiveRice_GetCode(
   uint32_t  i, quot, val;
   uint32_t  param, tmp_val;
 
-  NARU_Assert(strm != NULL);
-  NARU_Assert(rice_parameters != NULL);
-  NARU_Assert(num_params != 0);
-  NARU_Assert(NARUCODER_PARAMETER_GET(rice_parameters, 0) != 0);
+  NARU_ASSERT(strm != NULL);
+  NARU_ASSERT(rice_parameters != NULL);
+  NARU_ASSERT(num_params != 0);
+  NARU_ASSERT(NARUCODER_PARAMETER_GET(rice_parameters, 0) != 0);
 
   /* 商部分を取得 */
   quot = NARURecursiveRice_GetQuotPart(strm);
@@ -367,8 +367,8 @@ void NARUCoder_CalculateInitialRecursiveRiceParameter(
   uint32_t ch, smpl, i, init_param;
   uint64_t sum;
 
-  NARU_Assert((coder != NULL) && (data != NULL));
-  NARU_Assert(num_parameters <= coder->max_num_parameters);
+  NARU_ASSERT((coder != NULL) && (data != NULL));
+  NARU_ASSERT(num_parameters <= coder->max_num_parameters);
 
   for (ch = 0; ch < num_channels; ch++) {
     /* パラメータ初期値（平均値）の計算 */
@@ -394,14 +394,14 @@ void NARUCoder_PutInitialRecursiveRiceParameter(
   uint64_t first_order_param;
 
   NARUUTILITY_UNUSED_ARGUMENT(num_parameters);
-  NARU_Assert((strm != NULL) && (coder != NULL));
-  NARU_Assert(num_parameters <= coder->max_num_parameters);
-  NARU_Assert(channel_index < coder->max_num_channels);
+  NARU_ASSERT((strm != NULL) && (coder != NULL));
+  NARU_ASSERT(num_parameters <= coder->max_num_parameters);
+  NARU_ASSERT(channel_index < coder->max_num_channels);
 
   /* 1次パラメータを取得 */
   first_order_param = NARUCODER_PARAMETER_GET(coder->init_rice_parameter[channel_index], 0);
   /* 書き出し */
-  NARU_Assert(first_order_param < (1UL << bitwidth));
+  NARU_ASSERT(first_order_param < (1UL << bitwidth));
   NARUBitWriter_PutBits(strm, first_order_param, bitwidth);
 }
 
@@ -413,13 +413,13 @@ void NARUCoder_GetInitialRecursiveRiceParameter(
   uint32_t i;
   uint64_t first_order_param;
 
-  NARU_Assert((strm != NULL) && (coder != NULL));
-  NARU_Assert(num_parameters <= coder->max_num_parameters);
-  NARU_Assert(channel_index < coder->max_num_channels);
+  NARU_ASSERT((strm != NULL) && (coder != NULL));
+  NARU_ASSERT(num_parameters <= coder->max_num_parameters);
+  NARU_ASSERT(channel_index < coder->max_num_channels);
 
   /* 初期パラメータの取得 */
   NARUBitReader_GetBits(strm, &first_order_param, bitwidth);
-  NARU_Assert(first_order_param < (1UL << bitwidth));
+  NARU_ASSERT(first_order_param < (1UL << bitwidth));
   /* 初期パラメータの取得 */
   for (i = 0; i < num_parameters; i++) {
     NARUCODER_PARAMETER_SET(coder->init_rice_parameter[channel_index], i, (uint32_t)first_order_param);
@@ -435,10 +435,10 @@ void NARUCoder_PutDataArray(
 {
   uint32_t smpl, ch;
 
-  NARU_Assert((strm != NULL) && (data != NULL) && (coder != NULL));
-  NARU_Assert((num_parameters != 0) && (num_parameters <= coder->max_num_parameters));
-  NARU_Assert(num_samples != 0);
-  NARU_Assert(num_channels != 0);
+  NARU_ASSERT((strm != NULL) && (data != NULL) && (coder != NULL));
+  NARU_ASSERT((num_parameters != 0) && (num_parameters <= coder->max_num_parameters));
+  NARU_ASSERT(num_samples != 0);
+  NARU_ASSERT(num_channels != 0);
 
   /* チャンネルインターリーブしつつ符号化 */
   for (smpl = 0; smpl < num_samples; smpl++) {
@@ -457,8 +457,8 @@ void NARUCoder_GetDataArray(
 {
   uint32_t ch, smpl, abs;
 
-  NARU_Assert((strm != NULL) && (data != NULL) && (coder != NULL));
-  NARU_Assert((num_parameters != 0) && (num_samples != 0));
+  NARU_ASSERT((strm != NULL) && (data != NULL) && (coder != NULL));
+  NARU_ASSERT((num_parameters != 0) && (num_samples != 0));
 
   /* パラメータを適応的に変更しつつ符号化 */
   for (smpl = 0; smpl < num_samples; smpl++) {

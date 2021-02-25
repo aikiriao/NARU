@@ -18,10 +18,10 @@
 /* アサートマクロ */
 #ifdef NDEBUG
 /* 未使用変数警告を明示的に回避 */
-#define NARU_Assert(condition) ((void)(condition))
+#define NARU_ASSERT(condition) ((void)(condition))
 #else
 #include <assert.h>
-#define NARU_Assert(condition) assert(condition)
+#define NARU_ASSERT(condition) assert(condition)
 #endif
 
 /* ブロックデータタイプ */

@@ -47,8 +47,8 @@ const uint32_t g_naru_bitstream_zerobit_runlength_table[256] = {
 void NARUBitReader_Open(struct NARUBitStream* stream,
     uint8_t* memory_image, size_t memory_size)
 {
-  NARU_Assert(stream != NULL);
-  NARU_Assert(memory_image != NULL);
+  NARU_ASSERT(stream != NULL);
+  NARU_ASSERT(memory_image != NULL);
 
   /* 内部状態リセット */
   stream->flags = 0;
@@ -72,8 +72,8 @@ void NARUBitReader_Open(struct NARUBitStream* stream,
 void NARUBitWriter_Open(struct NARUBitStream* stream,
     uint8_t* memory_image, size_t memory_size)
 {
-  NARU_Assert(stream != NULL);
-  NARU_Assert(memory_image != NULL);
+  NARU_ASSERT(stream != NULL);
+  NARU_ASSERT(memory_image != NULL);
 
   /* 内部状態リセット */
   stream->flags = 0;
@@ -96,7 +96,7 @@ void NARUBitWriter_Open(struct NARUBitStream* stream,
 /* ビットストリームのクローズ */
 void NARUBitStream_Close(struct NARUBitStream* stream)
 {
-  NARU_Assert(stream != NULL);
+  NARU_ASSERT(stream != NULL);
 
   /* 残ったデータをフラッシュ */
   NARUBitStream_Flush(stream);
@@ -119,7 +119,7 @@ void NARUBitStream_Seek(struct NARUBitStream* stream, int32_t offset, int32_t or
   uint8_t* pos = NULL;
 
   /* 引数チェック */
-  NARU_Assert(stream != NULL);
+  NARU_ASSERT(stream != NULL);
 
   /* 内部バッファをクリア（副作用が起こる） */
   NARUBitStream_Flush(stream);
@@ -136,15 +136,15 @@ void NARUBitStream_Seek(struct NARUBitStream* stream, int32_t offset, int32_t or
       pos = (uint8_t *)(stream->memory_image + (stream->memory_size - 1));
       break;
     default:
-      NARU_Assert(0);
+      NARU_ASSERT(0);
   }
 
   /* オフセット分動かす */
   pos += offset;
 
   /* 範囲チェック */
-  NARU_Assert(pos < (stream->memory_image + stream->memory_size));
-  NARU_Assert(pos >= stream->memory_image);
+  NARU_ASSERT(pos < (stream->memory_image + stream->memory_size));
+  NARU_ASSERT(pos >= stream->memory_image);
 
   /* 結果の保存 */
   stream->memory_p = pos;
@@ -154,7 +154,7 @@ void NARUBitStream_Seek(struct NARUBitStream* stream, int32_t offset, int32_t or
 void NARUBitStream_Tell(struct NARUBitStream* stream, int32_t* result)
 {
   /* 引数チェック */
-  NARU_Assert((stream != NULL) && (result != NULL));
+  NARU_ASSERT((stream != NULL) && (result != NULL));
 
   /* アクセスオフセットを返す */
   (*result) = (int32_t)(stream->memory_p - stream->memory_image);
@@ -166,16 +166,16 @@ void NARUBitWriter_PutBits(struct NARUBitStream* stream, uint64_t val, uint32_t 
   uint32_t bitcount;
 
   /* 引数チェック */
-  NARU_Assert(stream != NULL);
+  NARU_ASSERT(stream != NULL);
 
   /* 読み込みモードでは実行不可能 */
-  NARU_Assert(!(stream->flags & NARUBITSTREAM_FLAGS_MODE_READ));
+  NARU_ASSERT(!(stream->flags & NARUBITSTREAM_FLAGS_MODE_READ));
 
   /* 出力可能な最大ビット数を越えている */
-  NARU_Assert(nbits <= (sizeof(uint64_t) * 8));
+  NARU_ASSERT(nbits <= (sizeof(uint64_t) * 8));
 
   /* 0ビット出力は冗長なのでアサートで落とす */
-  NARU_Assert(nbits > 0);
+  NARU_ASSERT(nbits > 0);
 
   /* valの上位ビットから順次出力
    * 初回ループでは端数（出力に必要なビット数）分を埋め出力
@@ -202,7 +202,7 @@ void NARUBitWriter_PutBits(struct NARUBitStream* stream, uint64_t val, uint32_t 
 
   /* 端数ビットの処理:
    * 残った分をバッファの上位ビットにセット */
-  NARU_Assert(bitcount <= 8);
+  NARU_ASSERT(bitcount <= 8);
   stream->bit_count  -= bitcount;
   stream->bit_buffer |= (uint32_t)NARUBITSTREAM_GETLOWERBITS(val, bitcount) << stream->bit_count;
 }
@@ -215,13 +215,13 @@ void NARUBitReader_GetBits(struct NARUBitStream* stream, uint64_t* val, uint32_t
   uint64_t tmp = 0;
 
   /* 引数チェック */
-  NARU_Assert((stream != NULL) && (val != NULL));
+  NARU_ASSERT((stream != NULL) && (val != NULL));
 
   /* 読み込みモードでない場合はアサートで落とす */
-  NARU_Assert(stream->flags & NARUBITSTREAM_FLAGS_MODE_READ);
+  NARU_ASSERT(stream->flags & NARUBITSTREAM_FLAGS_MODE_READ);
 
   /* 入力可能な最大ビット数を越えている */
-  NARU_Assert(nbits <= sizeof(uint64_t) * 8);
+  NARU_ASSERT(nbits <= sizeof(uint64_t) * 8);
 
   /* 最上位ビットからデータを埋めていく
    * 初回ループではtmpの上位ビットにセット
@@ -260,7 +260,7 @@ void NARUBitReader_GetZeroRunLength(struct NARUBitStream* stream, uint32_t* runl
   uint32_t run;
 
   /* 引数チェック */
-  NARU_Assert((stream != NULL) && (runlength != NULL));
+  NARU_ASSERT((stream != NULL) && (runlength != NULL));
 
   /* 上位ビットからの連続する0をNLZで計測 */
   /* (1 << (31 - stream->bit_count)) はラン長が伸びすぎないようにするためのビット */
@@ -310,7 +310,7 @@ void NARUBitReader_GetZeroRunLength(struct NARUBitStream* stream, uint32_t* runl
 void NARUBitStream_Flush(struct NARUBitStream* stream)
 {
   /* 引数チェック */
-  NARU_Assert(stream != NULL);
+  NARU_ASSERT(stream != NULL);
 
   /* 既に先頭にあるときは何もしない */
   if (stream->bit_count < 8) {
