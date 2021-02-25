@@ -89,13 +89,13 @@ static NARUError NARUDecoder_CheckHeaderFormat(const struct NARUHeaderInfo *head
   NARU_ASSERT(header != NULL);
 
   /* フォーマットバージョン */
-  /* 補足）今のところは無条件でエラー */
+  /* 補足）今のところは不一致なら無条件でエラー */
   if (header->format_version != NARU_FORMAT_VERSION) {
     return NARU_ERROR_INVALID_FORMAT;
   }
   /* コーデックバージョン */
-  /* 補足）今のところは無条件でエラー */
-  if (header->encoder_version != NARU_ENCODER_VERSION) {
+  /* 補足）今のところは不一致なら無条件でエラー */
+  if (header->encoder_version != NARU_CODEC_VERSION) {
     return NARU_ERROR_INVALID_FORMAT;
   }
   /* チャンネル数 */
