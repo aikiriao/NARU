@@ -5,7 +5,7 @@
 
 /* API結果型 */
 typedef enum LPCCalculatorApiResultTag {
-  LPCCALCULATOR_APIRESULT_OK,                     /* OK */
+  LPCCALCULATOR_APIRESULT_OK = 0,                 /* OK */
   LPCCALCULATOR_APIRESULT_NG,                     /* 分類不能なエラー */
   LPCCALCULATOR_APIRESULT_INVALID_ARGUMENT,       /* 不正な引数 */
   LPCCALCULATOR_APIRESULT_EXCEED_MAX_ORDER,       /* 最大次数を超えた */

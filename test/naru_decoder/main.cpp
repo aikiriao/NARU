@@ -41,7 +41,7 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
 
     /* デコードしたヘッダの一致確認 */
     EXPECT_EQ(NARU_FORMAT_VERSION, tmp_header.format_version);
-    EXPECT_EQ(NARU_ENCODER_VERSION, tmp_header.encoder_version);
+    EXPECT_EQ(NARU_CODEC_VERSION, tmp_header.encoder_version);
     EXPECT_EQ(header.num_channels, tmp_header.num_channels);
     EXPECT_EQ(header.sampling_rate, tmp_header.sampling_rate);
     EXPECT_EQ(header.bits_per_sample, tmp_header.bits_per_sample);
@@ -92,7 +92,7 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
     EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
     memcpy(data, valid_data, sizeof(valid_data));
     memset(&getheader, 0xCD, sizeof(getheader));
-    ByteArray_WriteUint32BE(&data[8], NARU_ENCODER_VERSION + 1);
+    ByteArray_WriteUint32BE(&data[8], NARU_CODEC_VERSION + 1);
     EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
     EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
 

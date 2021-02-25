@@ -4,13 +4,13 @@
 #include "naru_stdint.h"
 
 /* フォーマットバージョン */
-#define NARU_FORMAT_VERSION          1
+#define NARU_FORMAT_VERSION 1
 
-/* エンコーダバージョン */
-#define NARU_ENCODER_VERSION         1
+/* コーデックバージョン */
+#define NARU_CODEC_VERSION  1
 
 /* ヘッダサイズ[byte] */
-#define NARU_HEADER_SIZE             31
+#define NARU_HEADER_SIZE    31
 
 /* API結果型 */
 typedef enum NARUApiResultTag {
