@@ -32,4 +32,14 @@ typedef enum NARUBlockDataTypeTag {
   NARU_BLOCK_DATA_TYPE_INVAILD       = 3      /* 無効           */
 } NARUBlockDataType;
 
+/* 内部エラー型 */
+typedef enum NARUErrorTag {
+  NARU_ERROR_OK = 0,              /* OK */
+  NARU_ERROR_NG,                  /* 分類不能な失敗 */
+  NARU_ERROR_INVALID_ARGUMENT,    /* 不正な引数 */
+  NARU_ERROR_INVALID_FORMAT,      /* 不正なフォーマット       */
+  NARU_ERROR_INSUFFICIENT_BUFFER, /* バッファサイズが足りない */
+  NARU_ERROR_INSUFFICIENT_DATA    /* データサイズが足りない   */
+} NARUError;
+
 #endif /* NARU_INTERNAL_H_INCLUDED */
