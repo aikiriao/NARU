@@ -17,13 +17,13 @@ add_subdirectory(src)
 # インクルードパス
 target_include_directories(${LIB_NAME}
   PRIVATE
-    ${PROJECT_ROOT_PATH}/include
     ${PROJECT_ROOT_PATH}/libs/byte_array/include
     ${PROJECT_ROOT_PATH}/libs/naru_internal/include
     ${PROJECT_ROOT_PATH}/libs/naru_bit_stream/include
     ${PROJECT_ROOT_PATH}/libs/naru_coder/include
-  PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PUBLIC
+    ${PROJECT_ROOT_PATH}/include
 )
 
 # コンパイルオプション

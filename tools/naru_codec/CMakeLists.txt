@@ -12,19 +12,11 @@ set(APP_NAME naru)
 add_executable(${APP_NAME} naru_codec.c)
 
 # 依存するサブディレクトリを追加
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/command_line_parser ${CMAKE_CURRENT_BINARY_DIR}/command_line_parser)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/wav ${CMAKE_CURRENT_BINARY_DIR}/wav)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/lpc_calculator ${CMAKE_CURRENT_BINARY_DIR}/lpc_calculator)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/byte_array ${CMAKE_CURRENT_BINARY_DIR}/byte_array)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/naru_internal ${CMAKE_CURRENT_BINARY_DIR}/naru_internal)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/naru_bit_stream ${CMAKE_CURRENT_BINARY_DIR}/naru_bit_stream)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/naru_coder ${CMAKE_CURRENT_BINARY_DIR}/naru_coder)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/naru_encoder ${CMAKE_CURRENT_BINARY_DIR}/naru_encoder)
-add_subdirectory(${PROJECT_ROOT_PATH}/libs/naru_decoder ${CMAKE_CURRENT_BINARY_DIR}/naru_decoder)
+add_subdirectory(${PROJECT_ROOT_PATH}/libs ${CMAKE_CURRENT_BINARY_DIR}/libs)
 
 # インクルードパス
 target_include_directories(${APP_NAME}
-  PUBLIC
+  PRIVATE
     ${PROJECT_ROOT_PATH}/include
 )
 
