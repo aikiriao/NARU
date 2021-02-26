@@ -82,8 +82,7 @@ uint32_t NARUUtility_RoundUp2PoweredSoft(uint32_t val)
 }
 
 /* LR -> MS（double） */
-void NARUUtility_LRtoMSDouble(double **data,
-    uint32_t num_channels, uint32_t num_samples)
+void NARUUtility_LRtoMSDouble(double **data, uint32_t num_samples)
 {
   uint32_t  smpl;
   double    mid, side;
@@ -91,7 +90,6 @@ void NARUUtility_LRtoMSDouble(double **data,
   NARU_ASSERT(data != NULL);
   NARU_ASSERT(data[0] != NULL);
   NARU_ASSERT(data[1] != NULL);
-  NARU_ASSERT(num_channels >= 2);
 
   for (smpl = 0; smpl < num_samples; smpl++) {
     mid   = (data[0][smpl] + data[1][smpl]) / 2;
@@ -102,8 +100,7 @@ void NARUUtility_LRtoMSDouble(double **data,
 }
 
 /* LR -> MS（int32_t） */
-void NARUUtility_LRtoMSInt32(int32_t **data, 
-    uint32_t num_channels, uint32_t num_samples)
+void NARUUtility_LRtoMSInt32(int32_t **data, uint32_t num_samples)
 {
   uint32_t  smpl;
   int32_t   mid, side;
@@ -111,7 +108,6 @@ void NARUUtility_LRtoMSInt32(int32_t **data,
   NARU_ASSERT(data != NULL);
   NARU_ASSERT(data[0] != NULL);
   NARU_ASSERT(data[1] != NULL);
-  NARU_ASSERT(num_channels >= 2);
 
   for (smpl = 0; smpl < num_samples; smpl++) {
     mid   = (data[0][smpl] + data[1][smpl]) >> 1; /* 注意: 右シフト必須(/2ではだめ。0方向に丸められる) */
@@ -125,8 +121,7 @@ void NARUUtility_LRtoMSInt32(int32_t **data,
 }
 
 /* MS -> LR（int32_t） */
-void NARUUtility_MStoLRInt32(int32_t **data, 
-    uint32_t num_channels, uint32_t num_samples)
+void NARUUtility_MStoLRInt32(int32_t **data, uint32_t num_samples)
 {
   uint32_t  smpl;
   int32_t   mid, side;
@@ -134,7 +129,6 @@ void NARUUtility_MStoLRInt32(int32_t **data,
   NARU_ASSERT(data != NULL);
   NARU_ASSERT(data[0] != NULL);
   NARU_ASSERT(data[1] != NULL);
-  NARU_ASSERT(num_channels >= 2);
 
   for (smpl = 0; smpl < num_samples; smpl++) {
     side  = data[1][smpl];

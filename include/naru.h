@@ -4,13 +4,16 @@
 #include "naru_stdint.h"
 
 /* フォーマットバージョン */
-#define NARU_FORMAT_VERSION 1
+#define NARU_FORMAT_VERSION   1
 
 /* コーデックバージョン */
-#define NARU_CODEC_VERSION  1
+#define NARU_CODEC_VERSION    1
+
+/* 処理可能な最大チャンネル数 */
+#define NARU_MAX_NUM_CHANNELS 8
 
 /* ヘッダサイズ[byte] */
-#define NARU_HEADER_SIZE    31
+#define NARU_HEADER_SIZE      31
 
 /* API結果型 */
 typedef enum NARUApiResultTag {
@@ -33,7 +36,7 @@ typedef enum NARUChannelProcessMethodTag {
 /* ヘッダ情報 */
 struct NARUHeaderInfo {
   uint32_t format_version;                    /* フォーマットバージョン         */
-  uint32_t encoder_version;                   /* エンコーダバージョン           */
+  uint32_t codec_version;                     /* エンコーダバージョン           */
   uint16_t num_channels;                      /* チャンネル数                   */
   uint32_t num_samples;                       /* 1チャンネルあたり総サンプル数  */
   uint32_t sampling_rate;                     /* サンプリングレート             */

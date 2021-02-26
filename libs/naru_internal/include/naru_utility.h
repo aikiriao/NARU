@@ -75,13 +75,13 @@ uint32_t NARUUtility_NLZSoft(uint32_t val);
 uint32_t NARUUtility_RoundUp2PoweredSoft(uint32_t val);
 
 /* LR -> MS（double） */
-void NARUUtility_LRtoMSDouble(double **data, uint32_t num_channels, uint32_t num_samples);
+void NARUUtility_LRtoMSDouble(double **data, uint32_t num_samples);
 
 /* LR -> MS（int32_t） */
-void NARUUtility_LRtoMSInt32(int32_t **data, uint32_t num_channels, uint32_t num_samples);
+void NARUUtility_LRtoMSInt32(int32_t **data, uint32_t num_samples);
 
 /* MS -> LR（int32_t） */
-void NARUUtility_MStoLRInt32(int32_t **data, uint32_t num_channels, uint32_t num_samples);
+void NARUUtility_MStoLRInt32(int32_t **data, uint32_t num_samples);
 
 /* round関数（C89で定義されてない） */
 double NARUUtility_Round(double d);

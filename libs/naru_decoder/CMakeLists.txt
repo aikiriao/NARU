@@ -21,6 +21,7 @@ target_include_directories(${LIB_NAME}
     ${PROJECT_ROOT_PATH}/libs/byte_array/include
     ${PROJECT_ROOT_PATH}/libs/naru_internal/include
     ${PROJECT_ROOT_PATH}/libs/naru_bit_stream/include
+    ${PROJECT_ROOT_PATH}/libs/naru_coder/include
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
