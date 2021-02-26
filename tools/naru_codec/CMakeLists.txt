@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.1)
 set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 # プロジェクト名
-project(NaruCodec C)
+project(NARUCodec C)
 
 # アプリケーション名
 set(APP_NAME naru)
