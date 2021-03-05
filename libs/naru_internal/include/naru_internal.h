@@ -24,6 +24,9 @@
 #define NARU_ASSERT(condition) assert(condition)
 #endif
 
+/* 静的アサートマクロ */
+#define NARU_STATIC_ASSERT(expr) extern void assertion_failed(char dummy[(expr) ? 1 : -1])
+
 /* ブロックデータタイプ */
 typedef enum NARUBlockDataTypeTag {
   NARU_BLOCK_DATA_TYPE_COMPRESSDATA  = 0,     /* 圧縮済みデータ */
