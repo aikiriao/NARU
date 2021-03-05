@@ -12,6 +12,12 @@
 /* 処理可能な最大チャンネル数 */
 #define NARU_MAX_NUM_CHANNELS 8
 
+/* 最大フィルタ次数 */
+#define NARU_MAX_FILTER_ORDER 32
+
+/* 最大AR次数 */
+#define NARU_MAX_AR_ORDER     ((NARU_MAX_FILTER_ORDER / 2) - 1)
+
 /* ヘッダサイズ[byte] */
 #define NARU_HEADER_SIZE      32
 
