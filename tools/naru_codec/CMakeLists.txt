@@ -12,7 +12,7 @@ set(APP_NAME naru)
 add_executable(${APP_NAME} naru_codec.c)
 
 # 依存するサブディレクトリを追加
-add_subdirectory(${PROJECT_ROOT_PATH}/libs ${CMAKE_CURRENT_BINARY_DIR}/libs)
+add_subdirectory(${PROJECT_ROOT_PATH} ${CMAKE_CURRENT_BINARY_DIR}/narucodec)
 
 # インクルードパス
 target_include_directories(${APP_NAME}
@@ -23,13 +23,7 @@ target_include_directories(${APP_NAME}
 # リンクするライブラリ
 target_link_libraries(${APP_NAME} command_line_parser)
 target_link_libraries(${APP_NAME} wav)
-target_link_libraries(${APP_NAME} lpc_calculator)
-target_link_libraries(${APP_NAME} byte_array)
-target_link_libraries(${APP_NAME} naru_internal)
-target_link_libraries(${APP_NAME} naru_bit_stream)
-target_link_libraries(${APP_NAME} naru_coder)
-target_link_libraries(${APP_NAME} naru_encoder)
-target_link_libraries(${APP_NAME} naru_decoder)
+target_link_libraries(${APP_NAME} narucodec)
 
 # コンパイルオプション
 if(MSVC)
