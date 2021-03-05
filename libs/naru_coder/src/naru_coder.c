@@ -15,19 +15,21 @@
 /* 固定小数を符号なし整数に変換 */
 #define NARUCODER_FIXED_FLOAT_TO_UINT32(fixed)   (uint32_t)(((fixed) + (NARUCODER_FIXED_FLOAT_0_5)) >> (NARUCODER_NUM_FRACTION_PART_BITS))
 /* ゴロム符号パラメータ直接設定 */
-#define NARUCODER_PARAMETER_SET(param_array, order, val) {\
-  ((param_array)[(order)]) = NARUCODER_UINT32_TO_FIXED_FLOAT(val); \
-}
+#define NARUCODER_PARAMETER_SET(param_array, order, val)\
+  do {\
+    ((param_array)[(order)]) = NARUCODER_UINT32_TO_FIXED_FLOAT(val);\
+  } while (0);
 /* ゴロム符号パラメータ取得 : 1以上であることを担保 */
-#define NARUCODER_PARAMETER_GET(param_array, order) \
+#define NARUCODER_PARAMETER_GET(param_array, order)\
   (NARUUTILITY_MAX(NARUCODER_FIXED_FLOAT_TO_UINT32((param_array)[(order)]), 1UL))
 /* Rice符号のパラメータ更新式 */
 /* 指数平滑平均により平均値を推定 */
-#define NARURICE_PARAMETER_UPDATE(param_array, order, code) {\
-  (param_array)[(order)] = (NARURecursiveRiceParameter)(119 * (param_array)[(order)] + 9 * NARUCODER_UINT32_TO_FIXED_FLOAT(code) + (1UL << 6)) >> 7; \
-}
+#define NARURICE_PARAMETER_UPDATE(param_array, order, code)\
+  do {\
+    (param_array)[(order)] = (NARURecursiveRiceParameter)(119 * (param_array)[(order)] + 9 * NARUCODER_UINT32_TO_FIXED_FLOAT(code) + (1UL << 6)) >> 7;\
+  } while (0);
 /* Rice符号のパラメータ計算 2 ** ceil(log2(E(x)/2)) = E(x)/2の2の冪乗切り上げ */
-#define NARURICE_CALCULATE_RICE_PARAMETER(param_array, order) \
+#define NARURICE_CALCULATE_RICE_PARAMETER(param_array, order)\
   NARUUTILITY_ROUNDUP2POWERED(NARUUTILITY_MAX(NARUCODER_FIXED_FLOAT_TO_UINT32((param_array)[(order)] >> 1), 1UL))
 
 /* 再帰的ライス符号パラメータ型 */
@@ -188,7 +190,7 @@ static uint32_t NARURecursiveRice_GetQuotPart(struct NARUBitStream* strm)
   return quot;
 }
 
-/* 剰余部分を出力 */
+/* 剰余部分を出力 TODO:mはシフトパラメータでもいいはず */
 static void NARURecursiveRice_PutRestPart(
     struct NARUBitStream* strm, uint32_t val, uint32_t m)
 {
@@ -202,7 +204,7 @@ static void NARURecursiveRice_PutRestPart(
   }
 }
 
-/* 剰余部分を取得 */
+/* 剰余部分を取得 TODO:mはシフトパラメータでもいいはず */
 static uint32_t NARURecursiveRice_GetRestPart(struct NARUBitStream* strm, uint32_t m)
 {
   uint64_t rest;
@@ -255,7 +257,7 @@ static void NARURecursiveRice_PutCode(
   /* 末尾のパラメータに達した */
   if (i == (num_params - 1)) {
     uint32_t tail_param = NARURICE_CALCULATE_RICE_PARAMETER(rice_parameters, i);
-    uint32_t tail_quot  = i + reduced_val / tail_param;
+    uint32_t tail_quot  = i + reduced_val / tail_param; /* TODO: tail_paramは2の冪数だから、シフトに置き換えられる */ 
     NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(tail_param));
     /* 商が大きい場合はガンマ符号を使用する */
     if (tail_quot < NARUCODER_QUOTPART_THRESHOULD) {
