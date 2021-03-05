@@ -9,19 +9,19 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 /* エンコーダハンドル */
 struct NARUEncoder {
   struct NARUHeaderInfo      header;      /* ヘッダ */
   struct LPCCalculator       *lpcc;       /* LPC計算ハンドル */
-  struct NARUEncodeProcessor **processor; /* 信号処理ハンドル */
+  struct NARUEncodeProcessor *processor;  /* 信号処理ハンドル */
   struct NARUCoder           *coder;      /* 符号化ハンドル */
   uint8_t set_parameter;                  /* パラメータセット済み？ */
   struct NARUEncoderConfig   config;      /* 生成時コンフィグ */
-  double  *window;        /* 窓 */
-  int32_t **input;        /* 入力バッファ */
-  int32_t **residual;     /* 残差信号 */
-  double  **input_double; /* 入力バッファ（浮動小数） */
+  double  *window;                        /* 窓 */
+  int32_t **buffer;                       /* 信号バッファ */
+  double  *buffer_double;                 /* 信号処理バッファ（浮動小数） */
 };
 
 /* エンコードパラメータをヘッダに変換 */
@@ -35,6 +35,11 @@ static NARUApiResult NARUEncoder_EncodeBlock(
     struct NARUEncoder *encoder,
     const int32_t *const *input, uint32_t num_samples, 
     uint8_t *data, uint32_t data_size, uint32_t *output_size);
+
+/* 解析用のdouble信号作成 */
+static void NARUEncoder_MakeAnalyzingSignal(
+    const double *window, const int32_t *data_int, uint32_t num_samples,
+    uint32_t bits_per_sample, double *data_double);
 
 /* ヘッダエンコード */
 NARUApiResult NARUEncoder_EncodeHeader(
@@ -219,21 +224,18 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config)
   /* 各種ハンドルの作成 */
   encoder->lpcc = LPCCalculator_Create(config->max_filter_order);
   encoder->coder = NARUCoder_Create(config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER);
-  encoder->processor = (struct NARUEncodeProcessor **)malloc(sizeof(struct NARUEncodeProcessor *) * config->max_num_channels);
+  encoder->processor = (struct NARUEncodeProcessor *)malloc(sizeof(struct NARUEncodeProcessor) * config->max_num_channels);
   for (ch = 0; ch < config->max_num_channels; ch++) {
-    encoder->processor[ch] = NARUEncodeProcessor_Create(config->max_filter_order);
+    NARUEncodeProcessor_Reset(&(encoder->processor[ch]));
   }
 
   /* バッファ領域の確保 */
   encoder->window = (double *)malloc(sizeof(double) * config->max_num_samples_per_block);
-  encoder->input = (int32_t **)malloc(sizeof(int32_t *) * config->max_num_channels);
-  encoder->residual = (int32_t **)malloc(sizeof(int32_t *) * config->max_num_channels);
-  encoder->input_double = (double **)malloc(sizeof(double *) * config->max_num_channels);
+  encoder->buffer = (int32_t **)malloc(sizeof(int32_t *) * config->max_num_channels);
   for (ch = 0; ch < config->max_num_channels; ch++) {
-    encoder->input[ch] = (int32_t *)malloc(sizeof(int32_t) * config->max_num_samples_per_block);
-    encoder->residual[ch] = (int32_t *)malloc(sizeof(int32_t) * config->max_num_samples_per_block);
-    encoder->input_double[ch] = (double *)malloc(sizeof(int32_t) * config->max_num_samples_per_block);
+    encoder->buffer[ch] = (int32_t *)malloc(sizeof(int32_t) * config->max_num_samples_per_block);
   }
+  encoder->buffer_double = (double *)malloc(sizeof(double) * config->max_num_samples_per_block);
 
   /* パラメータは未セットに */
   encoder->set_parameter = 0;
@@ -247,17 +249,11 @@ void NARUEncoder_Destroy(struct NARUEncoder *encoder)
   if (encoder != NULL) {
     uint32_t ch;
     for (ch = 0; ch < encoder->config.max_num_channels; ch++) {
-      NARU_NULLCHECK_AND_FREE(encoder->input[ch]);
-      NARU_NULLCHECK_AND_FREE(encoder->residual[ch]);
-      NARU_NULLCHECK_AND_FREE(encoder->input_double[ch]);
+      NARU_NULLCHECK_AND_FREE(encoder->buffer[ch]);
     }
     NARU_NULLCHECK_AND_FREE(encoder->window);
-    NARU_NULLCHECK_AND_FREE(encoder->input);
-    NARU_NULLCHECK_AND_FREE(encoder->residual);
-    NARU_NULLCHECK_AND_FREE(encoder->input_double);
-    for (ch = 0; ch < encoder->config.max_num_channels; ch++) {
-      NARUEncodeProcessor_Destroy(encoder->processor[ch]);
-    }
+    NARU_NULLCHECK_AND_FREE(encoder->buffer);
+    NARU_NULLCHECK_AND_FREE(encoder->buffer_double);
     LPCCalculator_Destroy(encoder->lpcc);
     NARUCoder_Destroy(encoder->coder);
     NARU_NULLCHECK_AND_FREE(encoder->processor);
@@ -268,6 +264,7 @@ void NARUEncoder_Destroy(struct NARUEncoder *encoder)
 NARUApiResult NARUEncoder_SetEncodeParameter(
     struct NARUEncoder *encoder, const struct NARUEncodeParameter *parameter)
 {
+  uint32_t ch;
   struct NARUHeaderInfo tmp_header;
 
   /* 引数チェック */
@@ -284,10 +281,38 @@ NARUApiResult NARUEncoder_SetEncodeParameter(
   /* ヘッダ設定 */
   encoder->header = tmp_header;
 
+  /* フィルタパラメータ設定 */
+  for (ch = 0; ch < tmp_header.num_channels; ch++) {
+    encoder->processor[ch].ngsa.filter_order = tmp_header.filter_order;
+    encoder->processor[ch].ngsa.ar_order = tmp_header.ar_order;
+    encoder->processor[ch].sa.filter_order = tmp_header.second_filter_order;
+  }
+
   /* パラメータ設定済みフラグを立てる */
   encoder->set_parameter = 1;
   
   return NARU_APIRESULT_OK;
+}
+
+/* 解析用のdouble信号作成 */
+static void NARUEncoder_MakeAnalyzingSignal(
+    const double *window, const int32_t *data_int, uint32_t num_samples,
+    uint32_t bits_per_sample, double *data_double)
+{
+  uint32_t smpl;
+
+  NARU_ASSERT(window != NULL);
+  NARU_ASSERT(data_int != NULL);
+  NARU_ASSERT(data_double != NULL);
+  NARU_ASSERT(bits_per_sample > 0);
+
+  /* [-1, 1]の範囲に丸め込む */
+  for (smpl = 0; smpl < num_samples; smpl++) {
+    data_double[smpl] = (double)data_int[smpl] * pow(2.0f, -(double)(bits_per_sample - 1));
+  }
+
+  /* 窓適用 */
+  NARUUtility_ApplyWindow(window, data_double, num_samples);
 }
 
 /* 単一データブロックエンコード */
@@ -298,7 +323,7 @@ static NARUApiResult NARUEncoder_EncodeBlock(
 {
   uint32_t ch;
   const struct NARUHeaderInfo *header;
-  struct NARUBitStream strm;
+  struct NARUBitStream stream;
   int32_t *buffer[NARU_MAX_NUM_CHANNELS];
 
   /* エンコードサンプル数チェック */
@@ -314,49 +339,72 @@ static NARUApiResult NARUEncoder_EncodeBlock(
   /* 入力をバッファにコピー */
   for (ch = 0; ch < header->num_channels; ch++) {
     /* ポインタ取得 */
-    buffer[ch] = encoder->input[ch];
+    buffer[ch] = encoder->buffer[ch];
     memcpy(buffer[ch], input[ch], sizeof(int32_t) * num_samples);
   }
 
-  /* LR -> MS */
+  /* 窓作成 */
+  NARUUtility_MakeSinWindow(encoder->window, num_samples);
+
+  /* ビットライタ作成 */
+  NARUBitWriter_Open(&stream, data, data_size);
+
+  /* ブロック先頭の同期コード */
+  NARUBitWriter_PutBits(&stream, NARU_BLOCK_SYNC_CODE, 16);
+
+  /* ブロックデータタイプ */
+  NARUBitWriter_PutBits(&stream, NARU_BLOCK_DATA_TYPE_COMPRESSDATA, 2);
+
+  /* 信号処理ハンドルの状態出力 */
+  for (ch = 0; ch < header->num_channels; ch++) {
+    NARUEncodeProcessor_PutFilterState(&encoder->processor[ch], &stream);
+  }
+
+  /* マルチチャンネル処理 */
   if (header->ch_process_method == NARU_CH_PROCESS_METHOD_MS) {
     /* チャンネル数チェック */
     if (header->num_channels < 2) {
       return NARU_APIRESULT_INVALID_FORMAT;
     }
+    /* LR -> MS */
     NARUUtility_LRtoMSInt32(buffer, num_samples);
   }
 
-  /* チャンネル毎に予測処理 */
+  /* チャンネル毎の信号処理 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    NARUEncodeProcessor_Predict(encoder->processor[ch], 
-        buffer[ch], num_samples, encoder->residual[ch]);
+    /* プリエンファシス */
+    NARUEncodeProcessor_PreEmphasis(&encoder->processor[ch], buffer[ch], num_samples);
+    /* 解析用double信号生成 */
+    NARUEncoder_MakeAnalyzingSignal(encoder->window, 
+        buffer[ch], num_samples, header->bits_per_sample, encoder->buffer_double);
+    /* AR係数計算 */
+    NARUEncodeProcessor_CalculateARCoef(&encoder->processor[ch],
+      encoder->lpcc, encoder->buffer_double, num_samples, header->ar_order);
+    /* 予測 */
+    NARUEncodeProcessor_Predict(&encoder->processor[ch], buffer[ch], num_samples);
   }
 
   /* 符号化初期パラメータ計算 */
   NARUCoder_CalculateInitialRecursiveRiceParameter(encoder->coder,
       NARUCODER_NUM_RECURSIVERICE_PARAMETER,
-      (const int32_t **)encoder->residual, header->num_channels, num_samples);
-
-  /* ビットライタ作成 */
-  NARUBitWriter_Open(&strm, data, data_size);
+      (const int32_t **)buffer, header->num_channels, num_samples);
 
   /* 符号化パラメータ出力 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    NARUCoder_PutInitialRecursiveRiceParameter(encoder->coder, &strm,
+    NARUCoder_PutInitialRecursiveRiceParameter(encoder->coder, &stream,
         NARUCODER_NUM_RECURSIVERICE_PARAMETER, header->bits_per_sample, ch);
   }
 
   /* 残差符号化 */
-  NARUCoder_PutDataArray(encoder->coder, &strm, 
+  NARUCoder_PutDataArray(encoder->coder, &stream, 
       NARUCODER_NUM_RECURSIVERICE_PARAMETER,
-      (const int32_t **)encoder->residual, header->num_channels, num_samples);
+      (const int32_t **)buffer, header->num_channels, num_samples);
 
   /* バイト境界に揃える */
-  NARUBitStream_Flush(&strm);
+  NARUBitStream_Flush(&stream);
 
   /* 書き出しサイズの取得 */
-  NARUBitStream_Tell(&strm, (int32_t *)output_size);
+  NARUBitStream_Tell(&stream, (int32_t *)output_size);
 
   /* 成功終了 */
   return NARU_APIRESULT_OK;
