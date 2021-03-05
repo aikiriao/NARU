@@ -151,5 +151,6 @@ uint32_t NARUUtility_GetDataBitWidth(
   }
 
   /* 符号ビットを付け加えてビット幅とする */
-  return (maxabs > 0) ? (NARUUTILITY_LOG2CEIL(maxabs) + 1) : 1;
+  /* maxabsがぴったり2の冪数だった場合に備えて+1してからlog2 */
+  return (maxabs > 0) ? (NARUUTILITY_LOG2CEIL(maxabs + 1) + 1) : 1;
 }

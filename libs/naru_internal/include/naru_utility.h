@@ -87,8 +87,7 @@ double NARUUtility_Round(double d);
 double NARUUtility_Log2(double x);
 
 /* 入力データをもれなく表現できるビット幅の取得 */
-uint32_t NARUUtility_GetDataBitWidth(
-    const int32_t* data, uint32_t num_samples);
+uint32_t NARUUtility_GetDataBitWidth(const int32_t* data, uint32_t num_samples);
 
 #ifdef __cplusplus
 }
