@@ -12,7 +12,7 @@ set(APP_NAME naru)
 add_executable(${APP_NAME} naru_codec.c)
 
 # 依存するサブディレクトリを追加
-add_subdirectory(${PROJECT_ROOT_PATH} ${CMAKE_CURRENT_BINARY_DIR}/narucodec)
+add_subdirectory(${PROJECT_ROOT_PATH} ${CMAKE_CURRENT_BINARY_DIR}/libnarucodec)
 
 # インクルードパス
 target_include_directories(${APP_NAME}
