@@ -49,7 +49,7 @@ NARUApiResult NARUDecoder_DecodeHeader(
     ByteArray_GetUint8(data_pos, &buf[2]);
     ByteArray_GetUint8(data_pos, &buf[3]);
     if ((buf[0] != 'N') || (buf[1] != 'A')
-        || (buf[2] != 'R') || (buf[3] != '\0')) {
+        || (buf[2] != 'R') || (buf[3] != 'U')) {
       return NARU_APIRESULT_INVALID_FORMAT;
     }
   }
@@ -83,6 +83,9 @@ NARUApiResult NARUDecoder_DecodeHeader(
   /* AR次数 */
   ByteArray_GetUint8(data_pos, &u8buf);
   tmp_header.ar_order = u8buf;
+  /* 2段目フィルタ次数 */
+  ByteArray_GetUint8(data_pos, &u8buf);
+  tmp_header.second_filter_order = u8buf;
   /* マルチチャンネル処理法 */
   ByteArray_GetUint8(data_pos, &u8buf);
   tmp_header.ch_process_method = (NARUChannelProcessMethod)u8buf;
@@ -137,8 +140,12 @@ static NARUError NARUDecoder_CheckHeaderFormat(const struct NARUHeaderInfo *head
     return NARU_ERROR_INVALID_FORMAT;
   }
   /* AR次数: filter_order > 2 * ar_order を満たす必要がある */
-  if ((header->ar_order == 0)
-      || (header->filter_order <= (2 * header->ar_order))) {
+  if (header->filter_order <= (2 * header->ar_order)) {
+    return NARU_ERROR_INVALID_FORMAT;
+  }
+  /* 2段目フィルタ次数: 2の冪数限定 */
+  if ((header->second_filter_order == 0)
+      || !NARUUTILITY_IS_POWERED_OF_2(header->second_filter_order)) {
     return NARU_ERROR_INVALID_FORMAT;
   }
   /* マルチチャンネル処理法 */

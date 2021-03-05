@@ -25,6 +25,7 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
     header__p->num_samples_per_block = 32;\
     header__p->filter_order          = 8;\
     header__p->ar_order              = 1;\
+    header__p->second_filter_order   = 4;\
     header__p->ch_process_method     = NARU_CH_PROCESS_METHOD_NONE;\
   } while (0);
 
@@ -139,14 +140,14 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
     EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
     memcpy(data, valid_data, sizeof(valid_data));
     memset(&getheader, 0xCD, sizeof(getheader));
-    ByteArray_WriteUint8(&data[28], 1);
+    ByteArray_WriteUint8(&data[28], 3);
     EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
     EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
 
     /* 異常なAR次数 */
     memcpy(data, valid_data, sizeof(valid_data));
     memset(&getheader, 0xCD, sizeof(getheader));
-    ByteArray_WriteUint8(&data[29], 0);
+    ByteArray_WriteUint8(&data[29], header.filter_order / 2);
     EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
     EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
     memcpy(data, valid_data, sizeof(valid_data));
@@ -155,10 +156,22 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
     EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
     EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
 
+    /* 異常な2段目フィルタ次数 */
+    memcpy(data, valid_data, sizeof(valid_data));
+    memset(&getheader, 0xCD, sizeof(getheader));
+    ByteArray_WriteUint8(&data[30], 0);
+    EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
+    EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
+    memcpy(data, valid_data, sizeof(valid_data));
+    memset(&getheader, 0xCD, sizeof(getheader));
+    ByteArray_WriteUint8(&data[30], 3);
+    EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
+    EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
+
     /* 異常なチャンネル処理法 */
     memcpy(data, valid_data, sizeof(valid_data));
     memset(&getheader, 0xCD, sizeof(getheader));
-    ByteArray_WriteUint8(&data[30], NARU_CH_PROCESS_METHOD_INVALID);
+    ByteArray_WriteUint8(&data[31], NARU_CH_PROCESS_METHOD_INVALID);
     EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
     EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
 
@@ -166,7 +179,7 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
     memcpy(data, valid_data, sizeof(valid_data));
     memset(&getheader, 0xCD, sizeof(getheader));
     ByteArray_WriteUint16BE(&data[12], 1);
-    ByteArray_WriteUint8(&data[30], NARU_CH_PROCESS_METHOD_MS);
+    ByteArray_WriteUint8(&data[31], NARU_CH_PROCESS_METHOD_MS);
     EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
     EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
   }

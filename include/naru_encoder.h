@@ -12,6 +12,7 @@ struct NARUEncodeParameter {
   uint16_t num_samples_per_block; /* ブロックあたりサンプル数 */
   uint8_t  filter_order;    /* フィルタ次数 */
   uint8_t  ar_order;        /* AR次数 */
+  uint8_t  second_filter_order; /* 2段目フィルタ次数 */
   NARUChannelProcessMethod ch_process_method;  /* マルチチャンネル処理法     */
 };
 

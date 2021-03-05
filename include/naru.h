@@ -13,7 +13,7 @@
 #define NARU_MAX_NUM_CHANNELS 8
 
 /* ヘッダサイズ[byte] */
-#define NARU_HEADER_SIZE      31
+#define NARU_HEADER_SIZE      32
 
 /* API結果型 */
 typedef enum NARUApiResultTag {
@@ -42,8 +42,9 @@ struct NARUHeaderInfo {
   uint32_t sampling_rate;                     /* サンプリングレート             */
   uint16_t bits_per_sample;                   /* サンプルあたりビット数         */
   uint32_t num_samples_per_block;             /* ブロックあたりサンプル数       */
-  uint16_t filter_order;                      /* フィルタ次数                   */
-  uint16_t ar_order;                          /* AR次数                         */
+  uint8_t filter_order;                       /* フィルタ次数                   */
+  uint8_t ar_order;                           /* AR次数                         */
+  uint8_t second_filter_order;                /* 2段目フィルタ次数              */
   NARUChannelProcessMethod ch_process_method; /* マルチチャンネル処理法         */
 };
 

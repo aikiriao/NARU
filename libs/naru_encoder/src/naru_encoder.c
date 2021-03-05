@@ -80,8 +80,7 @@ NARUApiResult NARUEncoder_EncodeHeader(
     return NARU_APIRESULT_INVALID_FORMAT;
   }
   /* AR次数: filter_order > 2 * ar_order を満たす必要がある */
-  if ((header->ar_order == 0)
-      || (header->filter_order <= (2 * header->ar_order))) {
+  if (header->filter_order <= (2 * header->ar_order)) {
     return NARU_APIRESULT_INVALID_FORMAT;
   }
   /* マルチチャンネル処理法 */
@@ -101,7 +100,7 @@ NARUApiResult NARUEncoder_EncodeHeader(
   ByteArray_PutUint8(data_pos, 'N');
   ByteArray_PutUint8(data_pos, 'A');
   ByteArray_PutUint8(data_pos, 'R');
-  ByteArray_PutUint8(data_pos, '\0');
+  ByteArray_PutUint8(data_pos, 'U');
   /* フォーマットバージョン
    * 補足）ヘッダの設定値は無視してマクロ値を書き込む */
   ByteArray_PutUint32BE(data_pos, NARU_FORMAT_VERSION);
@@ -122,6 +121,8 @@ NARUApiResult NARUEncoder_EncodeHeader(
   ByteArray_PutUint8(data_pos, header->filter_order);
   /* AR次数 */
   ByteArray_PutUint8(data_pos, header->ar_order);
+  /* 2段目フィルタ次数 */
+  ByteArray_PutUint8(data_pos, header->second_filter_order);
   /* マルチチャンネル処理法 */
   ByteArray_PutUint8(data_pos, header->ch_process_method);
 
@@ -161,8 +162,11 @@ static NARUError NARUEncoder_ConvertParameterToHeader(
        || !NARUUTILITY_IS_POWERED_OF_2(parameter->filter_order)) {
     return NARU_ERROR_INVALID_FORMAT;
   }
-  if ((parameter->ar_order == 0)
-      || (parameter->filter_order <= 2 * parameter->ar_order)) {
+  if (parameter->filter_order <= (2 * parameter->ar_order)) {
+    return NARU_ERROR_INVALID_FORMAT;
+  }
+  if ((parameter->second_filter_order == 0)
+       || !NARUUTILITY_IS_POWERED_OF_2(parameter->second_filter_order)) {
     return NARU_ERROR_INVALID_FORMAT;
   }
   if (parameter->ch_process_method >= NARU_CH_PROCESS_METHOD_INVALID) {
@@ -179,6 +183,7 @@ static NARUError NARUEncoder_ConvertParameterToHeader(
   tmp_header.num_samples_per_block = parameter->num_samples_per_block;
   tmp_header.filter_order = parameter->filter_order;
   tmp_header.ar_order = parameter->ar_order;
+  tmp_header.second_filter_order = parameter->second_filter_order;
   tmp_header.ch_process_method = parameter->ch_process_method;
 
   /* 成功終了 */

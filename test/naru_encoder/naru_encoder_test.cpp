@@ -22,6 +22,7 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
     header__p->num_samples_per_block = 32;\
     header__p->filter_order          = 8;\
     header__p->ar_order              = 1;\
+    header__p->second_filter_order   = 4;\
     header__p->ch_process_method     = NARU_CH_PROCESS_METHOD_NONE;\
   } while (0);
 
@@ -37,7 +38,7 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
     EXPECT_EQ('N', data[0]);
     EXPECT_EQ('A', data[1]);
     EXPECT_EQ('R', data[2]);
-    EXPECT_EQ('\0', data[3]);
+    EXPECT_EQ('U', data[3]);
   }
 
   /* ヘッダエンコード失敗ケース */
@@ -90,7 +91,7 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
 
     /* 異常なAR次数 */
     NARU_SetValidHeader(&header);
-    header.ar_order = 0;
+    header.ar_order = header.filter_order / 2 + 1;
     EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT, NARUEncoder_EncodeHeader(&header, data, sizeof(data)));
     NARU_SetValidHeader(&header);
     header.ar_order = 2 * header.filter_order;
