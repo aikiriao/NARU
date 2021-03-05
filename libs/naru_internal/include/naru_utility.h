@@ -4,7 +4,7 @@
 #include "naru_stdint.h"
 
 /* 円周率 */
-#define NARU_PI              3.1415926535897932384626433832795029
+#define NARUUTILITY_PI 3.1415926535897932384626433832795029
 /* 未使用引数 */
 #define NARUUTILITY_UNUSED_ARGUMENT(arg)  ((void)(arg))
 /* 算術右シフト */
@@ -73,9 +73,6 @@ uint32_t NARUUtility_NLZSoft(uint32_t val);
 
 /* 2の冪乗に切り上げる */
 uint32_t NARUUtility_RoundUp2PoweredSoft(uint32_t val);
-
-/* LR -> MS（double） */
-void NARUUtility_LRtoMSDouble(double **data, uint32_t num_samples);
 
 /* LR -> MS（int32_t） */
 void NARUUtility_LRtoMSInt32(int32_t **data, uint32_t num_samples);

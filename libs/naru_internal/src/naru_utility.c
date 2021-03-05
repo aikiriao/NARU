@@ -3,9 +3,6 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include <float.h>
 
 /* NLZ計算のためのテーブル */
 #define UNUSED 99
@@ -40,6 +37,7 @@ void NARUUtility_MakeSinWindow(double* window, uint32_t window_size)
   double    x;
 
   NARU_ASSERT(window != NULL);
+  NARU_ASSERT(window_size > 0);
 
   /* 0除算対策 */
   if (window_size == 1) {
@@ -49,7 +47,7 @@ void NARUUtility_MakeSinWindow(double* window, uint32_t window_size)
 
   for (smpl = 0; smpl < window_size; smpl++) {
     x = (double)smpl / (window_size - 1);
-    window[smpl] = sin(NARU_PI * x);
+    window[smpl] = sin(NARUUTILITY_PI * x);
   }
 }
 
@@ -79,24 +77,6 @@ uint32_t NARUUtility_RoundUp2PoweredSoft(uint32_t val)
   val |= val >> 8;
   val |= val >> 16;
   return val + 1;
-}
-
-/* LR -> MS（double） */
-void NARUUtility_LRtoMSDouble(double **data, uint32_t num_samples)
-{
-  uint32_t  smpl;
-  double    mid, side;
-
-  NARU_ASSERT(data != NULL);
-  NARU_ASSERT(data[0] != NULL);
-  NARU_ASSERT(data[1] != NULL);
-
-  for (smpl = 0; smpl < num_samples; smpl++) {
-    mid   = (data[0][smpl] + data[1][smpl]) / 2;
-    side  = data[0][smpl] - data[1][smpl];
-    data[0][smpl] = mid; 
-    data[1][smpl] = side;
-  }
 }
 
 /* LR -> MS（int32_t） */
