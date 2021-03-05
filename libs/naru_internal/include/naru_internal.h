@@ -2,9 +2,12 @@
 #define NARU_INTERNAL_H_INCLUDED
 
 /* 内部エンコードパラメータ */
-#define NARU_BLOCK_SYNC_CODE                         0xFFFF  /* ブロック先頭の同期コード                 */
-#define NARUCODER_NUM_RECURSIVERICE_PARAMETER        2       /* 再帰的ライス符号のパラメータ数 */
-#define NARUCODER_QUOTPART_THRESHOULD                16      /* 再帰的ライス符号の商部分の閾値 これ以上の大きさの商はガンマ符号化 */
+#define NARU_BLOCK_SYNC_CODE                  0xFFFF  /* ブロック先頭の同期コード                 */
+#define NARUCODER_NUM_RECURSIVERICE_PARAMETER 2       /* 再帰的ライス符号のパラメータ数 */
+#define NARUCODER_QUOTPART_THRESHOULD         16      /* 再帰的ライス符号の商部分の閾値 これ以上の大きさの商はガンマ符号化 */
+#define NARU_FIXEDPOINT_DIGITS                15      /* 固定小数点の小数桁 */
+#define NARU_FIXEDPOINT_0_5                   (1 << (NARU_FIXEDPOINT_DIGITS - 1)) /* 固定小数点の0.5 */
+#define NARU_EMPHASIS_FILTER_SHIFT            5                                   /* プリ（デ）エンファシスフィルタのシフト量  */
 
 /* NULLチェックと領域解放 */
 #define NARU_NULLCHECK_AND_FREE(ptr)\
