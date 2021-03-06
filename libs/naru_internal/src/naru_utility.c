@@ -118,6 +118,30 @@ void NARUUtility_MStoLRInt32(int32_t **data, uint32_t num_samples)
   }
 }
 
+/* プリエンファシス(double, in-place) */
+void NARUUtility_PreEmphasisDouble(
+    double *data, uint32_t num_samples, int32_t coef_shift)
+{
+  uint32_t smpl;
+  double prev, tmp;
+  double coef;
+
+  NARU_ASSERT(data);
+  NARU_ASSERT(num_samples > 0);
+  NARU_ASSERT(coef_shift > 0);
+
+  /* フィルタ係数の計算 */
+  coef = (pow(2.0f, (double)coef_shift) - 1.0f) * pow(2.0f, (double)-coef_shift);
+
+  /* フィルタ適用 */
+  prev = 0.0f;
+  for (smpl = 0; smpl < num_samples; smpl++) {
+    tmp         = data[smpl];
+    data[smpl] -= prev * coef;
+    prev        = tmp;
+  }
+}
+
 /* round関数（C89で定義されてない） */
 double NARUUtility_Round(double d)
 {

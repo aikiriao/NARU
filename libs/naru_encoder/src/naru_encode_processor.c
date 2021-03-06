@@ -6,30 +6,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* 固定小数点数の乗算 */
-#define NARU_FIXEDPOINT_MUL(a, b, shift) NARUUTILITY_SHIFT_RIGHT_ARITHMETIC((a) * (b) + (1 << ((shift) - 1)), (shift))
-/* ステップサイズに乗じる係数のビット幅 */
-#define NARUNGSA_STEPSIZE_SCALE_BITWIDTH 10
-/* ステップサイズに乗じる係数の右シフト量 */
-#define NARUNGSA_STEPSIZE_SCALE_SHIFT 6
-/* SAの右シフト量 */
-#define NARUSA_STEPSIZE_SHIFT 2
-
-/* ブロックヘッダに記録するデータのビット幅 */
-#define NARU_BLOCKHEADER_DATA_BITWIDTH 8
-/* ブロックヘッダに記録するデータのシフト数のビット幅 */
-#define NARU_BLOCKHEADER_SHIFT_BITWIDTH 4
-
 /* フィルタ次数/AR次数に関するチェック */
 NARU_STATIC_ASSERT(NARUUTILITY_IS_POWERED_OF_2(NARU_MAX_FILTER_ORDER));
 NARU_STATIC_ASSERT(NARU_MAX_FILTER_ORDER > (2 * NARU_MAX_AR_ORDER));
 
+/* NGSAフィルタの1サンプル予測処理 */
 static int32_t NGSAFilter_Predict(struct NGSAFilter *filter, int32_t input);
+/* NGSAフィルタの状態出力 */
 static void NGSAFilter_PutFilterState(struct NGSAFilter *filter, struct NARUBitStream *stream);
+/* SAフィルタの1サンプル予測処理 */
 static int32_t SAFilter_Predict(struct SAFilter *filter, int32_t input);
+/* SAフィルタの状態出力 */
 static void SAFilter_PutFilterState(struct SAFilter *filter, struct NARUBitStream *stream);
-
+/* dataをmaxbit内に収めるために必要な右シフト数計算 */
 static uint32_t NARUEncodeProcessor_CalculateBitShift(const int32_t *data, int32_t num_data, int32_t maxbit);
+/* 符号付き整数pvalをrshiftした値を出力 その後シフトしたビット数だけpvalの下位bitをクリア */
 static void NARUEncodeProcessor_RoundAndPutSint(struct NARUBitStream *stream, uint32_t bitwidth, int32_t *pval, uint32_t rshift);
 
 /* dataをmaxbit内に収めるために必要な右シフト数計算 */
@@ -66,6 +57,7 @@ static void NARUEncodeProcessor_RoundAndPutSint(
   (*pval) &= ~((1 << rshift) - 1);
 }
 
+/* プロセッサのリセット */
 void NARUEncodeProcessor_Reset(struct NARUEncodeProcessor *processor)
 {
   NARU_ASSERT(processor != NULL);
@@ -73,8 +65,11 @@ void NARUEncodeProcessor_Reset(struct NARUEncodeProcessor *processor)
   /* 各メンバを0クリア */
   memset(&processor->ngsa, 0, sizeof(struct NGSAFilter));
   memset(&processor->sa, 0, sizeof(struct SAFilter));
+
+  processor->preemphasis_prev = 0;
 }
 
+/* AR係数の計算 */
 void NARUEncodeProcessor_CalculateARCoef(
     struct NARUEncodeProcessor *processor, struct LPCCalculator *lpcc,
     const double *input, uint32_t num_samples, int32_t ar_order)
@@ -110,6 +105,7 @@ void NARUEncodeProcessor_CalculateARCoef(
   }
 }
 
+/* NGSAフィルタの状態出力 */
 static void NGSAFilter_PutFilterState(
     struct NGSAFilter *filter, struct NARUBitStream *stream)
 {
@@ -141,12 +137,13 @@ static void NGSAFilter_PutFilterState(
   NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
   NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
 
-  /* フィルタ係数履歴 */
+  /* フィルタ履歴 */
   for (ord = 0; ord < filter->filter_order; ord++) {
     NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->history[ord], shift);
   }
 }
 
+/* SAフィルタの状態出力 */
 static void SAFilter_PutFilterState(
     struct SAFilter *filter, struct NARUBitStream *stream)
 {
@@ -156,17 +153,28 @@ static void SAFilter_PutFilterState(
   NARU_ASSERT(filter != NULL);
   NARU_ASSERT(stream != NULL);
 
+  /* フィルタ係数シフト量 */
+  shift = NARUEncodeProcessor_CalculateBitShift(filter->weight, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
+  NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
+  NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
+
+  /* フィルタ係数 */
+  for (ord = 0; ord < filter->filter_order; ord++) {
+    NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->weight[ord], shift);
+  }
+
   /* フィルタ履歴シフト量 */
   shift = NARUEncodeProcessor_CalculateBitShift(filter->history, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
   NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
   NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
 
-  /* フィルタ係数履歴 */
+  /* フィルタ履歴 */
   for (ord = 0; ord < filter->filter_order; ord++) {
     NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->history[ord], shift);
   }
 }
 
+/* プロセッサの状態出力 */
 void NARUEncodeProcessor_PutFilterState(
     struct NARUEncodeProcessor *processor, struct NARUBitStream *stream)
 {
@@ -187,26 +195,25 @@ void NARUEncodeProcessor_PutFilterState(
   SAFilter_PutFilterState(&processor->sa, stream);
 }
 
-void NARUEncodeProcessor_PreEmphasis(
-    struct NARUEncodeProcessor *processor, int32_t *buffer, uint32_t num_samples)
+/* プリエンファシス */
+static int32_t NARUEncodeProcessor_PreEmphasis(struct NARUEncodeProcessor *processor, int32_t input)
 {
-  uint32_t smpl;
   int32_t tmp;
   const int32_t coef_numer = ((1 << NARU_EMPHASIS_FILTER_SHIFT) - 1);
 
   NARU_STATIC_ASSERT(NARU_FIXEDPOINT_DIGITS >= NARU_EMPHASIS_FILTER_SHIFT);
 
   NARU_ASSERT(processor != NULL);
-  NARU_ASSERT(buffer != NULL);
 
   /* フィルタ適用 */
-  for (smpl = 0; smpl < num_samples; smpl++) {
-    tmp = buffer[smpl];
-    buffer[smpl] -= (int32_t)NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(processor->preemphasis_prev * coef_numer, NARU_EMPHASIS_FILTER_SHIFT);
-    processor->preemphasis_prev = tmp;
-  }
+  tmp = input;
+  input -= (int32_t)NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(processor->preemphasis_prev * coef_numer, NARU_EMPHASIS_FILTER_SHIFT);
+  processor->preemphasis_prev = tmp;
+
+  return input;
 }
 
+/* NGSAフィルタの1サンプル予測処理 */
 static int32_t NGSAFilter_Predict(struct NGSAFilter *filter, int32_t input)
 {
   int32_t ord, residual, predict, direction;
@@ -265,6 +272,7 @@ static int32_t NGSAFilter_Predict(struct NGSAFilter *filter, int32_t input)
   return residual;
 }
 
+/* SAフィルタの1サンプル予測処理 */
 static int32_t SAFilter_Predict(struct SAFilter *filter, int32_t input)
 {
   int32_t ord, residual, predict, sign;
@@ -302,6 +310,7 @@ static int32_t SAFilter_Predict(struct SAFilter *filter, int32_t input)
   return residual;
 }
 
+/* 予測 */
 void NARUEncodeProcessor_Predict(
   struct NARUEncodeProcessor *processor, int32_t *buffer, uint32_t num_samples)
 {
@@ -325,6 +334,8 @@ void NARUEncodeProcessor_Predict(
   /* 1サンプル毎に予測 
    * 補足）static関数なので、最適化時に展開されることを期待 */
   for (smpl = 0; smpl < num_samples; smpl++) {
+    /* プリエンファシス */
+    buffer[smpl] = NARUEncodeProcessor_PreEmphasis(processor, buffer[smpl]);
     /* NGSA */
     buffer[smpl] = NGSAFilter_Predict(&processor->ngsa, buffer[smpl]);
     /* SA */

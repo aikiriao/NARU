@@ -226,7 +226,7 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config)
   encoder->coder = NARUCoder_Create(config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER);
   encoder->processor = (struct NARUEncodeProcessor *)malloc(sizeof(struct NARUEncodeProcessor) * config->max_num_channels);
   for (ch = 0; ch < config->max_num_channels; ch++) {
-    NARUEncodeProcessor_Reset(&(encoder->processor[ch]));
+    NARUEncodeProcessor_Reset(&encoder->processor[ch]);
   }
 
   /* バッファ領域の確保 */
@@ -311,6 +311,9 @@ static void NARUEncoder_MakeAnalyzingSignal(
     data_double[smpl] = (double)data_int[smpl] * pow(2.0f, -(double)(bits_per_sample - 1));
   }
 
+  /* プリエンファシス */
+  NARUUtility_PreEmphasisDouble(data_double, num_samples, NARU_EMPHASIS_FILTER_SHIFT);
+
   /* 窓適用 */
   NARUUtility_ApplyWindow(window, data_double, num_samples);
 }
@@ -355,11 +358,6 @@ static NARUApiResult NARUEncoder_EncodeBlock(
   /* ブロックデータタイプ */
   NARUBitWriter_PutBits(&stream, NARU_BLOCK_DATA_TYPE_COMPRESSDATA, 2);
 
-  /* 信号処理ハンドルの状態出力 */
-  for (ch = 0; ch < header->num_channels; ch++) {
-    NARUEncodeProcessor_PutFilterState(&encoder->processor[ch], &stream);
-  }
-
   /* マルチチャンネル処理 */
   if (header->ch_process_method == NARU_CH_PROCESS_METHOD_MS) {
     /* チャンネル数チェック */
@@ -370,17 +368,23 @@ static NARUApiResult NARUEncoder_EncodeBlock(
     NARUUtility_LRtoMSInt32(buffer, num_samples);
   }
 
-  /* チャンネル毎の信号処理 */
+  /* チャンネル毎にパラメータ計算 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    /* プリエンファシス */
-    NARUEncodeProcessor_PreEmphasis(&encoder->processor[ch], buffer[ch], num_samples);
     /* 解析用double信号生成 */
     NARUEncoder_MakeAnalyzingSignal(encoder->window, 
         buffer[ch], num_samples, header->bits_per_sample, encoder->buffer_double);
     /* AR係数計算 */
     NARUEncodeProcessor_CalculateARCoef(&encoder->processor[ch],
-      encoder->lpcc, encoder->buffer_double, num_samples, header->ar_order);
-    /* 予測 */
+        encoder->lpcc, encoder->buffer_double, num_samples, header->ar_order);
+  }
+
+  /* 信号処理ハンドルの状態出力 */
+  for (ch = 0; ch < header->num_channels; ch++) {
+    NARUEncodeProcessor_PutFilterState(&encoder->processor[ch], &stream);
+  }
+
+  /* チャンネル毎に予測 */
+  for (ch = 0; ch < header->num_channels; ch++) {
     NARUEncodeProcessor_Predict(&encoder->processor[ch], buffer[ch], num_samples);
   }
 

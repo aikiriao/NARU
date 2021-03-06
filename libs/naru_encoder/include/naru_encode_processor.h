@@ -2,25 +2,10 @@
 #define NARU_ENCODE_PROCESSOR_H_INCLUDED
 
 #include "naru.h"
+#include "naru_internal.h"
 #include "naru_stdint.h"
 #include "naru_bit_stream.h"
 #include "lpc_calculator.h"
-
-struct NGSAFilter {
-  int32_t filter_order;
-  int32_t ar_order;
-  int32_t history[NARU_MAX_FILTER_ORDER];   /* 入力データ履歴 */
-  int32_t weight[NARU_MAX_FILTER_ORDER];    /* フィルタ係数 */
-  int32_t ar_coef[NARU_MAX_AR_ORDER];       /* AR係数 */
-  int32_t ngrad[NARU_MAX_FILTER_ORDER];     /* 自然勾配 */
-  int32_t stepsize_scale;
-};
-
-struct SAFilter {
-  int32_t filter_order;
-  int32_t history[NARU_MAX_FILTER_ORDER];   /* 入力データ履歴 */
-  int32_t weight[NARU_MAX_FILTER_ORDER];    /* フィルタ係数 */
-};
 
 /* 1chあたりの信号処理を担うプロセッサハンドル */
 struct NARUEncodeProcessor {
@@ -32,18 +17,19 @@ struct NARUEncodeProcessor {
   struct SAFilter sa;
 };
 
+/* プロセッサのリセット */
 void NARUEncodeProcessor_Reset(struct NARUEncodeProcessor *processor);
 
+/* AR係数の計算とプロセッサへの設定 */
 void NARUEncodeProcessor_CalculateARCoef(
     struct NARUEncodeProcessor *processor, struct LPCCalculator *lpcc,
     const double *input, uint32_t num_samples, int32_t ar_order);
 
+/* 現在のプロセッサの状態を出力（注意: 係数は丸め等の副作用を受ける） */
 void NARUEncodeProcessor_PutFilterState(
-    struct NARUEncodeProcessor *processor, struct NARUBitStream *strm);
+    struct NARUEncodeProcessor *processor, struct NARUBitStream *stream);
 
-void NARUEncodeProcessor_PreEmphasis(
-  struct NARUEncodeProcessor *processor, int32_t *buffer, uint32_t num_samples);
-
+/* 予測 */
 void NARUEncodeProcessor_Predict(
   struct NARUEncodeProcessor *processor, int32_t *buffer, uint32_t num_samples);
 

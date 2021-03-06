@@ -1,6 +1,8 @@
 #ifndef NARU_INTERNAL_H_INCLUDED
 #define NARU_INTERNAL_H_INCLUDED
 
+#include "naru.h"
+
 /* 内部エンコードパラメータ */
 #define NARU_BLOCK_SYNC_CODE                  0xFFFF  /* ブロック先頭の同期コード                 */
 #define NARUCODER_NUM_RECURSIVERICE_PARAMETER 2       /* 再帰的ライス符号のパラメータ数 */
@@ -8,6 +10,16 @@
 #define NARU_FIXEDPOINT_DIGITS                15      /* 固定小数点の小数桁 */
 #define NARU_FIXEDPOINT_0_5                   (1 << (NARU_FIXEDPOINT_DIGITS - 1)) /* 固定小数点の0.5 */
 #define NARU_EMPHASIS_FILTER_SHIFT            5                                   /* プリ（デ）エンファシスフィルタのシフト量  */
+/* NGSAのステップサイズに乗じる係数のビット幅 */
+#define NARUNGSA_STEPSIZE_SCALE_BITWIDTH 10
+/* NGSAのステップサイズに乗じる係数の右シフト量 */
+#define NARUNGSA_STEPSIZE_SCALE_SHIFT 6
+/* SAの右シフト量 */
+#define NARUSA_STEPSIZE_SHIFT 2
+/* ブロックヘッダに記録するデータのビット幅 */
+#define NARU_BLOCKHEADER_DATA_BITWIDTH 8
+/* ブロックヘッダに記録するデータのシフト数のビット幅 */
+#define NARU_BLOCKHEADER_SHIFT_BITWIDTH 4
 
 /* NULLチェックと領域解放 */
 #define NARU_NULLCHECK_AND_FREE(ptr)\
@@ -47,5 +59,23 @@ typedef enum NARUErrorTag {
   NARU_ERROR_INSUFFICIENT_BUFFER, /* バッファサイズが足りない */
   NARU_ERROR_INSUFFICIENT_DATA    /* データサイズが足りない   */
 } NARUError;
+
+/* NGSAフィルタ */
+struct NGSAFilter {
+  int32_t filter_order;
+  int32_t ar_order;
+  int32_t history[NARU_MAX_FILTER_ORDER];   /* 入力データ履歴 */
+  int32_t weight[NARU_MAX_FILTER_ORDER];    /* フィルタ係数 */
+  int32_t ar_coef[NARU_MAX_AR_ORDER];       /* AR係数 */
+  int32_t ngrad[NARU_MAX_FILTER_ORDER];     /* 自然勾配 */
+  int32_t stepsize_scale;                   /* ステップサイズに乗じる係数 */
+};
+
+/* SAフィルタ */
+struct SAFilter {
+  int32_t filter_order;
+  int32_t history[NARU_MAX_FILTER_ORDER];   /* 入力データ履歴 */
+  int32_t weight[NARU_MAX_FILTER_ORDER];    /* フィルタ係数 */
+};
 
 #endif /* NARU_INTERNAL_H_INCLUDED */

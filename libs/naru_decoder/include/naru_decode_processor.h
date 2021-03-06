@@ -2,20 +2,29 @@
 #define NARU_DECODE_PROCESSOR_H_INCLUDED
 
 #include "naru_stdint.h"
+#include "naru_internal.h"
+#include "naru_stdint.h"
+#include "naru_bit_stream.h"
 
 /* 1chあたりの信号処理を担うプロセッサハンドル */
 struct NARUDecodeProcessor {
-  int32_t *weight;  /* フィルタ係数 */
-  int32_t *ar_coef; /* AR係数 */
-  int32_t *grad;    /* 勾配 */
+  /* SA Filter */
+  struct SAFilter sa;
+  /* NGSA Filter */
+  struct NGSAFilter ngsa;
+  /* De Emphasis */
+  int32_t deemphasis_prev;
 };
 
-struct NARUDecodeProcessor* NARUDecodeProcessor_Create(uint8_t max_filter_order);
+/* プロセッサのリセット */
+void NARUDecodeProcessor_Reset(struct NARUDecodeProcessor *processor);
 
-void NARUDecodeProcessor_Destroy(struct NARUDecodeProcessor *processor);
+/* プロセッサの状態を取得 */
+void NARUDecodeProcessor_GetFilterState(
+    struct NARUDecodeProcessor *processor, struct NARUBitStream *stream);
 
+/* 合成 */
 void NARUDecodeProcessor_Synthesize(
-    struct NARUDecodeProcessor *processor,
-    const int32_t *residual, uint32_t num_samples, int32_t *output);
+    struct NARUDecodeProcessor *processor, int32_t *buffer, uint32_t num_samples);
 
 #endif /* NARU_DECODE_PROCESSOR_H_INCLUDED */

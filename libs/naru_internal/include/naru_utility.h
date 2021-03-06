@@ -58,6 +58,9 @@
 #define NARUUTILITY_ROUNDUP2POWERED(x) NARUUtility_RoundUp2PoweredSoft(x)
 #endif
 
+/* 固定小数点数の乗算（丸め対策込み） */
+#define NARU_FIXEDPOINT_MUL(a, b, shift) NARUUTILITY_SHIFT_RIGHT_ARITHMETIC((a) * (b) + (1 << ((shift) - 1)), (shift))
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -79,6 +82,9 @@ void NARUUtility_LRtoMSInt32(int32_t **data, uint32_t num_samples);
 
 /* MS -> LR（int32_t） */
 void NARUUtility_MStoLRInt32(int32_t **data, uint32_t num_samples);
+
+/* プリエンファシス(double, in-place) */
+void NARUUtility_PreEmphasisDouble(double *data, uint32_t num_samples, int32_t coef_shift);
 
 /* round関数（C89で定義されてない） */
 double NARUUtility_Round(double d);

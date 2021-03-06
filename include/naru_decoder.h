@@ -6,9 +6,8 @@
 
 /* デコーダコンフィグ */
 struct NARUDecoderConfig {
-	uint32_t max_num_channels;          /* エンコード可能な最大チャンネル数 */
-	uint32_t max_num_samples_per_block; /* ブロックあたり最大サンプル数 */
-	uint8_t  max_filter_order;          /* 最大フィルタ次数 */
+	uint32_t max_num_channels; /* エンコード可能な最大チャンネル数 */
+	uint8_t  max_filter_order; /* 最大フィルタ次数 */
 };
 
 /* デコーダハンドル */
