@@ -20,6 +20,8 @@ static int32_t SAFilter_Predict(struct SAFilter *filter, int32_t input);
 static void SAFilter_PutFilterState(struct SAFilter *filter, struct NARUBitStream *stream);
 /* dataをmaxbit内に収めるために必要な右シフト数計算 */
 static uint32_t NARUEncodeProcessor_CalculateBitShift(const int32_t *data, int32_t num_data, int32_t maxbit);
+/* フィルタ係数を引数のビット幅に丸め込む */
+static void NARUEncodeProcessor_ClippingFilterWeight(int32_t *weight, int32_t filter_order, int32_t bitwidth);
 /* 符号付き整数pvalをrshiftした値を出力 その後シフトしたビット数だけpvalの下位bitをクリア */
 static void NARUEncodeProcessor_RoundAndPutSint(struct NARUBitStream *stream, uint32_t bitwidth, int32_t *pval, uint32_t rshift);
 
@@ -37,24 +39,60 @@ static uint32_t NARUEncodeProcessor_CalculateBitShift(const int32_t *data, int32
   return (bitwidth > maxbit) ? (uint32_t)(bitwidth - maxbit) : 0;
 }
 
+/* フィルタ係数を引数のビット幅に丸め込む */
+static void NARUEncodeProcessor_ClippingFilterWeight(
+    int32_t *weight, int32_t filter_order, int32_t bitwidth)
+{
+  int32_t ord;
+  double maxabs, inv_scale;
+
+  NARU_ASSERT(weight != NULL);
+  NARU_ASSERT(filter_order > 0);
+  NARU_ASSERT((bitwidth > 0) && (bitwidth < 32));
+  
+  /* [-1,1]に丸めた中で、最大絶対値を計測 */
+  maxabs = 0.0f;
+  for (ord = 0; ord < filter_order; ord++) {
+    double abs = NARUUTILITY_ABS(weight[ord]) * pow(2.0f, -(bitwidth - 1));
+    if (maxabs < abs) {
+      maxabs = abs;
+    }
+  }
+
+  /* ビット幅に収まっている: 丸め不要 */
+  if (maxabs <= 1.0f) {
+    return;
+  }
+
+  /* 最大絶対値がビット幅いっぱいに収まるようにクリッピング */
+  inv_scale = 1.0f / maxabs;
+  for (ord = 0; ord < filter_order; ord++) {
+    weight[ord] = (int32_t)(inv_scale * weight[ord]);
+  }
+}
+
 /* 符号付き整数pvalをrshiftした値を出力 その後シフトしたビット数だけpvalの下位bitをクリア */
 static void NARUEncodeProcessor_RoundAndPutSint(
     struct NARUBitStream *stream, uint32_t bitwidth, int32_t *pval, uint32_t rshift)
 {
   uint32_t putval;
+  int32_t roundval;
 
   NARU_ASSERT(stream != NULL);
   NARU_ASSERT(pval != NULL);
 
-  /* 右シフトしつつ符号なし整数に変換 */
-  putval = NARUUTILITY_SINT32_TO_UINT32((*pval) >> rshift);
+  /* 右シフト値を取得 */
+  roundval = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC((*pval), rshift);
+
+  /* 符号なし整数に変換 */
+  putval = NARUUTILITY_SINT32_TO_UINT32(roundval);
 
   /* 出力 */
   NARU_ASSERT(putval < (1 << bitwidth));
   NARUBitWriter_PutBits(stream, putval, bitwidth);
 
-  /* シフトしたビットをクリア */
-  (*pval) &= ~((1 << rshift) - 1);
+  /* 左シフトして戻す（シフトしたビットをクリア） */
+  (*pval) = roundval << rshift;
 }
 
 /* プロセッサのリセット */
@@ -122,6 +160,9 @@ static void NGSAFilter_PutFilterState(
     NARUBitWriter_PutBits(stream, putval, 16);
   }
 
+  /* フィルタ係数値を固定bit幅に制限 */
+  NARUEncodeProcessor_ClippingFilterWeight(filter->weight, filter->filter_order, NARU_FILTER_WEIGHT_RANGE_BITWIDTH);
+
   /* フィルタ係数シフト量 */
   shift = NARUEncodeProcessor_CalculateBitShift(filter->weight, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
   NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
@@ -152,6 +193,9 @@ static void SAFilter_PutFilterState(
 
   NARU_ASSERT(filter != NULL);
   NARU_ASSERT(stream != NULL);
+
+  /* フィルタ係数値を固定bit幅に制限 */
+  NARUEncodeProcessor_ClippingFilterWeight(filter->weight, filter->filter_order, NARU_FILTER_WEIGHT_RANGE_BITWIDTH);
 
   /* フィルタ係数シフト量 */
   shift = NARUEncodeProcessor_CalculateBitShift(filter->weight, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);

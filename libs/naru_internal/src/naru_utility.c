@@ -157,24 +157,30 @@ double NARUUtility_Log2(double x)
 }
 
 /* 入力データをもれなく表現できるビット幅の取得 */
-uint32_t NARUUtility_GetDataBitWidth(
-    const int32_t* data, uint32_t num_samples)
+uint32_t NARUUtility_GetDataBitWidth(const int32_t* data, uint32_t num_samples)
 {
-  uint32_t smpl;
-  uint32_t maxabs, abs;
+  uint32_t smpl, usbitwidth;
+  int32_t maxpos, minneg;
 
   NARU_ASSERT(data != NULL);
 
-  /* 最大絶対値の計測 */
-  maxabs = 0;
+  /* 最大正数と最小負数の計測 */
+  maxpos =  0;
+  minneg = -1;
   for (smpl = 0; smpl < num_samples; smpl++) {
-    abs = (uint32_t)NARUUTILITY_ABS(data[smpl]);
-    if (abs > maxabs) {
-      maxabs = abs;
+    if (maxpos < data[smpl]) {
+      maxpos = data[smpl];
+    } 
+    if (minneg > data[smpl]) {
+      minneg = data[smpl];
     }
   }
 
-  /* 符号ビットを付け加えてビット幅とする */
-  /* maxabsがぴったり2の冪数だった場合に備えて+1してからlog2 */
-  return (maxabs > 0) ? (NARUUTILITY_LOG2CEIL(maxabs + 1) + 1) : 1;
+  /* 符号を除く部分のビット幅を計算 */
+  /* 正数の場合は2の冪乗数の場合の対処が必要 */
+  usbitwidth = NARUUTILITY_MAX(
+      NARUUTILITY_LOG2CEIL((uint32_t)maxpos + 1), NARUUTILITY_LOG2CEIL((uint32_t)(-minneg)));
+
+  /* 符号ビットを付加 */
+  return usbitwidth + 1;
 }

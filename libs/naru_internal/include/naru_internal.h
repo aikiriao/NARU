@@ -16,6 +16,8 @@
 #define NARUNGSA_STEPSIZE_SCALE_SHIFT 6
 /* SAの右シフト量 */
 #define NARUSA_STEPSIZE_SHIFT 2
+/* フィルタ係数のbit幅 */
+#define NARU_FILTER_WEIGHT_RANGE_BITWIDTH 18
 /* ブロックヘッダに記録するデータのビット幅 */
 #define NARU_BLOCKHEADER_DATA_BITWIDTH 8
 /* ブロックヘッダに記録するデータのシフト数のビット幅 */
