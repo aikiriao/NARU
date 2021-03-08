@@ -14,8 +14,6 @@
 
 /* 読みモードか？（0で書きモード） */
 #define NARUBITSTREAM_FLAGS_MODE_READ  (1 << 0)
-/* 終端に達しているか？（1で達している） */
-#define NARUBITSTREAM_FLAGS_EOS        (1 << 1)
 
 /* ビットストリーム構造体 */
 struct NARUBitStream {
@@ -192,13 +190,9 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
         |= (uint32_t)NARUBITSTREAM_GETLOWERBITS(\
               (uint32_t)(val) >> __nbits, (stream)->bit_count);\
 \
-      /* 終端に達している */\
-      /* TODO:もしかしたら不要かも */\
-      if ((stream)->memory_p\
-          >= ((stream)->memory_image + (stream)->memory_size)) {\
-        (stream)->flags |= NARUBITSTREAM_FLAGS_EOS;\
-        break;\
-      }\
+      /* 終端に達していないかチェック */\
+      NARU_ASSERT((stream)->memory_p\
+          < ((stream)->memory_p + (stream)->memory_size));\
 \
       /* メモリに書き出し */\
       (*(stream)->memory_p) = ((stream)->bit_buffer & 0xFF);\
@@ -245,13 +239,9 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
         |= NARUBITSTREAM_GETLOWERBITS(\
           (stream)->bit_buffer, (stream)->bit_count) << __nbits;\
 \
-      /* 終端に達している */\
-      /* TODO:もしかしたら不要かも */\
-      if ((stream)->memory_p\
-          >= ((stream)->memory_p + (stream)->memory_size)) {\
-        (stream)->flags |= (uint8_t)NARUBITSTREAM_FLAGS_EOS;\
-        break;\
-      }\
+      /* 終端に達していないかチェック */\
+      NARU_ASSERT((stream)->memory_p\
+          < ((stream)->memory_p + (stream)->memory_size));\
 \
       /* メモリから読み出し */\
       __ch = (*(stream)->memory_p);\
@@ -299,13 +289,9 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
       uint8_t   __ch;\
       uint32_t  __tmp_run;\
 \
-      /* 終端に達している */\
-      /* TODO:もしかしたら不要かも */\
-      if ((stream)->memory_p\
-          >= ((stream)->memory_p + (stream)->memory_size)) {\
-        (stream)->flags |= (uint8_t)NARUBITSTREAM_FLAGS_EOS;\
-        break;\
-      }\
+      /* 終端に達していないかチェック */\
+      NARU_ASSERT((stream)->memory_p\
+          < ((stream)->memory_p + (stream)->memory_size));\
 \
       /* メモリから読み出し */\
       __ch = (*(stream)->memory_p);\

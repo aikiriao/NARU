@@ -185,11 +185,8 @@ void NARUBitWriter_PutBits(struct NARUBitStream* stream, uint32_t val, uint32_t 
     bitcount -= stream->bit_count;
     stream->bit_buffer |= (uint32_t)NARUBITSTREAM_GETLOWERBITS(val >> bitcount, stream->bit_count);
 
-    /* 終端に達している */
-    if (stream->memory_p >= (stream->memory_image + stream->memory_size)) {
-      stream->flags |= NARUBITSTREAM_FLAGS_EOS;
-      break;
-    }
+    /* 終端に達していないかチェック */
+    NARU_ASSERT((stream)->memory_p < ((stream)->memory_p + (stream)->memory_size));
 
     /* メモリに書き出し */
     (*stream->memory_p) = (stream->bit_buffer & 0xFF);
@@ -231,11 +228,8 @@ void NARUBitReader_GetBits(struct NARUBitStream* stream, uint32_t* val, uint32_t
     bitcount  -= stream->bit_count;
     tmp       |= NARUBITSTREAM_GETLOWERBITS(stream->bit_buffer, stream->bit_count) << bitcount;
 
-    /* 終端に達している */
-    if (stream->memory_p >= (stream->memory_p + stream->memory_size)) {
-      stream->flags |= (uint8_t)NARUBITSTREAM_FLAGS_EOS;
-      break;
-    }
+    /* 終端に達していないかチェック */
+    NARU_ASSERT((stream)->memory_p < ((stream)->memory_p + (stream)->memory_size));
 
     /* メモリから読み出し */
     ch = (*stream->memory_p);
@@ -277,11 +271,8 @@ void NARUBitReader_GetZeroRunLength(struct NARUBitStream* stream, uint32_t* runl
     uint8_t   ch;
     uint32_t  tmp_run;
 
-    /* 終端に達している */
-    if (stream->memory_p >= (stream->memory_p + stream->memory_size)) {
-      stream->flags |= (uint8_t)NARUBITSTREAM_FLAGS_EOS;
-      break;
-    }
+    /* 終端に達していないかチェック */
+    NARU_ASSERT((stream)->memory_p < ((stream)->memory_p + (stream)->memory_size));
 
     /* メモリから読み出し */
     ch = (*stream->memory_p);
