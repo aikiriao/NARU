@@ -329,15 +329,22 @@ static NARUApiResult NARUEncoder_EncodeBlock(
   struct NARUBitStream stream;
   int32_t *buffer[NARU_MAX_NUM_CHANNELS];
 
-  /* エンコードサンプル数チェック */
-  NARU_ASSERT(num_samples <= encoder->header.num_samples_per_block);
-
   /* 引数チェック */
-  if ((encoder == NULL) || (data == NULL)
-      || (input == NULL) || (output_size == NULL)) {
+  if ((encoder == NULL) || (input == NULL) || (num_samples == 0)
+      || (data == NULL) || (data_size == 0) || (output_size == NULL)) {
     return NARU_APIRESULT_INVALID_ARGUMENT;
   }
   header = &(encoder->header);
+
+  /* パラメータがセットされてない */
+  if (encoder->set_parameter != 1) {
+    return NARU_APIRESULT_PARAMETER_NOT_SET;
+  }
+
+  /* エンコードサンプル数チェック */
+  if (num_samples > header->num_samples_per_block) {
+    return NARU_APIRESULT_INSUFFICIENT_BUFFER;
+  }
 
   /* 入力をバッファにコピー */
   for (ch = 0; ch < header->num_channels; ch++) {
