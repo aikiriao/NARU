@@ -27,6 +27,8 @@
     (*pval) = (uint32_t)tmpbuf;\
   } while (0);
 
+/* NGSAフィルタの自然勾配初期化 */
+static void NGSAFilter_InitializeNaturalGradient(struct NGSAFilter *filter);
 /* NGSAフィルタの1サンプル合成処理 */
 static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual);
 /* NGSAフィルタの状態取得 */
@@ -157,6 +159,41 @@ static int32_t NARUEncodeProcessor_DeEmphasis(struct NARUDecodeProcessor *proces
   return residual;
 }
 
+/* NGSAフィルタの自然勾配初期化 */
+static void NGSAFilter_InitializeNaturalGradient(struct NGSAFilter *filter)
+{
+  const int32_t filter_order = filter->filter_order;
+  int32_t *ngrad, *history;
+
+  NARU_ASSERT(filter != NULL);
+
+  ngrad = &filter->ngrad[0];
+  history = &filter->history[0];
+
+  if (filter->ar_order == 1) {
+    /* 1の場合は履歴とAR係数から直接計算 */
+    int32_t ord;
+    int32_t *ar_coef;
+
+    ar_coef = &filter->ar_coef[0];
+
+    for (ord = 0; ord < filter_order - 1; ord++) {
+      ngrad[ord]
+        = history[ord] - NARU_FIXEDPOINT_MUL(ar_coef[0], history[ord + 1], NARU_FIXEDPOINT_DIGITS);
+    }
+    for (ord = 1; ord < filter_order - 1; ord++) {
+      ngrad[ord] 
+        -= NARU_FIXEDPOINT_MUL(ar_coef[0], ngrad[ord - 1], NARU_FIXEDPOINT_DIGITS);
+    }
+    ngrad[filter_order - 1]
+      = history[filter_order - 1] - NARU_FIXEDPOINT_MUL(ar_coef[0], history[filter_order - 2], NARU_FIXEDPOINT_DIGITS);
+  } else {
+    /* 1より大きい場合は履歴を初期値とする */
+    memcpy(ngrad, history, sizeof(int32_t) * (uint32_t)filter_order);
+  }
+}
+
+
 /* NGSAフィルタの1サンプル合成処理 */
 static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual)
 {
@@ -271,9 +308,8 @@ void NARUDecodeProcessor_Synthesize(
   NARU_ASSERT(processor->ngsa.filter_order > (2 * processor->ngsa.ar_order));
   NARU_ASSERT(processor->sa.filter_order <= NARU_MAX_FILTER_ORDER);
 
-  /* 自然勾配の初期化（初期の勾配: 入力データ履歴） */
-  memcpy(processor->ngsa.ngrad,
-      processor->ngsa.history, sizeof(int32_t) * (uint32_t)processor->ngsa.filter_order);
+  /* 自然勾配の初期化 */
+  NGSAFilter_InitializeNaturalGradient(&processor->ngsa);
 
   /* 1サンプル毎に合成 
    * 補足）static関数なので、最適化時に展開されることを期待 */
