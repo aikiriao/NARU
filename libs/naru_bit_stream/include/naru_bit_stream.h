@@ -180,8 +180,8 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     /* 0ビット出力は冗長なのでアサートで落とす */\
     NARU_ASSERT((nbits) > 0);\
 \
-    /* valの上位ビットから順次出力\
-     * 初回ループでは端数（出力に必要なビット数）分を埋め出力\
+    /* valの上位ビットから順次出力
+     * 初回ループでは端数（出力に必要なビット数）分を埋め出力
      * 2回目以降は8bit単位で出力 */\
     __nbits = (nbits);\
     while (__nbits >= (stream)->bit_count) {\
@@ -192,7 +192,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
 \
       /* 終端に達していないかチェック */\
       NARU_ASSERT((stream)->memory_p\
-          < ((stream)->memory_p + (stream)->memory_size));\
+          < ((stream)->memory_image + (stream)->memory_size));\
 \
       /* メモリに書き出し */\
       (*(stream)->memory_p) = ((stream)->bit_buffer & 0xFF);\
@@ -229,8 +229,8 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     /* 入力可能な最大ビット数を越えている */\
     NARU_ASSERT((nbits) <= (sizeof(uint32_t) * 8));\
 \
-    /* 最上位ビットからデータを埋めていく\
-     * 初回ループではtmpの上位ビットにセット\
+    /* 最上位ビットからデータを埋めていく
+     * 初回ループではtmpの上位ビットにセット
      * 2回目以降は8bit単位で入力しtmpにセット */\
     __nbits = (nbits);\
     while (__nbits > (stream)->bit_count) {\
@@ -241,7 +241,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
 \
       /* 終端に達していないかチェック */\
       NARU_ASSERT((stream)->memory_p\
-          < ((stream)->memory_p + (stream)->memory_size));\
+          < ((stream)->memory_image + (stream)->memory_size));\
 \
       /* メモリから読み出し */\
       __ch = (*(stream)->memory_p);\
@@ -272,7 +272,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     NARU_ASSERT((void *)(runlength) != NULL);\
 \
     /* 上位ビットからの連続する0をNLZで計測 */\
-    /* (1 << (31 - (stream)->bit_count)) はラン長が\
+    /* (1 << (31 - (stream)->bit_count)) はラン長が
      * 伸びすぎないようにするためのビット */\
     __run = NARUUTILITY_NLZ(\
         (uint32_t)(\
@@ -291,7 +291,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
 \
       /* 終端に達していないかチェック */\
       NARU_ASSERT((stream)->memory_p\
-          < ((stream)->memory_p + (stream)->memory_size));\
+          < ((stream)->memory_image + (stream)->memory_size));\
 \
       /* メモリから読み出し */\
       __ch = (*(stream)->memory_p);\
