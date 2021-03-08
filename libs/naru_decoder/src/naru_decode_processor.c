@@ -8,23 +8,23 @@
 /* 符号付き整数の取得 */
 #define NARU_GETSINT32(stream, pval, bitwidth)\
   do {\
-    uint64_t tmpbuf;\
+    uint32_t tmpbuf;\
     NARU_ASSERT((stream) != NULL);\
     NARU_ASSERT((pval) != NULL);\
     NARU_ASSERT((bitwidth) > 0 && (bitwidth) <= 32);\
     NARUBitReader_GetBits((stream), &tmpbuf, (bitwidth));\
-    (*pval) = NARUUTILITY_UINT32_TO_SINT32((uint32_t)tmpbuf);\
+    (*pval) = NARUUTILITY_UINT32_TO_SINT32(tmpbuf);\
   } while (0);
 
 /* 符号なし整数の取得 */
 #define NARU_GETUINT32(stream, pval, bitwidth)\
   do {\
-    uint64_t tmpbuf;\
+    uint32_t tmpbuf;\
     NARU_ASSERT((stream) != NULL);\
     NARU_ASSERT((pval) != NULL);\
     NARU_ASSERT((bitwidth) > 0 && (bitwidth) <= 32);\
     NARUBitReader_GetBits((stream), &tmpbuf, (bitwidth));\
-    (*pval) = (uint32_t)tmpbuf;\
+    (*pval) = tmpbuf;\
   } while (0);
 
 /* NGSAフィルタの自然勾配初期化 */

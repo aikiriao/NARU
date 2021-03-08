@@ -60,7 +60,7 @@ TEST(NARUBitStreamTest, PutGetTest)
     NARUBitReader_Open(&strm, memory_image, sizeof(memory_image));
     is_ok = 1;
     for (i = 0; i < bit_pattern_length; i++) { 
-      uint64_t buf;
+      uint32_t buf;
       NARUBitReader_GetBits(&strm, &buf, 1);
       if ((uint8_t)buf != bit_pattern[i]) {
         is_ok = 0;
@@ -89,7 +89,7 @@ TEST(NARUBitStreamTest, PutGetTest)
       NARUBitReader_Open(&strm, memory_image, sizeof(memory_image));
       is_ok = 1;
       for (i = 0; i < (1 << nbits); i++) { 
-        uint64_t buf;
+        uint32_t buf;
         NARUBitReader_GetBits(&strm, &buf, nbits);
         if (buf != i) {
           is_ok = 0;
@@ -106,7 +106,7 @@ TEST(NARUBitStreamTest, PutGetTest)
   {
     struct NARUBitStream strm;
     uint8_t memory_image[256];
-    uint64_t bits;
+    uint32_t bits;
 
     NARUBitWriter_Open(&strm, memory_image, sizeof(memory_image));
     NARUBitWriter_PutBits(&strm, 1, 1);

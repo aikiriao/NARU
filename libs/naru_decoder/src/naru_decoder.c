@@ -243,7 +243,7 @@ static NARUApiResult NARUDecoder_DecodeBlock(
     int32_t **buffer, uint32_t buffer_num_samples, 
     uint32_t *decode_size, uint32_t *num_decode_samples)
 {
-  uint64_t buf;
+  uint32_t buf;
   uint32_t ch, tmp_num_decode_samples;
   const struct NARUHeaderInfo *header;
   struct NARUBitStream stream;

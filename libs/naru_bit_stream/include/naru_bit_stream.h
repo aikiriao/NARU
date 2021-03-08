@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 /* マクロ展開して処理を行うか？ */
-#define NARUBITSTREAM_PROCESS_BY_MACRO 1
+#define NARUBITSTREAM_PROCESS_BY_MACRO
 
 /* NARUBitStream_Seek関数の探索コード */
 #define NARUBITSTREAM_SEEK_SET  (int32_t)SEEK_SET
@@ -165,7 +165,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
       ((stream)->memory_p - (stream)->memory_image);\
   } while (0)
 
-/* valの右側（下位）nbits 出力（最大64bit出力可能） */
+/* valの右側（下位）nbits 出力（最大32bit出力可能） */
 #define NARUBitWriter_PutBits(stream, val, nbits)\
   do {\
     uint32_t __nbits;\
@@ -177,7 +177,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     NARU_ASSERT(!((stream)->flags & NARUBITSTREAM_FLAGS_MODE_READ));\
 \
     /* 出力可能な最大ビット数を越えている */\
-    NARU_ASSERT((nbits) <= (sizeof(uint64_t) * 8));\
+    NARU_ASSERT((nbits) <= (sizeof(uint32_t) * 8));\
 \
     /* 0ビット出力は冗長なのでアサートで落とす */\
     NARU_ASSERT((nbits) > 0);\
@@ -218,12 +218,12 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
             (uint32_t)(val), __nbits) << (stream)->bit_count;\
   } while (0)
 
-/* nbits 取得（最大64bit）し、その値を右詰めして出力 */
+/* nbits 取得（最大32bit）し、その値を右詰めして出力 */
 #define NARUBitReader_GetBits(stream, val, nbits)\
   do {\
     uint8_t  __ch;\
     uint32_t __nbits;\
-    uint64_t __tmp = 0;\
+    uint32_t __tmp = 0;\
 \
     /* 引数チェック */\
     NARU_ASSERT((void *)(stream) != NULL);\
@@ -233,7 +233,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     NARU_ASSERT((stream)->flags & NARUBITSTREAM_FLAGS_MODE_READ);\
 \
     /* 入力可能な最大ビット数を越えている */\
-    NARU_ASSERT((nbits) <= (sizeof(uint64_t) * 8));\
+    NARU_ASSERT((nbits) <= (sizeof(uint32_t) * 8));\
 \
     /* 最上位ビットからデータを埋めていく\
      * 初回ループではtmpの上位ビットにセット\
@@ -265,7 +265,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
      * 残ったビット分をtmpの最上位ビットにセット */\
     (stream)->bit_count -= __nbits;\
     __tmp\
-      |= (uint64_t)NARUBITSTREAM_GETLOWERBITS(\
+      |= (uint32_t)NARUBITSTREAM_GETLOWERBITS(\
             (stream)->bit_buffer >> (stream)->bit_count, __nbits);\
 \
     /* 正常終了 */\
@@ -339,7 +339,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
       /* 読み込み位置を次のバイト先頭に */\
       if ((stream)->flags & NARUBITSTREAM_FLAGS_MODE_READ) {\
         /* 残りビット分を空読み */\
-        uint64_t dummy;\
+        uint32_t dummy;\
         NARUBitReader_GetBits((stream), &dummy, (stream)->bit_count);\
       } else {\
         /* バッファに余ったビットを強制出力 */\
@@ -370,11 +370,11 @@ void NARUBitStream_Seek(struct NARUBitStream* stream, int32_t offset, int32_t or
 /* 現在位置(ftell)準拠 */
 void NARUBitStream_Tell(struct NARUBitStream* stream, int32_t* result);
 
-/* valの右側（下位）n_bits 出力（最大64bit出力可能） */
-void NARUBitWriter_PutBits(struct NARUBitStream* stream, uint64_t val, uint32_t nbits);
+/* valの右側（下位）n_bits 出力（最大32bit出力可能） */
+void NARUBitWriter_PutBits(struct NARUBitStream* stream, uint32_t val, uint32_t nbits);
 
-/* n_bits 取得（最大64bit）し、その値を右詰めして出力 */
-void NARUBitReader_GetBits(struct NARUBitStream* stream, uint64_t* val, uint32_t nbits);
+/* n_bits 取得（最大32bit）し、その値を右詰めして出力 */
+void NARUBitReader_GetBits(struct NARUBitStream* stream, uint32_t* val, uint32_t nbits);
 
 /* つぎの1にぶつかるまで読み込み、その間に読み込んだ0のランレングスを取得 */
 void NARUBitReader_GetZeroRunLength(struct NARUBitStream* stream, uint32_t* runlength);

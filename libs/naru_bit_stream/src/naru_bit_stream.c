@@ -160,8 +160,8 @@ void NARUBitStream_Tell(struct NARUBitStream* stream, int32_t* result)
   (*result) = (int32_t)(stream->memory_p - stream->memory_image);
 }
 
-/* valの右側（下位）nbits 出力（最大64bit出力可能） */
-void NARUBitWriter_PutBits(struct NARUBitStream* stream, uint64_t val, uint32_t nbits)
+/* valの右側（下位）nbits 出力（最大32bit出力可能） */
+void NARUBitWriter_PutBits(struct NARUBitStream* stream, uint32_t val, uint32_t nbits)
 {
   uint32_t bitcount;
 
@@ -172,7 +172,7 @@ void NARUBitWriter_PutBits(struct NARUBitStream* stream, uint64_t val, uint32_t 
   NARU_ASSERT(!(stream->flags & NARUBITSTREAM_FLAGS_MODE_READ));
 
   /* 出力可能な最大ビット数を越えている */
-  NARU_ASSERT(nbits <= (sizeof(uint64_t) * 8));
+  NARU_ASSERT(nbits <= (sizeof(uint32_t) * 8));
 
   /* 0ビット出力は冗長なのでアサートで落とす */
   NARU_ASSERT(nbits > 0);
@@ -207,12 +207,12 @@ void NARUBitWriter_PutBits(struct NARUBitStream* stream, uint64_t val, uint32_t 
   stream->bit_buffer |= (uint32_t)NARUBITSTREAM_GETLOWERBITS(val, bitcount) << stream->bit_count;
 }
 
-/* nbits 取得（最大64bit）し、その値を右詰めして出力 */
-void NARUBitReader_GetBits(struct NARUBitStream* stream, uint64_t* val, uint32_t nbits)
+/* nbits 取得（最大32bit）し、その値を右詰めして出力 */
+void NARUBitReader_GetBits(struct NARUBitStream* stream, uint32_t* val, uint32_t nbits)
 {
   uint8_t  ch;
   uint32_t bitcount;
-  uint64_t tmp = 0;
+  uint32_t tmp = 0;
 
   /* 引数チェック */
   NARU_ASSERT((stream != NULL) && (val != NULL));
@@ -221,7 +221,7 @@ void NARUBitReader_GetBits(struct NARUBitStream* stream, uint64_t* val, uint32_t
   NARU_ASSERT(stream->flags & NARUBITSTREAM_FLAGS_MODE_READ);
 
   /* 入力可能な最大ビット数を越えている */
-  NARU_ASSERT(nbits <= sizeof(uint64_t) * 8);
+  NARU_ASSERT(nbits <= sizeof(uint32_t) * 8);
 
   /* 最上位ビットからデータを埋めていく
    * 初回ループではtmpの上位ビットにセット
@@ -248,7 +248,7 @@ void NARUBitReader_GetBits(struct NARUBitStream* stream, uint64_t* val, uint32_t
   /* 端数ビットの処理 
    * 残ったビット分をtmpの最上位ビットにセット */
   stream->bit_count -= bitcount;
-  tmp               |= (uint64_t)NARUBITSTREAM_GETLOWERBITS(stream->bit_buffer >> stream->bit_count, bitcount);
+  tmp               |= (uint32_t)NARUBITSTREAM_GETLOWERBITS(stream->bit_buffer >> stream->bit_count, bitcount);
 
   /* 正常終了 */
   (*val) = tmp;
@@ -317,7 +317,7 @@ void NARUBitStream_Flush(struct NARUBitStream* stream)
     /* 読み込み位置を次のバイト先頭に */
     if (stream->flags & NARUBITSTREAM_FLAGS_MODE_READ) {
       /* 残りビット分を空読み */
-      uint64_t dummy;
+      uint32_t dummy;
       NARUBitReader_GetBits(stream, &dummy, stream->bit_count);
     } else {
       /* バッファに余ったビットを強制出力 */

@@ -145,7 +145,7 @@ static void NARUGamma_PutCode(struct NARUBitStream* strm, uint32_t val)
 static uint32_t NARUGamma_GetCode(struct NARUBitStream* strm)
 {
   uint32_t ndigit;
-  uint64_t bitsbuf;
+  uint32_t bitsbuf;
 
   NARU_ASSERT(strm != NULL);
 
@@ -207,7 +207,7 @@ static void NARURecursiveRice_PutRestPart(
 /* 剰余部分を取得 TODO:mはシフトパラメータでもいいはず */
 static uint32_t NARURecursiveRice_GetRestPart(struct NARUBitStream* strm, uint32_t m)
 {
-  uint64_t rest;
+  uint32_t rest;
 
   NARU_ASSERT(strm != NULL);
   NARU_ASSERT(m != 0);
@@ -393,7 +393,7 @@ void NARUCoder_PutInitialRecursiveRiceParameter(
     struct NARUCoder* coder, struct NARUBitStream* strm,
     uint32_t num_parameters, uint32_t bitwidth, uint32_t channel_index)
 {
-  uint64_t first_order_param;
+  uint32_t first_order_param;
 
   NARUUTILITY_UNUSED_ARGUMENT(num_parameters);
   NARU_ASSERT((strm != NULL) && (coder != NULL));
@@ -413,7 +413,7 @@ void NARUCoder_GetInitialRecursiveRiceParameter(
     uint32_t num_parameters, uint32_t bitwidth, uint32_t channel_index)
 {
   uint32_t i;
-  uint64_t first_order_param;
+  uint32_t first_order_param;
 
   NARU_ASSERT((strm != NULL) && (coder != NULL));
   NARU_ASSERT(num_parameters <= coder->max_num_parameters);
