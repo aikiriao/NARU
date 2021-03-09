@@ -260,6 +260,11 @@ static NARUApiResult NARUDecoder_DecodeBlock(
     return NARU_APIRESULT_PARAMETER_NOT_SET;
   }
 
+  /* バッファサイズ不足 */
+  if (buffer_num_samples < decoder->header.num_samples_per_block) {
+    return NARU_APIRESULT_INSUFFICIENT_BUFFER;
+  }
+
   /* ヘッダ取得 */
   header = &(decoder->header);
 
@@ -272,11 +277,28 @@ static NARUApiResult NARUDecoder_DecodeBlock(
 
   /* 同期コード */
   NARUBitReader_GetBits(&stream, &buf, 16);
-  NARU_ASSERT(buf == NARU_BLOCK_SYNC_CODE); /* TODO: 将来的にはエラーで落とす */
-
+  /* 同期コード不一致 */
+  if (buf != NARU_BLOCK_SYNC_CODE) {
+    return NARU_APIRESULT_INVALID_FORMAT;
+  }
+  /* ブロックサイズ */
+  NARUBitReader_GetBits(&stream, &buf, 32);
+  NARU_ASSERT(buf > 0); 
+  /* データサイズ不足 */
+  if ((buf + 6) > data_size) {
+    return NARU_APIRESULT_INSUFFICIENT_DATA;
+  }
+  /* ブロックCRC16 */
+  NARUBitReader_GetBits(&stream, &buf, 16);
+  NARU_ASSERT(buf == 0); /* TODO: 将来的には計算値を入れる */
   /* ブロックデータタイプ */
   NARUBitReader_GetBits(&stream, &buf, 2);
-  NARU_ASSERT(buf == NARU_BLOCK_DATA_TYPE_COMPRESSDATA); /* TODO: 将来的には他も対応 */
+  /* ブロックデータタイプが不正 */
+  if ((buf != NARU_BLOCK_DATA_TYPE_COMPRESSDATA)
+      && (buf != NARU_BLOCK_DATA_TYPE_RAWDATA)
+      && (buf != NARU_BLOCK_DATA_TYPE_SILENT)) {
+    return NARU_APIRESULT_INVALID_FORMAT;
+  }
 
   /* 信号処理ハンドルの状態取得 */
   for (ch = 0; ch < header->num_channels; ch++) {
@@ -299,6 +321,9 @@ static NARUApiResult NARUDecoder_DecodeBlock(
 
   /* 読み出しサイズの取得 */
   NARUBitStream_Tell(&stream, (int32_t *)decode_size);
+
+  /* ビットライタ破棄 */
+  NARUBitStream_Close(&stream);
 
   /* チャンネル毎に合成処理 */
   for (ch = 0; ch < header->num_channels; ch++) {

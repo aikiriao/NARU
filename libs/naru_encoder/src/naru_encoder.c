@@ -361,7 +361,10 @@ static NARUApiResult NARUEncoder_EncodeBlock(
 
   /* ブロック先頭の同期コード */
   NARUBitWriter_PutBits(&stream, NARU_BLOCK_SYNC_CODE, 16);
-
+  /* ブロックサイズ: 仮値で埋めておく */
+  NARUBitWriter_PutBits(&stream, 0, 32);
+  /* ブロックCRC16: 仮値で埋めておく TODO: 処理追加 */
+  NARUBitWriter_PutBits(&stream, 0, 16);
   /* ブロックデータタイプ */
   NARUBitWriter_PutBits(&stream, NARU_BLOCK_DATA_TYPE_COMPRESSDATA, 2);
 
@@ -414,8 +417,13 @@ static NARUApiResult NARUEncoder_EncodeBlock(
   /* バイト境界に揃える */
   NARUBitStream_Flush(&stream);
 
-  /* 書き出しサイズの取得 */
+  /* 書き出しサイズの取得とブロックサイズ書き込み */
   NARUBitStream_Tell(&stream, (int32_t *)output_size);
+  NARUBitStream_Seek(&stream, 2, NARUBITSTREAM_SEEK_SET);
+  NARUBitWriter_PutBits(&stream, (*output_size) - 6, 32);  /* 同期コードとサイズ領域を除いたサイズ */
+
+  /* ビットライタ破棄 */
+  NARUBitStream_Close(&stream);
 
   /* 成功終了 */
   return NARU_APIRESULT_OK;
