@@ -143,9 +143,8 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     __pos += (offset);\
 \
     /* 範囲チェック */\
-    NARU_ASSERT(__pos\
-        < ((stream)->memory_image + (stream)->memory_size));\
     NARU_ASSERT(__pos >= (stream)->memory_image);\
+    NARU_ASSERT(__pos < ((stream)->memory_image + (stream)->memory_size));\
 \
     /* 結果の保存 */\
     (stream)->memory_p = __pos;\
@@ -191,6 +190,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
               (uint32_t)(val) >> __nbits, (stream)->bit_count);\
 \
       /* 終端に達していないかチェック */\
+      NARU_ASSERT((stream)->memory_p >= (stream)->memory_image);\
       NARU_ASSERT((stream)->memory_p\
           < ((stream)->memory_image + (stream)->memory_size));\
 \
@@ -240,6 +240,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
           (stream)->bit_buffer, (stream)->bit_count) << __nbits;\
 \
       /* 終端に達していないかチェック */\
+      NARU_ASSERT((stream)->memory_p >= (stream)->memory_image);\
       NARU_ASSERT((stream)->memory_p\
           < ((stream)->memory_image + (stream)->memory_size));\
 \
@@ -290,6 +291,7 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
       uint32_t  __tmp_run;\
 \
       /* 終端に達していないかチェック */\
+      NARU_ASSERT((stream)->memory_p >= (stream)->memory_image);\
       NARU_ASSERT((stream)->memory_p\
           < ((stream)->memory_image + (stream)->memory_size));\
 \
