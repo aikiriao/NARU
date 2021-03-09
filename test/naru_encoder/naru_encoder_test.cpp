@@ -12,6 +12,8 @@ extern "C" {
 #define NARU_SetValidHeader(p_header)\
   do {\
     struct NARUHeaderInfo *header__p = p_header;\
+    header__p->format_version        = NARU_FORMAT_VERSION;\
+    header__p->codec_version         = NARU_CODEC_VERSION;\
     header__p->num_channels          = 1;\
     header__p->sampling_rate         = 44100;\
     header__p->bits_per_sample       = 16;\
