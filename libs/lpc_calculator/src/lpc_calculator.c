@@ -335,7 +335,7 @@ static double LPCCalculator_Log2(double x)
 LPCCalculatorApiResult LPCCalculator_EstimateCodeLength(
     const double* data, uint32_t num_samples, uint32_t bits_per_sample,
     const double* parcor_coef, uint32_t order,
-    double* length_per_sample)
+    double* length_per_sample_bits)
 {
   uint32_t smpl, ord;
   double log2_mean_res_power, log2_var_ratio;
@@ -344,7 +344,7 @@ LPCCalculatorApiResult LPCCalculator_EstimateCodeLength(
 #define BETA_CONST_FOR_LAPLACE_DIST   (1.9426950408889634)  /* sqrt(2 * E * E) */
 #define BETA_CONST_FOR_GAUSS_DIST     (2.047095585180641)   /* sqrt(2 * E * PI) */
   /* 引数チェック */
-  if (data == NULL || parcor_coef == NULL || length_per_sample == NULL) {
+  if ((data == NULL) || (parcor_coef == NULL) || (length_per_sample_bits == NULL)) {
     return LPCCALCULATOR_APIRESULT_INVALID_ARGUMENT;
   }
 
@@ -357,12 +357,12 @@ LPCCalculatorApiResult LPCCalculator_EstimateCodeLength(
   log2_mean_res_power *= pow(2, (double)(2 * (bits_per_sample - 1)));
   if (fabs(log2_mean_res_power) <= FLT_MIN) {
     /* ほぼ無音だった場合は符号長を0とする */
-    *length_per_sample = 0.0;
+    (*length_per_sample_bits) = 0.0f;
     return LPCCALCULATOR_APIRESULT_OK;
   } 
   log2_mean_res_power = LPCCalculator_Log2((double)log2_mean_res_power) - LPCCalculator_Log2((double)num_samples);
 
-  /* sum(log2(1-parcor * parcor))の計算 */
+  /* sum(log2(1 - (parcor * parcor)))の計算 */
   /* 1次の係数は0で確定だから飛ばす */
   log2_var_ratio = 0.0f;
   for (ord = 1; ord <= order; ord++) {
@@ -371,17 +371,17 @@ LPCCalculatorApiResult LPCCalculator_EstimateCodeLength(
 
   /* エントロピー計算 */
   /* →サンプルあたりの最小のビット数が得られる */
-  *length_per_sample
-    = BETA_CONST_FOR_LAPLACE_DIST + 0.5f * (log2_mean_res_power + log2_var_ratio);
-  /* デバッグのしやすさのため、8で割ってバイト単位に換算 */
-  *length_per_sample /= 8;
+  (*length_per_sample_bits) = BETA_CONST_FOR_LAPLACE_DIST + 0.5f * (log2_mean_res_power + log2_var_ratio);
 
   /* 推定ビット数が負値の場合は、1サンプルあたり1ビットで符号化できることを期待する */
   /* 補足）このケースは入力音声パワーが非常に低い */
-  if ((*length_per_sample) <= 0) {
-    (*length_per_sample) = 1.0f / 8;
+  if ((*length_per_sample_bits) <= 0) {
+    (*length_per_sample_bits) = 1.0f;
     return LPCCALCULATOR_APIRESULT_OK;
   }
+
+#undef BETA_CONST_FOR_LAPLACE_DIST
+#undef BETA_CONST_FOR_GAUSS_DIST
   
   return LPCCALCULATOR_APIRESULT_OK;
 }

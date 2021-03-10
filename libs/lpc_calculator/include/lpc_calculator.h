@@ -43,7 +43,7 @@ LPCCalculatorApiResult LPCCalculator_CalculatePARCORCoef(
 LPCCalculatorApiResult LPCCalculator_EstimateCodeLength(
     const double* data, uint32_t num_samples, uint32_t bits_per_sample,
     const double* parcor_coef, uint32_t order, 
-    double* length_per_sample);
+    double* length_per_sample_bits);
 
 #ifdef __cplusplus
 }
