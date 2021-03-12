@@ -89,7 +89,7 @@ static void NGSAFilter_GetFilterState(
   if (filter->ar_order == 1) {
     int32_t scale_int;
     /* 1.0f / (1.0f - ar_coef[0] ** 2) */
-    scale_int = (1 << 15) - NARU_FIXEDPOINT_MUL(processor->ngsa.ar_coef[0], processor->ngsa.ar_coef[0], NARU_FIXEDPOINT_DIGITS);
+    scale_int = (1 << 15) - NARU_FIXEDPOINT_MUL(filter->ar_coef[0], filter->ar_coef[0], NARU_FIXEDPOINT_DIGITS);
     scale_int = (1 << 30) / scale_int;
     filter->stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
     /* 係数が大きくなりすぎないようにクリップ */
