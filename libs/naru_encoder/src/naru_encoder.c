@@ -563,7 +563,8 @@ static NARUApiResult NARUEncoder_EncodeBlock(
           data_ptr, data_size - block_header_size, &block_data_size);
       break;
     default:
-      NARU_ASSERT(0);
+      ret = NARU_APIRESULT_INVALID_FORMAT;
+      break;
   }
 
   /* データデコードに失敗している */
