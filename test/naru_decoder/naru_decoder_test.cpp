@@ -406,10 +406,6 @@ TEST(NARUDecoderTest, DecodeBlockTest)
     EXPECT_EQ(NARU_APIRESULT_INSUFFICIENT_DATA,
       NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE - 1,
         output, tmp_header.num_samples_per_block, &decode_output_size, &out_num_samples));
-    /* バッファサイズ不足 */
-    EXPECT_EQ(NARU_APIRESULT_INSUFFICIENT_BUFFER,
-      NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
-        output, tmp_header.num_samples_per_block - 1, &decode_output_size, &out_num_samples));
 
     /* データを一部破壊した場合にエラーを返すか */
 
