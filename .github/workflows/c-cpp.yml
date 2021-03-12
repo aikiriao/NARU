@@ -1,0 +1,20 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: build and test
+      run: mkdir build; cd build; cmake ..; make; ctest
+    - name: build tools
+      run: cd tools/naru_codec; mkdir build; cd build; cmake ..; make;
+      
