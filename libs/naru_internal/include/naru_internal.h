@@ -4,28 +4,34 @@
 #include "naru.h"
 
 /* 内部エンコードパラメータ */
-#define NARU_BLOCK_SYNC_CODE                  0xFFFF  /* ブロック先頭の同期コード                 */
-#define NARUCODER_NUM_RECURSIVERICE_PARAMETER 2       /* 再帰的ライス符号のパラメータ数 */
-#define NARUCODER_QUOTPART_THRESHOULD         16      /* 再帰的ライス符号の商部分の閾値 これ以上の大きさの商はガンマ符号化 */
-#define NARU_FIXEDPOINT_DIGITS                15      /* 固定小数点の小数桁 */
-#define NARU_FIXEDPOINT_0_5                   (1 << (NARU_FIXEDPOINT_DIGITS - 1)) /* 固定小数点の0.5 */
-#define NARU_EMPHASIS_FILTER_SHIFT            5                                   /* プリ（デ）エンファシスフィルタのシフト量  */
+/* ブロック先頭の同期コード */
+#define NARU_BLOCK_SYNC_CODE                  0xFFFF
+/* 再帰的ライス符号のパラメータ数 */
+#define NARUCODER_NUM_RECURSIVERICE_PARAMETER 2
+/* 再帰的ライス符号の商部分の閾値 これ以上の大きさの商はガンマ符号化 */
+#define NARUCODER_QUOTPART_THRESHOULD         16
+/* 固定小数点の小数桁 */
+#define NARU_FIXEDPOINT_DIGITS                15
+/* 固定小数点の0.5 */
+#define NARU_FIXEDPOINT_0_5                   (1 << (NARU_FIXEDPOINT_DIGITS - 1))
+/* プリ（デ）エンファシスフィルタのシフト量  */
+#define NARU_EMPHASIS_FILTER_SHIFT            5
 /* NGSAのステップサイズに乗じる係数のビット幅 */
-#define NARUNGSA_STEPSIZE_SCALE_BITWIDTH 10
+#define NARUNGSA_STEPSIZE_SCALE_BITWIDTH      10
 /* NGSAのステップサイズに乗じる係数の最大値 */
-#define NARUNGSA_MAX_STEPSIZE_SCALE (50 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH)
+#define NARUNGSA_MAX_STEPSIZE_SCALE           (50 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH)
 /* NGSAのステップサイズに乗じる係数の右シフト量 */
-#define NARUNGSA_STEPSIZE_SCALE_SHIFT 6
+#define NARUNGSA_STEPSIZE_SCALE_SHIFT         6
 /* SAの右シフト量 */
-#define NARUSA_STEPSIZE_SHIFT 2
+#define NARUSA_STEPSIZE_SHIFT                 2
 /* フィルタ係数のbit幅 */
-#define NARU_FILTER_WEIGHT_RANGE_BITWIDTH 18
+#define NARU_FILTER_WEIGHT_RANGE_BITWIDTH     18
 /* ブロックヘッダに記録するデータのビット幅 */
-#define NARU_BLOCKHEADER_DATA_BITWIDTH 8
+#define NARU_BLOCKHEADER_DATA_BITWIDTH        8
 /* ブロックヘッダに記録するデータのシフト数のビット幅 */
-#define NARU_BLOCKHEADER_SHIFT_BITWIDTH 4
+#define NARU_BLOCKHEADER_SHIFT_BITWIDTH       4
 /* 推定符号長比（=推定符号長/元データ長）がこの値以上ならば圧縮を諦め、生データを書き出す */
-#define NARU_ESTIMATED_CODELENGTH_THRESHOLD 0.95f
+#define NARU_ESTIMATED_CODELENGTH_THRESHOLD   0.95f
 
 /* NULLチェックと領域解放 */
 #define NARU_NULLCHECK_AND_FREE(ptr)\
