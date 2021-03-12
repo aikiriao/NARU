@@ -8,6 +8,9 @@ project(NARUCodec C)
 # アプリケーション名
 set(APP_NAME naru)
 
+# ライブラリのテストはしない
+set(without-test 1)
+
 # 実行形式ファイル
 add_executable(${APP_NAME} naru_codec.c)
 
