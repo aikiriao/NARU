@@ -9,7 +9,7 @@ set(TEST_NAME wav_test)
 add_executable(${TEST_NAME} main.cpp)
 
 # インクルードディレクトリ
-include_directories(${PROJECT_ROOT_PATH}/libs/Wav/include)
+include_directories(${PROJECT_ROOT_PATH}/libs/wav/include)
 
 # リンクするライブラリ
 target_link_libraries(${TEST_NAME} gtest) 
