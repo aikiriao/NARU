@@ -149,17 +149,10 @@ static int do_decode(const char* in_filename, const char* out_filename)
     return 1;
   }
 
-  /* ヘッダから読み取ったパラメータをデコーダにセット */
-  if ((ret = NARUDecoder_SetHeader(decoder, &header)) != NARU_APIRESULT_OK) {
-    fprintf(stderr, "Failed to set header: %d \n", ret);
-    return 1;
-  }
-
   /* 一括デコード */
   if ((ret = NARUDecoder_DecodeWhole(decoder, 
           buffer, buffer_size,
-          (int32_t **)out_wav->data,
-          out_wav->format.num_channels, out_wav->format.num_samples)
+          (int32_t **)out_wav->data, out_wav->format.num_channels, out_wav->format.num_samples)
         != NARU_APIRESULT_OK)) {
     fprintf(stderr, "Decoding error! %d \n", ret);
     return 1;
