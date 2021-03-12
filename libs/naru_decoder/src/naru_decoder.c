@@ -408,11 +408,6 @@ static NARUApiResult NARUDecoder_DecodeBlock(
     return NARU_APIRESULT_PARAMETER_NOT_SET;
   }
 
-  /* バッファサイズ不足 */
-  if (buffer_num_samples < decoder->header.num_samples_per_block) {
-    return NARU_APIRESULT_INSUFFICIENT_BUFFER;
-  }
-
   /* ヘッダ取得 */
   header = &(decoder->header);
 
