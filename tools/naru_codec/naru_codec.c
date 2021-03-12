@@ -24,8 +24,8 @@ static int do_encode(const char* in_filename, const char* out_filename)
 
   /* エンコーダ作成 */
   config.max_num_channels = NARU_MAX_NUM_CHANNELS;
-  config.max_num_samples_per_block = 4096;
-  config.max_filter_order = 32;
+  config.max_num_samples_per_block = 32 * 1024;
+  config.max_filter_order = NARU_MAX_FILTER_ORDER;
   if ((encoder = NARUEncoder_Create(&config)) == NULL) {
     fprintf(stderr, "Failed to create encoder handle. \n");
     return 1;
@@ -43,9 +43,10 @@ static int do_encode(const char* in_filename, const char* out_filename)
   parameter.num_channels = (uint16_t)num_channels;
   parameter.bits_per_sample = (uint16_t)in_wav->format.bits_per_sample;
   parameter.sampling_rate = in_wav->format.sampling_rate;
-  parameter.num_samples_per_block = 4096;
+  parameter.num_samples_per_block = 16 * 1024;
   parameter.filter_order = 8;
   parameter.ar_order = 1;
+  parameter.second_filter_order = 8;
   parameter.ch_process_method
     = (num_channels >= 2) ? NARU_CH_PROCESS_METHOD_MS : NARU_CH_PROCESS_METHOD_NONE;
   if ((ret = NARUEncoder_SetEncodeParameter(encoder, &parameter)) != NARU_APIRESULT_OK) {
@@ -73,8 +74,7 @@ static int do_encode(const char* in_filename, const char* out_filename)
 
   /* 一括エンコード */
   if ((ret = NARUEncoder_EncodeWhole(encoder, 
-        (const int32_t* const *)input, num_samples,
-        buffer, buffer_size, &encoded_data_size)) != NARU_APIRESULT_OK) {
+        (const int32_t* const *)input, num_samples, buffer, buffer_size, &encoded_data_size)) != NARU_APIRESULT_OK) {
     fprintf(stderr, "Encoding error! %d \n", ret);
     return 1;
   }
@@ -85,6 +85,8 @@ static int do_encode(const char* in_filename, const char* out_filename)
     fprintf(stderr, "File output error! %d \n", ret);
     return 1;
   }
+
+  printf("size: %d -> %d \n", (uint32_t)fstat.st_size, encoded_data_size);
 
   /* リソース破棄 */
   fclose(out_fp);
@@ -114,8 +116,7 @@ static int do_decode(const char* in_filename, const char* out_filename)
 
   /* デコーダハンドルの作成 */
   config.max_num_channels = NARU_MAX_NUM_CHANNELS;
-  config.max_num_samples_per_block = 4096;
-  config.max_filter_order = 32;
+  config.max_filter_order = NARU_MAX_FILTER_ORDER;
   if ((decoder = NARUDecoder_Create(&config)) == NULL) {
     fprintf(stderr, "Failed to create decoder handle. \n");
     return 1;
