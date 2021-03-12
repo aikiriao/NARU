@@ -133,13 +133,22 @@ void NARUEncodeProcessor_CalculateARCoef(
     processor->ngsa.ar_coef[ord] = (int32_t)tmp_coef;
   }
 
+  /* 丸め */
+  if (ar_order == 1) {
+    /* (-1.0f, 1.0f)の範囲内に丸める: 1.0f, -1.0fだと2乗がオーバーフローするため */
+    processor->ngsa.ar_coef[0] = NARUUTILITY_INNER_VALUE(
+        processor->ngsa.ar_coef[0], -(1 << NARU_FIXEDPOINT_DIGITS) + 1, (1 << NARU_FIXEDPOINT_DIGITS) - 1);
+  }
+
   /* ステップサイズに乗じる係数の計算 */
   if (ar_order == 1) {
     int32_t scale_int;
     /* 1.0f / (1.0f - ar_coef[0] ** 2) */
-    scale_int = (1 << 15) - ((processor->ngsa.ar_coef[0] * processor->ngsa.ar_coef[0] + NARU_FIXEDPOINT_0_5) >> NARU_FIXEDPOINT_DIGITS);
+    scale_int = (1 << 15) - NARU_FIXEDPOINT_MUL(processor->ngsa.ar_coef[0], processor->ngsa.ar_coef[0], NARU_FIXEDPOINT_DIGITS);
     scale_int = (1 << 30) / scale_int;
     processor->ngsa.stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
+    /* 係数が大きくなりすぎないようにクリップ */
+    processor->ngsa.stepsize_scale = NARUUTILITY_MIN(NARUNGSA_MAX_STEPSIZE_SCALE, processor->ngsa.stepsize_scale);
   } else {
     processor->ngsa.stepsize_scale = 1 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH;
   }
@@ -360,7 +369,7 @@ static int32_t SAFilter_Predict(struct SAFilter *filter, int32_t input)
   const int32_t filter_order = filter->filter_order;
 
   NARU_ASSERT(filter != NULL);
-
+  
   /* ローカル変数に受けとく */
   history = &filter->history[0];
   weight = &filter->weight[0];

@@ -12,6 +12,8 @@
 #define NARU_EMPHASIS_FILTER_SHIFT            5                                   /* プリ（デ）エンファシスフィルタのシフト量  */
 /* NGSAのステップサイズに乗じる係数のビット幅 */
 #define NARUNGSA_STEPSIZE_SCALE_BITWIDTH 10
+/* NGSAのステップサイズに乗じる係数の最大値 */
+#define NARUNGSA_MAX_STEPSIZE_SCALE (50 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH)
 /* NGSAのステップサイズに乗じる係数の右シフト量 */
 #define NARUNGSA_STEPSIZE_SCALE_SHIFT 6
 /* SAの右シフト量 */

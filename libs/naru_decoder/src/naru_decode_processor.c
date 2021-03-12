@@ -89,9 +89,11 @@ static void NGSAFilter_GetFilterState(
   if (filter->ar_order == 1) {
     int32_t scale_int;
     /* 1.0f / (1.0f - ar_coef[0] ** 2) */
-    scale_int = (1 << 15) - ((filter->ar_coef[0] * filter->ar_coef[0] + NARU_FIXEDPOINT_0_5) >> NARU_FIXEDPOINT_DIGITS);
+    scale_int = (1 << 15) - NARU_FIXEDPOINT_MUL(processor->ngsa.ar_coef[0], processor->ngsa.ar_coef[0], NARU_FIXEDPOINT_DIGITS);
     scale_int = (1 << 30) / scale_int;
     filter->stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
+    /* 係数が大きくなりすぎないようにクリップ */
+    filter->stepsize_scale = NARUUTILITY_MIN(NARUNGSA_MAX_STEPSIZE_SCALE, filter->stepsize_scale);
   } else {
     filter->stepsize_scale = 1 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH;
   }
@@ -192,7 +194,6 @@ static void NGSAFilter_InitializeNaturalGradient(struct NGSAFilter *filter)
     memcpy(ngrad, history, sizeof(int32_t) * (uint32_t)filter_order);
   }
 }
-
 
 /* NGSAフィルタの1サンプル合成処理 */
 static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual)
