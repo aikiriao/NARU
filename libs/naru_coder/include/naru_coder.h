@@ -24,25 +24,21 @@ void NARUCoder_CalculateInitialRecursiveRiceParameter(
 
 /* 再帰的ライス符号の初期パラメータを符号化 */
 void NARUCoder_PutInitialRecursiveRiceParameter(
-    struct NARUCoder* coder, struct NARUBitStream* strm,
-    uint32_t num_parameters, uint32_t bitwidth, uint32_t channel_index);
+    struct NARUCoder* coder, struct NARUBitStream* strm, uint32_t num_parameters, uint32_t channel_index);
 
 /* 再帰的ライス符号の初期パラメータを取得 */
 void NARUCoder_GetInitialRecursiveRiceParameter(
-    struct NARUCoder* coder, struct NARUBitStream* strm,
-    uint32_t num_parameters, uint32_t bitwidth, uint32_t channel_index);
+    struct NARUCoder* coder, struct NARUBitStream* strm, uint32_t num_parameters, uint32_t channel_index);
 
 /* 符号付き整数配列の符号化 */
 void NARUCoder_PutDataArray(
     struct NARUCoder* coder, struct NARUBitStream* strm,
-    uint32_t num_parameters,
-    const int32_t** data, uint32_t num_channels, uint32_t num_samples);
+    uint32_t num_parameters, const int32_t** data, uint32_t num_channels, uint32_t num_samples);
 
 /* 符号付き整数配列の復号 */
 void NARUCoder_GetDataArray(
     struct NARUCoder* coder, struct NARUBitStream* strm,
-    uint32_t num_parameters,
-    int32_t** data, uint32_t num_channels, uint32_t num_samples);
+    uint32_t num_parameters, int32_t** data, uint32_t num_channels, uint32_t num_samples);
 
 #ifdef __cplusplus
 }

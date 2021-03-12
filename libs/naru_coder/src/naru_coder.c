@@ -373,7 +373,7 @@ void NARUCoder_CalculateInitialRecursiveRiceParameter(
   NARU_ASSERT(num_parameters <= coder->max_num_parameters);
 
   for (ch = 0; ch < num_channels; ch++) {
-    /* パラメータ初期値（平均値）の計算 */
+    /* パラメータ初期値（符号平均値）の計算 */
     sum = 0;
     for (smpl = 0; smpl < num_samples; smpl++) {
       sum += NARUUTILITY_SINT32_TO_UINT32(data[ch][smpl]);
@@ -388,12 +388,11 @@ void NARUCoder_CalculateInitialRecursiveRiceParameter(
   }
 }
 
-/* 再帰的ライス符号のパラメータを符号化 */
+/* 再帰的ライス符号のパラメータを符号化（量子化による副作用あり） */
 void NARUCoder_PutInitialRecursiveRiceParameter(
-    struct NARUCoder* coder, struct NARUBitStream* strm,
-    uint32_t num_parameters, uint32_t bitwidth, uint32_t channel_index)
+    struct NARUCoder* coder, struct NARUBitStream* strm, uint32_t num_parameters, uint32_t channel_index)
 {
-  uint32_t first_order_param;
+  uint32_t i, first_order_param, log2_param;
 
   NARUUTILITY_UNUSED_ARGUMENT(num_parameters);
   NARU_ASSERT((strm != NULL) && (coder != NULL));
@@ -402,27 +401,40 @@ void NARUCoder_PutInitialRecursiveRiceParameter(
 
   /* 1次パラメータを取得 */
   first_order_param = NARUCODER_PARAMETER_GET(coder->init_rice_parameter[channel_index], 0);
+
+  /* 記録のためlog2をとる */
+  log2_param = NARUUTILITY_LOG2CEIL(first_order_param);
+  
+  /* 2の冪乗を取って量子化 */
+  first_order_param = 1U << log2_param;
+
   /* 書き出し */
-  NARU_ASSERT(first_order_param < (1UL << bitwidth));
-  NARUBitWriter_PutBits(strm, first_order_param, bitwidth);
+  NARU_ASSERT(log2_param < 32);
+  NARUBitWriter_PutBits(strm, log2_param, 5);
+
+  /* パラメータ反映 */
+  for (i = 0; i < num_parameters; i++) {
+    NARUCODER_PARAMETER_SET(coder->init_rice_parameter[channel_index], i, first_order_param);
+    NARUCODER_PARAMETER_SET(coder->rice_parameter[channel_index], i, first_order_param);
+  }
 }
 
 /* 再帰的ライス符号のパラメータを取得 */
 void NARUCoder_GetInitialRecursiveRiceParameter(
-    struct NARUCoder* coder, struct NARUBitStream* strm,
-    uint32_t num_parameters, uint32_t bitwidth, uint32_t channel_index)
+    struct NARUCoder* coder, struct NARUBitStream* strm, uint32_t num_parameters, uint32_t channel_index)
 {
-  uint32_t i;
-  uint32_t first_order_param;
+  uint32_t i, first_order_param, log2_param;
 
   NARU_ASSERT((strm != NULL) && (coder != NULL));
   NARU_ASSERT(num_parameters <= coder->max_num_parameters);
   NARU_ASSERT(channel_index < coder->max_num_channels);
 
   /* 初期パラメータの取得 */
-  NARUBitReader_GetBits(strm, &first_order_param, bitwidth);
-  NARU_ASSERT(first_order_param < (1UL << bitwidth));
-  /* 初期パラメータの取得 */
+  NARUBitReader_GetBits(strm, &log2_param, 5);
+  NARU_ASSERT(log2_param < 32);
+  first_order_param = 1U << log2_param;
+
+  /* 初期パラメータの設定 */
   for (i = 0; i < num_parameters; i++) {
     NARUCODER_PARAMETER_SET(coder->init_rice_parameter[channel_index], i, (uint32_t)first_order_param);
     NARUCODER_PARAMETER_SET(coder->rice_parameter[channel_index], i, (uint32_t)first_order_param);
