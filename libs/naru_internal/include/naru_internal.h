@@ -24,6 +24,8 @@
 #define NARU_BLOCKHEADER_DATA_BITWIDTH 8
 /* ブロックヘッダに記録するデータのシフト数のビット幅 */
 #define NARU_BLOCKHEADER_SHIFT_BITWIDTH 4
+/* 推定符号長比（=推定符号長/元データ長）がこの値以上ならば圧縮を諦め、生データを書き出す */
+#define NARU_ESTIMATED_CODELENGTH_THRESHOLD 0.95f
 
 /* NULLチェックと領域解放 */
 #define NARU_NULLCHECK_AND_FREE(ptr)\
@@ -51,7 +53,7 @@ typedef enum NARUBlockDataTypeTag {
   NARU_BLOCK_DATA_TYPE_COMPRESSDATA  = 0,     /* 圧縮済みデータ */
   NARU_BLOCK_DATA_TYPE_SILENT        = 1,     /* 無音データ     */
   NARU_BLOCK_DATA_TYPE_RAWDATA       = 2,     /* 生データ       */
-  NARU_BLOCK_DATA_TYPE_INVAILD       = 3      /* 無効           */
+  NARU_BLOCK_DATA_TYPE_INVALID       = 3      /* 無効           */
 } NARUBlockDataType;
 
 /* 内部エラー型 */

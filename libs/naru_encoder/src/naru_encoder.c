@@ -28,14 +28,15 @@ struct NARUEncoder {
 static NARUError NARUEncoder_ConvertParameterToHeader(
     const struct NARUEncodeParameter *parameter, uint32_t num_samples,
     struct NARUHeaderInfo *header);
-
 /* 単一データブロックエンコード */
-/* 補足）実装の簡略化のため、ストリーミングエンコードには対応しない */
+/* 補足）実装の簡略化のため、ストリーミングエンコードには対応しない。そのため非公開。 */
 static NARUApiResult NARUEncoder_EncodeBlock(
     struct NARUEncoder *encoder,
     const int32_t *const *input, uint32_t num_samples, 
     uint8_t *data, uint32_t data_size, uint32_t *output_size);
-
+/* ブロックデータタイプの判定 */
+static NARUBlockDataType NARUEncoder_DecideBlockDataType(
+    struct NARUEncoder *encoder, const int32_t *const *input, uint32_t num_samples);
 /* 解析用のdouble信号作成 */
 static void NARUEncoder_MakeAnalyzingSignal(
     const double *window, const int32_t *data_int, uint32_t num_samples,
@@ -294,6 +295,55 @@ NARUApiResult NARUEncoder_SetEncodeParameter(
   return NARU_APIRESULT_OK;
 }
 
+/* ブロックデータタイプの判定 */
+static NARUBlockDataType NARUEncoder_DecideBlockDataType(
+    struct NARUEncoder *encoder, const int32_t *const *input, uint32_t num_samples)
+{
+  uint32_t ch, smpl;
+  double parcor_coef[NARU_MAX_AR_ORDER + 1], mean_length;
+  const struct NARUHeaderInfo *header;
+  LPCCalculatorApiResult ret;
+
+  NARU_ASSERT(encoder != NULL);
+  NARU_ASSERT(input != NULL);
+
+  header = &encoder->header;
+
+  /* 平均符号長の計算 */
+  mean_length = 0.0f;
+  for (ch = 0; ch < header->num_channels; ch++) {
+    double tmp_length;
+    /* 入力をdouble化 */
+    for (smpl = 0; smpl < num_samples; smpl++) {
+      encoder->buffer_double[smpl] = input[ch][smpl] * pow(2.0f, -(int32_t)(header->bits_per_sample - 1));
+    }
+    /* 推定符号長計算 */
+    ret = LPCCalculator_CalculatePARCORCoef(
+        encoder->lpcc, encoder->buffer_double, num_samples, parcor_coef, header->ar_order);
+    NARU_ASSERT(ret == LPCCALCULATOR_APIRESULT_OK);
+    ret = LPCCalculator_EstimateCodeLength(
+        encoder->buffer_double, num_samples, header->bits_per_sample, parcor_coef, header->ar_order, &tmp_length);
+    NARU_ASSERT(ret == LPCCALCULATOR_APIRESULT_OK);
+    mean_length += tmp_length;
+  }
+  mean_length /= header->num_channels;
+
+  /* ビット幅に占める比に変換 */
+  mean_length /= header->bits_per_sample;
+
+  /* データタイプ判定 */
+
+  /* 圧縮が効きにくい: 生データ出力 */
+  if (mean_length >= NARU_ESTIMATED_CODELENGTH_THRESHOLD) {
+    return NARU_BLOCK_DATA_TYPE_RAWDATA;
+  }
+
+  /* TODO: 無音判定 */
+
+  /* それ以外は圧縮データ */
+  return NARU_BLOCK_DATA_TYPE_COMPRESSDATA;
+}
+
 /* 解析用のdouble信号作成 */
 static void NARUEncoder_MakeAnalyzingSignal(
     const double *window, const int32_t *data_int, uint32_t num_samples,
@@ -318,33 +368,71 @@ static void NARUEncoder_MakeAnalyzingSignal(
   NARUUtility_ApplyWindow(window, data_double, num_samples);
 }
 
-/* 単一データブロックエンコード */
-static NARUApiResult NARUEncoder_EncodeBlock(
+/* 生データブロックエンコード */
+static NARUApiResult NARUEncoder_EncodeRawData(
+    struct NARUEncoder *encoder,
+    const int32_t *const *input, uint32_t num_samples, 
+    uint8_t *data, uint32_t data_size, uint32_t *output_size)
+{
+  uint32_t ch, smpl;
+  const struct NARUHeaderInfo *header;
+  uint8_t *data_ptr;
+
+  /* 内部関数なので不正な引数はアサートで落とす */
+  NARU_ASSERT(encoder != NULL);
+  NARU_ASSERT(input != NULL);
+  NARU_ASSERT(num_samples > 0);
+  NARU_ASSERT(data != NULL);
+  NARU_ASSERT(data_size > 0);
+  NARU_ASSERT(output_size != NULL);
+
+  header = &(encoder->header);
+
+  /* 書き込み先のバッファサイズチェック */
+  if (data_size < (header->bits_per_sample * num_samples * header->num_channels) / 8) {
+    return NARU_APIRESULT_INSUFFICIENT_BUFFER;
+  }
+
+  /* 生データをチャンネルインターリーブして出力 */
+  data_ptr = data;
+  for (smpl = 0; smpl < num_samples; smpl++) {
+    for (ch = 0; ch < header->num_channels; ch++) {
+      switch (header->bits_per_sample) {
+        case  8:    ByteArray_PutUint8(data_ptr, NARUUTILITY_SINT32_TO_UINT32(input[ch][smpl])); break;
+        case 16: ByteArray_PutUint16BE(data_ptr, NARUUTILITY_SINT32_TO_UINT32(input[ch][smpl])); break;
+        case 24: ByteArray_PutUint24BE(data_ptr, NARUUTILITY_SINT32_TO_UINT32(input[ch][smpl])); break;
+        default: NARU_ASSERT(0);
+      }
+      NARU_ASSERT((uint32_t)(data_ptr - data) < data_size);
+    }
+  }
+
+  /* 書き込みサイズ取得 */
+  (*output_size) = (uint32_t)(data_ptr - data);
+
+  return NARU_APIRESULT_OK;
+}
+
+/* 圧縮データブロックエンコード */
+static NARUApiResult NARUEncoder_EncodeCompressData(
     struct NARUEncoder *encoder,
     const int32_t *const *input, uint32_t num_samples, 
     uint8_t *data, uint32_t data_size, uint32_t *output_size)
 {
   uint32_t ch;
-  const struct NARUHeaderInfo *header;
   struct NARUBitStream stream;
   int32_t *buffer[NARU_MAX_NUM_CHANNELS];
+  const struct NARUHeaderInfo *header;
 
-  /* 引数チェック */
-  if ((encoder == NULL) || (input == NULL) || (num_samples == 0)
-      || (data == NULL) || (data_size == 0) || (output_size == NULL)) {
-    return NARU_APIRESULT_INVALID_ARGUMENT;
-  }
+  /* 内部関数なので不正な引数はアサートで落とす */
+  NARU_ASSERT(encoder != NULL);
+  NARU_ASSERT(input != NULL);
+  NARU_ASSERT(num_samples > 0);
+  NARU_ASSERT(data != NULL);
+  NARU_ASSERT(data_size > 0);
+  NARU_ASSERT(output_size != NULL);
+
   header = &(encoder->header);
-
-  /* パラメータがセットされてない */
-  if (encoder->set_parameter != 1) {
-    return NARU_APIRESULT_PARAMETER_NOT_SET;
-  }
-
-  /* エンコードサンプル数チェック */
-  if (num_samples > header->num_samples_per_block) {
-    return NARU_APIRESULT_INSUFFICIENT_BUFFER;
-  }
 
   /* 入力をバッファにコピー */
   for (ch = 0; ch < header->num_channels; ch++) {
@@ -352,21 +440,6 @@ static NARUApiResult NARUEncoder_EncodeBlock(
     buffer[ch] = encoder->buffer[ch];
     memcpy(buffer[ch], input[ch], sizeof(int32_t) * num_samples);
   }
-
-  /* 窓作成 */
-  NARUUtility_MakeSinWindow(encoder->window, num_samples);
-
-  /* ビットライタ作成 */
-  NARUBitWriter_Open(&stream, data, data_size);
-
-  /* ブロック先頭の同期コード */
-  NARUBitWriter_PutBits(&stream, NARU_BLOCK_SYNC_CODE, 16);
-  /* ブロックサイズ: 仮値で埋めておく */
-  NARUBitWriter_PutBits(&stream, 0, 32);
-  /* ブロックCRC16: 仮値で埋めておく TODO: 処理追加 */
-  NARUBitWriter_PutBits(&stream, 0, 16);
-  /* ブロックデータタイプ */
-  NARUBitWriter_PutBits(&stream, NARU_BLOCK_DATA_TYPE_COMPRESSDATA, 2);
 
   /* マルチチャンネル処理 */
   if (header->ch_process_method == NARU_CH_PROCESS_METHOD_MS) {
@@ -378,6 +451,9 @@ static NARUApiResult NARUEncoder_EncodeBlock(
     NARUUtility_LRtoMSInt32(buffer, num_samples);
   }
 
+  /* 窓作成 */
+  NARUUtility_MakeSinWindow(encoder->window, num_samples);
+
   /* チャンネル毎にパラメータ計算 */
   for (ch = 0; ch < header->num_channels; ch++) {
     /* 解析用double信号生成 */
@@ -387,6 +463,9 @@ static NARUApiResult NARUEncoder_EncodeBlock(
     NARUEncodeProcessor_CalculateARCoef(&encoder->processor[ch],
         encoder->lpcc, encoder->buffer_double, num_samples, header->ar_order);
   }
+
+  /* ビットライタ作成 */
+  NARUBitWriter_Open(&stream, data, data_size);
 
   /* 信号処理ハンドルの状態出力 */
   for (ch = 0; ch < header->num_channels; ch++) {
@@ -405,8 +484,8 @@ static NARUApiResult NARUEncoder_EncodeBlock(
 
   /* 符号化パラメータ出力 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    NARUCoder_PutInitialRecursiveRiceParameter(encoder->coder, &stream,
-        NARUCODER_NUM_RECURSIVERICE_PARAMETER, header->bits_per_sample, ch);
+    NARUCoder_PutInitialRecursiveRiceParameter(encoder->coder,
+        &stream, NARUCODER_NUM_RECURSIVERICE_PARAMETER, ch);
   }
 
   /* 残差符号化 */
@@ -417,15 +496,88 @@ static NARUApiResult NARUEncoder_EncodeBlock(
   /* バイト境界に揃える */
   NARUBitStream_Flush(&stream);
 
-  /* 書き出しサイズの取得とブロックサイズ書き込み */
+  /* 書き込みサイズの取得 */
   NARUBitStream_Tell(&stream, (int32_t *)output_size);
-  NARUBitStream_Seek(&stream, 2, NARUBITSTREAM_SEEK_SET);
-  NARUBitWriter_PutBits(&stream, (*output_size) - 6, 32);  /* 同期コードとサイズ領域を除いたサイズ */
 
   /* ビットライタ破棄 */
   NARUBitStream_Close(&stream);
 
-  /* 成功終了 */
+  return NARU_APIRESULT_OK;
+}
+
+/* 単一データブロックエンコード */
+static NARUApiResult NARUEncoder_EncodeBlock(
+    struct NARUEncoder *encoder,
+    const int32_t *const *input, uint32_t num_samples, 
+    uint8_t *data, uint32_t data_size, uint32_t *output_size)
+{
+  uint8_t *data_ptr;
+  const struct NARUHeaderInfo *header;
+  NARUBlockDataType block_type;
+  NARUApiResult ret;
+  uint32_t block_header_size, block_data_size;
+
+  /* 引数チェック */
+  if ((encoder == NULL) || (input == NULL) || (num_samples == 0)
+      || (data == NULL) || (data_size == 0) || (output_size == NULL)) {
+    return NARU_APIRESULT_INVALID_ARGUMENT;
+  }
+  header = &(encoder->header);
+
+  /* パラメータがセットされてない */
+  if (encoder->set_parameter != 1) {
+    return NARU_APIRESULT_PARAMETER_NOT_SET;
+  }
+
+  /* エンコードサンプル数チェック */
+  if (num_samples > header->num_samples_per_block) {
+    return NARU_APIRESULT_INSUFFICIENT_BUFFER;
+  }
+
+  /* 圧縮手法の判定 */
+  block_type = NARUEncoder_DecideBlockDataType(encoder, input, num_samples);
+  NARU_ASSERT(block_type != NARU_BLOCK_DATA_TYPE_INVALID);
+
+  /* ブロックヘッダをエンコード */
+  data_ptr = data;
+  /* ブロック先頭の同期コード */
+  ByteArray_PutUint16BE(data_ptr, NARU_BLOCK_SYNC_CODE);
+  /* ブロックサイズ: 仮値で埋めておく */
+  ByteArray_PutUint32BE(data_ptr, 0);
+  /* ブロックCRC16: 仮値で埋めておく TODO: 処理追加 */
+  ByteArray_PutUint16BE(data_ptr, 0);
+  /* ブロックデータタイプ */
+  ByteArray_PutUint8(data_ptr, block_type);
+  /* ブロックヘッダサイズ */
+  block_header_size = (uint32_t)(data_ptr - data);
+
+  /* データ部のエンコード */
+  /* 手法によりエンコードする関数を呼び分け */
+  switch (block_type) {
+    case NARU_BLOCK_DATA_TYPE_RAWDATA:
+      ret = NARUEncoder_EncodeRawData(encoder, input, num_samples,
+          data_ptr, data_size - block_header_size, &block_data_size);
+      break;
+    case NARU_BLOCK_DATA_TYPE_COMPRESSDATA:
+      ret = NARUEncoder_EncodeCompressData(encoder, input, num_samples,
+          data_ptr, data_size - block_header_size, &block_data_size);
+      break;
+    default:
+      NARU_ASSERT(0);
+  }
+
+  /* データデコードに失敗している */
+  if (ret != NARU_APIRESULT_OK) {
+    return ret;
+  }
+
+  /* ブロックサイズ書き込み: CRC16(2byte) + ブロックデータタイプ(1byte) */
+  ByteArray_WriteUint32BE(&data[2], block_data_size + 3);
+
+  /* 出力サイズ */
+  (*output_size) = block_header_size + block_data_size;
+
+  /* エンコード成功 */
   return NARU_APIRESULT_OK;
 }
 

@@ -17,6 +17,17 @@ struct NARUDecoder {
   struct NARUDecoderConfig   config;      /* 生成時コンフィグ */
 };
 
+/* 生データブロックデコード */
+static NARUApiResult NARUDecoder_DecodeRawData(
+    struct NARUDecoder *decoder,
+    const uint8_t *data, uint32_t data_size, 
+    int32_t **buffer, uint32_t num_decode_samples, uint32_t *decode_size);
+/* 圧縮データブロックデコード */
+static NARUApiResult NARUDecoder_DecodeCompressData(
+    struct NARUDecoder *decoder,
+    const uint8_t *data, uint32_t data_size, 
+    int32_t **buffer, uint32_t num_decode_samples, uint32_t *decode_size);
+
 /* ヘッダデコード */
 NARUApiResult NARUDecoder_DecodeHeader(
     const uint8_t *data, uint32_t data_size, struct NARUHeaderInfo *header)
@@ -236,6 +247,139 @@ NARUApiResult NARUDecoder_SetHeader(
   return NARU_APIRESULT_OK;
 }
 
+/* 生データブロックデコード */
+static NARUApiResult NARUDecoder_DecodeRawData(
+    struct NARUDecoder *decoder,
+    const uint8_t *data, uint32_t data_size, 
+    int32_t **buffer, uint32_t num_decode_samples, uint32_t *decode_size)
+{
+  uint32_t ch, smpl;
+  const struct NARUHeaderInfo *header;
+  const uint8_t *read_ptr;
+
+  /* 内部関数なので不正な引数はアサートで落とす */
+  NARU_ASSERT(decoder != NULL);
+  NARU_ASSERT(data != NULL);
+  NARU_ASSERT(data_size > 0);
+  NARU_ASSERT(buffer != NULL);
+  NARU_ASSERT(buffer[0] != NULL);
+  NARU_ASSERT(num_decode_samples > 0);
+  NARU_ASSERT(decode_size != NULL);
+
+  /* ヘッダ取得 */
+  header = &(decoder->header);
+
+  /* データサイズチェック */
+  if (data_size < (header->bits_per_sample * num_decode_samples * header->num_channels) / 8) {
+    return NARU_APIRESULT_INSUFFICIENT_DATA;
+  }
+
+  /* 生データをチャンネルインターリーブで取得 */
+  read_ptr = data;
+  for (smpl = 0; smpl < num_decode_samples; smpl++) {
+    for (ch = 0; ch < header->num_channels; ch++) {
+      switch (header->bits_per_sample) {
+        case 8: 
+          {
+            uint8_t buf;
+            ByteArray_GetUint8(read_ptr, &buf);
+            buffer[ch][smpl] = NARUUTILITY_UINT32_TO_SINT32(buf);
+          }
+          break;
+        case 16: 
+          {
+            uint16_t buf;
+            ByteArray_GetUint16BE(read_ptr, &buf);
+            buffer[ch][smpl] = NARUUTILITY_UINT32_TO_SINT32(buf);
+          }
+          break;
+        case 24: 
+          {
+            uint32_t buf;
+            ByteArray_GetUint24BE(read_ptr, &buf);
+            buffer[ch][smpl] = NARUUTILITY_UINT32_TO_SINT32(buf);
+          }
+          break;
+        default: NARU_ASSERT(0);
+      }
+      NARU_ASSERT((uint32_t)(read_ptr - data) <= data_size);
+    }
+  }
+
+  /* 書き込みサイズ取得 */
+  (*decode_size) = (uint32_t)(read_ptr - data);
+
+  return NARU_APIRESULT_OK;
+}
+
+/* 圧縮データブロックデコード */
+static NARUApiResult NARUDecoder_DecodeCompressData(
+    struct NARUDecoder *decoder,
+    const uint8_t *data, uint32_t data_size, 
+    int32_t **buffer, uint32_t num_decode_samples, uint32_t *decode_size)
+{
+  uint32_t ch;
+  struct NARUBitStream stream;
+  const struct NARUHeaderInfo *header;
+
+  /* 内部関数なので不正な引数はアサートで落とす */
+  NARU_ASSERT(decoder != NULL);
+  NARU_ASSERT(data != NULL);
+  NARU_ASSERT(data_size > 0);
+  NARU_ASSERT(buffer != NULL);
+  NARU_ASSERT(buffer[0] != NULL);
+  NARU_ASSERT(num_decode_samples > 0);
+  NARU_ASSERT(decode_size != NULL);
+
+  /* ヘッダ取得 */
+  header = &(decoder->header);
+
+  /* ビットリーダ作成 */
+  NARUBitReader_Open(&stream, (uint8_t *)data, data_size);
+
+  /* 信号処理ハンドルの状態取得 */
+  for (ch = 0; ch < header->num_channels; ch++) {
+    NARUDecodeProcessor_GetFilterState(&decoder->processor[ch], &stream);
+  }
+  
+  /* 符号化初期パラメータ取得 */
+  for (ch = 0; ch < header->num_channels; ch++) {
+    NARUCoder_GetInitialRecursiveRiceParameter(decoder->coder,
+      &stream, NARUCODER_NUM_RECURSIVERICE_PARAMETER, ch);
+  }
+
+  /* 残差復号 */
+  NARUCoder_GetDataArray(decoder->coder, &stream, 
+      NARUCODER_NUM_RECURSIVERICE_PARAMETER,
+      buffer, header->num_channels, num_decode_samples);
+
+  /* バイト境界に揃える */
+  NARUBitStream_Flush(&stream);
+
+  /* 読み出しサイズの取得 */
+  NARUBitStream_Tell(&stream, (int32_t *)decode_size);
+
+  /* ビットライタ破棄 */
+  NARUBitStream_Close(&stream);
+
+  /* チャンネル毎に合成処理 */
+  for (ch = 0; ch < header->num_channels; ch++) {
+    NARUDecodeProcessor_Synthesize(&decoder->processor[ch], buffer[ch], num_decode_samples);
+  }
+
+  /* MS -> LR */
+  if (header->ch_process_method == NARU_CH_PROCESS_METHOD_MS) {
+    /* チャンネル数チェック */
+    if (header->num_channels < 2) {
+      return NARU_APIRESULT_INVALID_FORMAT;
+    }
+    NARUUtility_MStoLRInt32(buffer, num_decode_samples);
+  }
+
+  /* 成功終了 */
+  return NARU_APIRESULT_OK;
+}
+
 /* 単一データブロックデコード */
 static NARUApiResult NARUDecoder_DecodeBlock(
     struct NARUDecoder *decoder,
@@ -243,10 +387,14 @@ static NARUApiResult NARUDecoder_DecodeBlock(
     int32_t **buffer, uint32_t buffer_num_samples, 
     uint32_t *decode_size, uint32_t *num_decode_samples)
 {
-  uint32_t buf;
-  uint32_t ch, tmp_num_decode_samples;
+  uint8_t buf8;
+  uint16_t buf16;
+  uint32_t buf32;
+  uint32_t tmp_num_decode_samples, block_header_size, block_data_size;
+  NARUApiResult ret;
+  NARUBlockDataType block_type;
   const struct NARUHeaderInfo *header;
-  struct NARUBitStream stream;
+  const uint8_t *read_ptr;
 
   /* 引数チェック */
   if ((decoder == NULL) || (data == NULL)
@@ -272,77 +420,57 @@ static NARUApiResult NARUDecoder_DecodeBlock(
   tmp_num_decode_samples
     = NARUUTILITY_MIN(header->num_samples_per_block, buffer_num_samples);
 
-  /* ビットリーダ作成 */
-  NARUBitReader_Open(&stream, (uint8_t *)data, data_size);
+  /* ブロックヘッダデコード */
+  read_ptr = data;
 
   /* 同期コード */
-  NARUBitReader_GetBits(&stream, &buf, 16);
+  ByteArray_GetUint16BE(read_ptr, &buf16);
   /* 同期コード不一致 */
-  if (buf != NARU_BLOCK_SYNC_CODE) {
+  if (buf16 != NARU_BLOCK_SYNC_CODE) {
     return NARU_APIRESULT_INVALID_FORMAT;
   }
   /* ブロックサイズ */
-  NARUBitReader_GetBits(&stream, &buf, 32);
-  NARU_ASSERT(buf > 0); 
+  ByteArray_GetUint32BE(read_ptr, &buf32);
+  NARU_ASSERT(buf32 > 0); 
   /* データサイズ不足 */
-  if ((buf + 6) > data_size) {
+  if ((buf32 + 6) > data_size) {
     return NARU_APIRESULT_INSUFFICIENT_DATA;
   }
   /* ブロックCRC16 */
-  NARUBitReader_GetBits(&stream, &buf, 16);
-  NARU_ASSERT(buf == 0); /* TODO: 将来的には計算値を入れる */
+  ByteArray_GetUint16BE(read_ptr, &buf16);
+  NARU_ASSERT(buf16 == 0); /* TODO: 将来的にはチェック */
   /* ブロックデータタイプ */
-  NARUBitReader_GetBits(&stream, &buf, 2);
-  /* ブロックデータタイプが不正 */
-  if ((buf != NARU_BLOCK_DATA_TYPE_COMPRESSDATA)
-      && (buf != NARU_BLOCK_DATA_TYPE_RAWDATA)
-      && (buf != NARU_BLOCK_DATA_TYPE_SILENT)) {
-    return NARU_APIRESULT_INVALID_FORMAT;
-  }
+  ByteArray_GetUint8(read_ptr, &buf8);
+  block_type = (NARUBlockDataType)buf8;
+  /* ブロックヘッダサイズ */
+  block_header_size = (uint32_t)(read_ptr - data);
 
-  /* 信号処理ハンドルの状態取得 */
-  for (ch = 0; ch < header->num_channels; ch++) {
-    NARUDecodeProcessor_GetFilterState(&decoder->processor[ch], &stream);
-  }
-  
-  /* 符号化初期パラメータ取得 */
-  for (ch = 0; ch < header->num_channels; ch++) {
-    NARUCoder_GetInitialRecursiveRiceParameter(decoder->coder, &stream,
-        NARUCODER_NUM_RECURSIVERICE_PARAMETER, header->bits_per_sample, ch);
-  }
-
-  /* 残差復号 */
-  NARUCoder_GetDataArray(decoder->coder, &stream, 
-      NARUCODER_NUM_RECURSIVERICE_PARAMETER,
-      buffer, header->num_channels, tmp_num_decode_samples);
-
-  /* バイト境界に揃える */
-  NARUBitStream_Flush(&stream);
-
-  /* 読み出しサイズの取得 */
-  NARUBitStream_Tell(&stream, (int32_t *)decode_size);
-
-  /* ビットライタ破棄 */
-  NARUBitStream_Close(&stream);
-
-  /* チャンネル毎に合成処理 */
-  for (ch = 0; ch < header->num_channels; ch++) {
-    NARUDecodeProcessor_Synthesize(&decoder->processor[ch], buffer[ch], tmp_num_decode_samples);
-  }
-
-  /* MS -> LR */
-  if (header->ch_process_method == NARU_CH_PROCESS_METHOD_MS) {
-    /* チャンネル数チェック */
-    if (header->num_channels < 2) {
+  /* データ部のデコード */
+  switch (block_type) {
+    case NARU_BLOCK_DATA_TYPE_RAWDATA:
+      ret = NARUDecoder_DecodeRawData(decoder,
+          read_ptr, data_size - block_header_size, buffer, tmp_num_decode_samples, &block_data_size);
+      break;
+    case NARU_BLOCK_DATA_TYPE_COMPRESSDATA:
+      ret = NARUDecoder_DecodeCompressData(decoder,
+          read_ptr, data_size - block_header_size, buffer, tmp_num_decode_samples, &block_data_size);
+      break;
+    default:
       return NARU_APIRESULT_INVALID_FORMAT;
-    }
-    NARUUtility_MStoLRInt32(buffer, tmp_num_decode_samples);
   }
 
-  /* デコードサンプル数をセット */
+  /* データデコードに失敗している */
+  if (ret != NARU_APIRESULT_OK) {
+    return ret;
+  }
+
+  /* デコードサイズ */
+  (*decode_size) = block_header_size + block_data_size;
+
+  /* デコードサンプル数 */
   (*num_decode_samples) = tmp_num_decode_samples;
 
-  /* 成功終了 */
+  /* デコード成功 */
   return NARU_APIRESULT_OK;
 }
 
