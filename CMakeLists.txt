@@ -8,8 +8,11 @@ set(CODEC_LIB_NAME narucodec)
 add_library(${CODEC_LIB_NAME} INTERFACE)
 # リンクするライブラリ
 target_link_libraries(${CODEC_LIB_NAME} 
-  INTERFACE naru_encoder naru_decoder naru_coder naru_bit_stream naru_internal lpc_calculator byte_array m
+  INTERFACE naru_encoder naru_decoder naru_coder naru_bit_stream naru_internal lpc_calculator byte_array
 )
+if(NOT MSVC)
+  target_link_libraries(${CODEC_LIB_NAME} INTERFACE m)
+endif()
 # インクルードパス
 target_include_directories(${CODEC_LIB_NAME}
   INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -23,8 +26,11 @@ set(DECODER_LIB_NAME narudec)
 add_library(${DECODER_LIB_NAME} INTERFACE)
 # リンクするライブラリ
 target_link_libraries(${DECODER_LIB_NAME} 
-  INTERFACE naru_decoder naru_coder naru_bit_stream naru_internal byte_array m
+  INTERFACE naru_decoder naru_coder naru_bit_stream naru_internal byte_array
 )
+if(NOT MSVC)
+  target_link_libraries(${DECODER_LIB_NAME} INTERFACE m)
+endif()
 # インクルードパス
 target_include_directories(${DECODER_LIB_NAME}
   INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
