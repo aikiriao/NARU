@@ -197,6 +197,9 @@ static void NGSAFilter_InitializeNaturalGradient(struct NGSAFilter *filter)
     /* 1より大きい場合は履歴を初期値とする */
     memcpy(ngrad, history, sizeof(int32_t) * (uint32_t)filter_order);
   }
+
+  /* バッファアクセス高速化のために、フィルタ次数分離れた場所にコピー */
+  memcpy(&ngrad[filter->filter_order], ngrad, sizeof(int32_t) * (uint32_t)filter->filter_order);
 }
 
 /* NGSAフィルタの1サンプル合成処理 */
@@ -211,7 +214,6 @@ static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual
   NARU_ASSERT(filter != NULL);
 
   /* ローカル変数に受けとく */
-  ngrad = &filter->ngrad[0];
   history = &filter->history[filter->buffer_pos];
   ar_coef = &filter->ar_coef[0];
   weight = &filter->weight[0];
@@ -226,12 +228,15 @@ static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual
   /* 合成復元 */
   synth = residual + predict;
 
+  /* バッファ参照位置更新 */
+  filter->buffer_pos = (filter->buffer_pos - 1) & filter->buffer_pos_mask;
+
   /* 自然勾配更新 */
+  ngrad = &filter->ngrad[filter->buffer_pos];
   for (ord = 0; ord < ar_order; ord++) {
-    ngrad[filter_order - 2 - ord] += NARU_FIXEDPOINT_MUL(ar_coef[ord], ngrad[filter_order - 1], NARU_FIXEDPOINT_DIGITS);
-  }
-  for (ord = filter_order - 1; ord > 0; ord--) {
-    ngrad[ord] = ngrad[ord - 1];
+    const int32_t pos = (filter->buffer_pos + filter_order - 1 - ord) & filter->buffer_pos_mask;
+    filter->ngrad[pos] += NARU_FIXEDPOINT_MUL(ar_coef[ord], ngrad[filter_order], NARU_FIXEDPOINT_DIGITS);
+    filter->ngrad[pos + filter_order] = filter->ngrad[pos];
   }
   ngrad[0] = NARU_FIXEDPOINT_0_5;
   for (ord = 0; ord < ar_order; ord++) {
@@ -240,7 +245,9 @@ static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual
   ngrad[0] >>= NARU_FIXEDPOINT_DIGITS;
   ngrad[0] = history[0] - ngrad[0];
   for (ord = 0; ord < ar_order; ord++) {
-    ngrad[ord + 1] -= NARU_FIXEDPOINT_MUL(ar_coef[ord], ngrad[0], NARU_FIXEDPOINT_DIGITS);
+    const int32_t pos = (filter->buffer_pos + ord + 1) & filter->buffer_pos_mask;
+    filter->ngrad[pos] -= NARU_FIXEDPOINT_MUL(ar_coef[ord], ngrad[0], NARU_FIXEDPOINT_DIGITS);
+    filter->ngrad[pos + filter_order] = filter->ngrad[pos];
   }
 
   /* フィルタ係数更新 TODO: directionの値は3種類しかないのでキャッシュできる */
@@ -250,7 +257,6 @@ static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual
   }
 
   /* 入力データ履歴更新 */
-  filter->buffer_pos = (filter->buffer_pos - 1) & filter->buffer_pos_mask;
   filter->history[filter->buffer_pos]
     = filter->history[filter->buffer_pos + filter_order] = synth;
 

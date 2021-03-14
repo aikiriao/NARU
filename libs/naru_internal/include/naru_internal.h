@@ -79,7 +79,7 @@ struct NGSAFilter {
   int32_t history[2 * NARU_MAX_FILTER_ORDER];   /* 入力データ履歴（高速化のために2倍確保） */
   int32_t weight[NARU_MAX_FILTER_ORDER];    /* フィルタ係数 */
   int32_t ar_coef[NARU_MAX_AR_ORDER];       /* AR係数 */
-  int32_t ngrad[NARU_MAX_FILTER_ORDER];     /* 自然勾配 */
+  int32_t ngrad[2 * NARU_MAX_FILTER_ORDER];     /* 自然勾配 */
   int32_t stepsize_scale;                   /* ステップサイズに乗じる係数 */
   int32_t buffer_pos;
   int32_t buffer_pos_mask;
