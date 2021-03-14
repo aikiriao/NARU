@@ -16,6 +16,10 @@ struct NARUDecodeProcessor {
   int32_t deemphasis_prev;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /* プロセッサのリセット */
 void NARUDecodeProcessor_Reset(struct NARUDecodeProcessor *processor);
 
@@ -26,5 +30,9 @@ void NARUDecodeProcessor_GetFilterState(
 /* 合成 */
 void NARUDecodeProcessor_Synthesize(
     struct NARUDecodeProcessor *processor, int32_t *buffer, uint32_t num_samples);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* NARU_DECODE_PROCESSOR_H_INCLUDED */

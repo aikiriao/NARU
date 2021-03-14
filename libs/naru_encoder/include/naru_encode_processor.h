@@ -17,6 +17,10 @@ struct NARUEncodeProcessor {
   struct SAFilter sa;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /* プロセッサのリセット */
 void NARUEncodeProcessor_Reset(struct NARUEncodeProcessor *processor);
 
@@ -32,5 +36,9 @@ void NARUEncodeProcessor_PutFilterState(
 /* 予測 */
 void NARUEncodeProcessor_Predict(
   struct NARUEncodeProcessor *processor, int32_t *buffer, uint32_t num_samples);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* NARU_ENCODE_PROCESSOR_H_INCLUDED */
