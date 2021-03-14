@@ -38,7 +38,7 @@ static int32_t SAFilter_Synthesize(struct SAFilter *filter, int32_t residual);
 /* SAフィルタの状態取得 */
 static void SAFilter_GetFilterState(struct SAFilter *filter, struct NARUBitStream *stream);
 /* 1サンプルをデエンファシス */
-static int32_t NARUEncodeProcessor_DeEmphasis(struct NARUDecodeProcessor *processor, int32_t residual); 
+static int32_t NARUDecodeProcessor_DeEmphasis(struct NARUDecodeProcessor *processor, int32_t residual); 
 
 /* プロセッサのリセット */
 void NARUDecodeProcessor_Reset(struct NARUDecodeProcessor *processor)
@@ -146,7 +146,7 @@ void NARUDecodeProcessor_GetFilterState(
 }
 
 /* 1サンプルをデエンファシス */
-static int32_t NARUEncodeProcessor_DeEmphasis(struct NARUDecodeProcessor *processor, int32_t residual)
+static int32_t NARUDecodeProcessor_DeEmphasis(struct NARUDecodeProcessor *processor, int32_t residual)
 {
   const int32_t coef_numer = ((1 << NARU_EMPHASIS_FILTER_SHIFT) - 1);
 
@@ -320,6 +320,6 @@ void NARUDecodeProcessor_Synthesize(
     /* NGSA */
     buffer[smpl] = NGSAFilter_Synthesize(&processor->ngsa, buffer[smpl]);
     /* デエンファシス */
-    buffer[smpl] = NARUEncodeProcessor_DeEmphasis(processor, buffer[smpl]);
+    buffer[smpl] = NARUDecodeProcessor_DeEmphasis(processor, buffer[smpl]);
   }
 }
