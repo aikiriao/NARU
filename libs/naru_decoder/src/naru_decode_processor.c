@@ -83,6 +83,8 @@ static void NGSAFilter_GetFilterState(
   for (ord = 0; ord < filter->filter_order; ord++) {
     NARU_GETSINT32(stream, &filter->history[ord], NARU_BLOCKHEADER_DATA_BITWIDTH);
     filter->history[ord] <<= shift;
+    /* 履歴アクセス高速化のために、次数だけ離れた位置にも記録 */
+    filter->history[filter->filter_order + ord] = filter->history[ord];
   }
 
   /* ステップサイズに乗じる係数の計算 */
@@ -124,6 +126,8 @@ static void SAFilter_GetFilterState(
   for (ord = 0; ord < filter->filter_order; ord++) {
     NARU_GETSINT32(stream, &filter->history[ord], NARU_BLOCKHEADER_DATA_BITWIDTH);
     filter->history[ord] <<= shift;
+    /* 履歴アクセス高速化のために、次数だけ離れた位置にも記録 */
+    filter->history[filter->filter_order + ord] = filter->history[ord];
   }
 }
 
@@ -208,7 +212,7 @@ static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual
 
   /* ローカル変数に受けとく */
   ngrad = &filter->ngrad[0];
-  history = &filter->history[0];
+  history = &filter->history[filter->buffer_pos];
   ar_coef = &filter->ar_coef[0];
   weight = &filter->weight[0];
 
@@ -246,10 +250,9 @@ static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual
   }
 
   /* 入力データ履歴更新 */
-  for (ord = filter_order - 1; ord > 0; ord--) {
-    history[ord] = history[ord - 1];
-  }
-  history[0] = synth;
+  filter->buffer_pos = (filter->buffer_pos - 1) & filter->buffer_pos_mask;
+  filter->history[filter->buffer_pos]
+    = filter->history[filter->buffer_pos + filter_order] = synth;
 
   return synth;
 }
@@ -264,7 +267,7 @@ static int32_t SAFilter_Synthesize(struct SAFilter *filter, int32_t residual)
   NARU_ASSERT(filter != NULL);
 
   /* ローカル変数に受けとく */
-  history = &filter->history[0];
+  history = &filter->history[filter->buffer_pos];
   weight = &filter->weight[0];
 
   /* フィルタ予測 */
@@ -280,14 +283,13 @@ static int32_t SAFilter_Synthesize(struct SAFilter *filter, int32_t residual)
   /* 係数更新 */
   sign = NARUUTILITY_SIGN(residual);
   for (ord = 0; ord < filter_order; ord++) {
-    weight[ord] += NARU_FIXEDPOINT_MUL(sign, filter->history[ord], NARUSA_STEPSIZE_SHIFT);
+    weight[ord] += NARU_FIXEDPOINT_MUL(sign, history[ord], NARUSA_STEPSIZE_SHIFT);
   }
 
   /* 入力データ履歴更新 */
-  for (ord = filter_order - 1; ord > 0; ord--) {
-    history[ord] = history[ord - 1];
-  }
-  history[0] = synth;
+  filter->buffer_pos = (filter->buffer_pos - 1) & filter->buffer_pos_mask;
+  filter->history[filter->buffer_pos]
+    = filter->history[filter->buffer_pos + filter_order] = synth;
 
   return synth;
 }
@@ -311,6 +313,12 @@ void NARUDecodeProcessor_Synthesize(
 
   /* 自然勾配の初期化 */
   NGSAFilter_InitializeNaturalGradient(&processor->ngsa);
+  
+  /* バッファアクセス用のインデックスのマスク */
+  NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(processor->ngsa.filter_order));
+  NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(processor->sa.filter_order));
+  processor->ngsa.buffer_pos_mask = processor->ngsa.filter_order - 1;
+  processor->sa.buffer_pos_mask = processor->sa.filter_order - 1;
 
   /* 1サンプル毎に合成 
    * 補足）static関数なので、最適化時に展開されることを期待 */
