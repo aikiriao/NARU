@@ -4,6 +4,7 @@
 #include "naru.h"
 #include "naru_internal.h"
 #include "naru_stdint.h"
+#include "naru_filter.h"
 #include "naru_bit_stream.h"
 #include "lpc_calculator.h"
 
@@ -12,9 +13,9 @@ struct NARUEncodeProcessor {
   /* Pre Emphasis */
   int32_t preemphasis_prev;
   /* NGSA Filter */
-  struct NGSAFilter ngsa;
+  struct NARUNGSAFilter ngsa;
   /* SA Filter */
-  struct SAFilter sa;
+  struct NARUSAFilter sa;
 };
 
 #ifdef __cplusplus
@@ -24,14 +25,19 @@ extern "C" {
 /* プロセッサのリセット */
 void NARUEncodeProcessor_Reset(struct NARUEncodeProcessor *processor);
 
+/* フィルタ次数の設定 */
+void NARUEncodeProcessor_SetFilterOrder(
+  struct NARUEncodeProcessor *processor, int32_t filter_order,
+  int32_t ar_order, int32_t second_filter_order);
+
 /* AR係数の計算とプロセッサへの設定 */
 void NARUEncodeProcessor_CalculateARCoef(
-    struct NARUEncodeProcessor *processor, struct LPCCalculator *lpcc,
-    const double *input, uint32_t num_samples, int32_t ar_order);
+  struct NARUEncodeProcessor *processor, struct LPCCalculator *lpcc,
+  const double *input, uint32_t num_samples);
 
 /* 現在のプロセッサの状態を出力（注意: 係数は丸め等の副作用を受ける） */
 void NARUEncodeProcessor_PutFilterState(
-    struct NARUEncodeProcessor *processor, struct NARUBitStream *stream);
+  struct NARUEncodeProcessor *processor, struct NARUBitStream *stream);
 
 /* 予測 */
 void NARUEncodeProcessor_Predict(

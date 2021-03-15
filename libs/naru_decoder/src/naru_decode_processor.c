@@ -1,5 +1,6 @@
 #include "naru_decode_processor.h"
 #include "naru_internal.h"
+#include "naru_filter.h"
 #include "naru_utility.h"
 
 #include <stdlib.h>
@@ -27,16 +28,14 @@
     (*pval) = tmpbuf;\
   } while (0);
 
-/* NGSAフィルタの自然勾配初期化 */
-static void NGSAFilter_InitializeNaturalGradient(struct NGSAFilter *filter);
 /* NGSAフィルタの1サンプル合成処理 */
-static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual);
+static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t residual);
 /* NGSAフィルタの状態取得 */
-static void NGSAFilter_GetFilterState(struct NGSAFilter *filter, struct NARUBitStream *stream);
+static void NARUNGSAFilter_GetFilterState(struct NARUNGSAFilter *filter, struct NARUBitStream *stream);
 /* SAフィルタの1サンプル合成処理 */
-static int32_t SAFilter_Synthesize(struct SAFilter *filter, int32_t residual);
+static int32_t NARUSAFilter_Synthesize(struct NARUSAFilter *filter, int32_t residual);
 /* SAフィルタの状態取得 */
-static void SAFilter_GetFilterState(struct SAFilter *filter, struct NARUBitStream *stream);
+static void NARUSAFilter_GetFilterState(struct NARUSAFilter *filter, struct NARUBitStream *stream);
 /* 1サンプルをデエンファシス */
 static int32_t NARUDecodeProcessor_DeEmphasis(struct NARUDecodeProcessor *processor, int32_t residual); 
 
@@ -46,16 +45,28 @@ void NARUDecodeProcessor_Reset(struct NARUDecodeProcessor *processor)
   /* 引数チェック */
   NARU_ASSERT(processor != NULL);
 
-  /* 各メンバを0クリア */
-  memset(&processor->ngsa, 0, sizeof(struct NGSAFilter));
-  memset(&processor->sa, 0, sizeof(struct SAFilter));
+  /* 各フィルタのリセット */
+  NARUNGSAFilter_Reset(&processor->ngsa);
+  NARUSAFilter_Reset(&processor->sa);
 
   processor->deemphasis_prev = 0;
 }
 
+/* フィルタ次数の設定 */
+void NARUDecodeProcessor_SetFilterOrder(
+  struct NARUDecodeProcessor *processor, int32_t filter_order,
+  int32_t ar_order, int32_t second_filter_order)
+{
+  /* 引数チェック */
+  NARU_ASSERT(processor != NULL);
+
+  NARUNGSAFilter_SetFilterOrder(&processor->ngsa, filter_order, ar_order);
+  NARUSAFilter_SetFilterOrder(&processor->sa, second_filter_order);
+}
+
 /* NGSAフィルタの状態取得 */
-static void NGSAFilter_GetFilterState(
-    struct NGSAFilter *filter, struct NARUBitStream *stream)
+static void NARUNGSAFilter_GetFilterState(
+    struct NARUNGSAFilter *filter, struct NARUBitStream *stream)
 {
   int32_t ord;
   uint32_t shift;
@@ -102,8 +113,8 @@ static void NGSAFilter_GetFilterState(
 }
 
 /* SAフィルタの状態取得 */
-static void SAFilter_GetFilterState(
-    struct SAFilter *filter, struct NARUBitStream *stream)
+static void NARUSAFilter_GetFilterState(
+    struct NARUSAFilter *filter, struct NARUBitStream *stream)
 {
   int32_t ord;
   uint32_t shift;
@@ -143,10 +154,10 @@ void NARUDecodeProcessor_GetFilterState(
   NARU_GETSINT32(stream, &processor->deemphasis_prev, 17);
 
   /* NGSAフィルタの状態 */
-  NGSAFilter_GetFilterState(&processor->ngsa, stream);
+  NARUNGSAFilter_GetFilterState(&processor->ngsa, stream);
 
   /* SAフィルタの状態 */
-  SAFilter_GetFilterState(&processor->sa, stream);
+  NARUSAFilter_GetFilterState(&processor->sa, stream);
 }
 
 /* 1サンプルをデエンファシス */
@@ -165,45 +176,8 @@ static int32_t NARUDecodeProcessor_DeEmphasis(struct NARUDecodeProcessor *proces
   return residual;
 }
 
-/* NGSAフィルタの自然勾配初期化 */
-static void NGSAFilter_InitializeNaturalGradient(struct NGSAFilter *filter)
-{
-  const int32_t filter_order = filter->filter_order;
-  int32_t *ngrad, *history;
-
-  NARU_ASSERT(filter != NULL);
-
-  ngrad = &filter->ngrad[0];
-  history = &filter->history[0];
-
-  if (filter->ar_order == 1) {
-    /* 1の場合は履歴とAR係数から直接計算 */
-    int32_t ord;
-    int32_t *ar_coef;
-
-    ar_coef = &filter->ar_coef[0];
-
-    for (ord = 0; ord < filter_order - 1; ord++) {
-      ngrad[ord]
-        = history[ord] - NARU_FIXEDPOINT_MUL(ar_coef[0], history[ord + 1], NARU_FIXEDPOINT_DIGITS);
-    }
-    for (ord = 1; ord < filter_order - 1; ord++) {
-      ngrad[ord] 
-        -= NARU_FIXEDPOINT_MUL(ar_coef[0], ngrad[ord - 1], NARU_FIXEDPOINT_DIGITS);
-    }
-    ngrad[filter_order - 1]
-      = history[filter_order - 1] - NARU_FIXEDPOINT_MUL(ar_coef[0], history[filter_order - 2], NARU_FIXEDPOINT_DIGITS);
-  } else {
-    /* 1より大きい場合は履歴を初期値とする */
-    memcpy(ngrad, history, sizeof(int32_t) * (uint32_t)filter_order);
-  }
-
-  /* バッファアクセス高速化のために、フィルタ次数分離れた場所にコピー */
-  memcpy(&ngrad[filter->filter_order], ngrad, sizeof(int32_t) * (uint32_t)filter->filter_order);
-}
-
 /* NGSAフィルタの1サンプル合成処理 */
-static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual)
+static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t residual)
 {
   int32_t ord, synth, predict, direction;
   int32_t *ngrad, *history, *ar_coef, *weight;
@@ -264,7 +238,7 @@ static int32_t NGSAFilter_Synthesize(struct NGSAFilter *filter, int32_t residual
 }
 
 /* SAフィルタの1サンプル合成処理 */
-static int32_t SAFilter_Synthesize(struct SAFilter *filter, int32_t residual)
+static int32_t NARUSAFilter_Synthesize(struct NARUSAFilter *filter, int32_t residual)
 {
   int32_t ord, synth, predict, sign;
   int32_t *history, *weight;
@@ -318,21 +292,15 @@ void NARUDecodeProcessor_Synthesize(
   NARU_ASSERT(processor->sa.filter_order <= NARU_MAX_FILTER_ORDER);
 
   /* 自然勾配の初期化 */
-  NGSAFilter_InitializeNaturalGradient(&processor->ngsa);
-  
-  /* バッファアクセス用のインデックスのマスク */
-  NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(processor->ngsa.filter_order));
-  NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(processor->sa.filter_order));
-  processor->ngsa.buffer_pos_mask = processor->ngsa.filter_order - 1;
-  processor->sa.buffer_pos_mask = processor->sa.filter_order - 1;
+  NARUNGSAFilter_InitializeNaturalGradient(&processor->ngsa);
 
   /* 1サンプル毎に合成 
    * 補足）static関数なので、最適化時に展開されることを期待 */
   for (smpl = 0; smpl < num_samples; smpl++) {
     /* SA */
-    buffer[smpl] = SAFilter_Synthesize(&processor->sa, buffer[smpl]);
+    buffer[smpl] = NARUSAFilter_Synthesize(&processor->sa, buffer[smpl]);
     /* NGSA */
-    buffer[smpl] = NGSAFilter_Synthesize(&processor->ngsa, buffer[smpl]);
+    buffer[smpl] = NARUNGSAFilter_Synthesize(&processor->ngsa, buffer[smpl]);
     /* デエンファシス */
     buffer[smpl] = NARUDecodeProcessor_DeEmphasis(processor, buffer[smpl]);
   }

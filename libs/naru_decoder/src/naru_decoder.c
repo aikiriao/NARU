@@ -235,9 +235,8 @@ NARUApiResult NARUDecoder_SetHeader(
 
   /* フィルタパラメータ設定 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    decoder->processor[ch].ngsa.filter_order = header->filter_order;
-    decoder->processor[ch].ngsa.ar_order = header->ar_order;
-    decoder->processor[ch].sa.filter_order = header->second_filter_order;
+    NARUDecodeProcessor_SetFilterOrder(&decoder->processor[ch],
+      header->filter_order, header->ar_order, header->second_filter_order);
   }
 
   /* ヘッダセット */

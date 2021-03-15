@@ -284,9 +284,8 @@ NARUApiResult NARUEncoder_SetEncodeParameter(
 
   /* フィルタパラメータ設定 */
   for (ch = 0; ch < tmp_header.num_channels; ch++) {
-    encoder->processor[ch].ngsa.filter_order = tmp_header.filter_order;
-    encoder->processor[ch].ngsa.ar_order = tmp_header.ar_order;
-    encoder->processor[ch].sa.filter_order = tmp_header.second_filter_order;
+    NARUEncodeProcessor_SetFilterOrder(&encoder->processor[ch],
+      tmp_header.filter_order, tmp_header.ar_order, tmp_header.second_filter_order);
   }
 
   /* パラメータ設定済みフラグを立てる */
@@ -461,7 +460,7 @@ static NARUApiResult NARUEncoder_EncodeCompressData(
         buffer[ch], num_samples, header->bits_per_sample, encoder->buffer_double);
     /* AR係数計算 */
     NARUEncodeProcessor_CalculateARCoef(&encoder->processor[ch],
-        encoder->lpcc, encoder->buffer_double, num_samples, header->ar_order);
+        encoder->lpcc, encoder->buffer_double, num_samples);
   }
 
   /* ビットライタ作成 */

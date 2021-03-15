@@ -10,16 +10,14 @@
 NARU_STATIC_ASSERT(NARUUTILITY_IS_POWERED_OF_2(NARU_MAX_FILTER_ORDER));
 NARU_STATIC_ASSERT(NARU_MAX_FILTER_ORDER > (2 * NARU_MAX_AR_ORDER));
 
-/* NGSAフィルタの自然勾配初期化 */
-static void NGSAFilter_InitializeNaturalGradient(struct NGSAFilter *filter);
 /* NGSAフィルタの1サンプル予測処理 */
-static int32_t NGSAFilter_Predict(struct NGSAFilter *filter, int32_t input);
+static int32_t NARUNGSAFilter_Predict(struct NARUNGSAFilter *filter, int32_t input);
 /* NGSAフィルタの状態出力 */
-static void NGSAFilter_PutFilterState(struct NGSAFilter *filter, struct NARUBitStream *stream);
+static void NARUNGSAFilter_PutFilterState(struct NARUNGSAFilter *filter, struct NARUBitStream *stream);
 /* SAフィルタの1サンプル予測処理 */
-static int32_t SAFilter_Predict(struct SAFilter *filter, int32_t input);
+static int32_t NARUSAFilter_Predict(struct NARUSAFilter *filter, int32_t input);
 /* SAフィルタの状態出力 */
-static void SAFilter_PutFilterState(struct SAFilter *filter, struct NARUBitStream *stream);
+static void NARUSAFilter_PutFilterState(struct NARUSAFilter *filter, struct NARUBitStream *stream);
 /* dataをmaxbit内に収めるために必要な右シフト数計算 */
 static uint32_t NARUEncodeProcessor_CalculateBitShift(const int32_t *data, int32_t num_data, int32_t maxbit);
 /* フィルタ係数を引数のビット幅に丸め込む */
@@ -102,26 +100,40 @@ void NARUEncodeProcessor_Reset(struct NARUEncodeProcessor *processor)
 {
   NARU_ASSERT(processor != NULL);
 
-  /* 各メンバを0クリア */
-  memset(&processor->ngsa, 0, sizeof(struct NGSAFilter));
-  memset(&processor->sa, 0, sizeof(struct SAFilter));
+  /* フィルタをリセット */
+  NARUSAFilter_Reset(&processor->sa);
+  NARUNGSAFilter_Reset(&processor->ngsa);
 
   processor->preemphasis_prev = 0;
+}
+
+/* フィルタ次数の設定 */
+void NARUEncodeProcessor_SetFilterOrder(
+  struct NARUEncodeProcessor *processor, int32_t filter_order,
+  int32_t ar_order, int32_t second_filter_order)
+{
+  NARU_ASSERT(processor != NULL);
+
+  NARUNGSAFilter_SetFilterOrder(&processor->ngsa, filter_order, ar_order);
+  NARUSAFilter_SetFilterOrder(&processor->sa, second_filter_order);
 }
 
 /* AR係数の計算 */
 void NARUEncodeProcessor_CalculateARCoef(
     struct NARUEncodeProcessor *processor, struct LPCCalculator *lpcc,
-    const double *input, uint32_t num_samples, int32_t ar_order)
+    const double *input, uint32_t num_samples)
 {
   int32_t ord;
   double coef_double[NARU_MAX_FILTER_ORDER + 1];
   LPCCalculatorApiResult ret;
+  int32_t ar_order;
 
   NARU_ASSERT(processor != NULL);
   NARU_ASSERT(lpcc != NULL);
   NARU_ASSERT(input != NULL);
   NARU_ASSERT(num_samples > 0);
+
+  ar_order = processor->ngsa.ar_order;
   NARU_ASSERT(ar_order <= NARU_MAX_AR_ORDER);
 
   /* AR係数の計算 */
@@ -155,8 +167,8 @@ void NARUEncodeProcessor_CalculateARCoef(
 }
 
 /* NGSAフィルタの状態出力 */
-static void NGSAFilter_PutFilterState(
-    struct NGSAFilter *filter, struct NARUBitStream *stream)
+static void NARUNGSAFilter_PutFilterState(
+    struct NARUNGSAFilter *filter, struct NARUBitStream *stream)
 {
   int32_t ord;
   uint32_t shift, putval;
@@ -201,8 +213,8 @@ static void NGSAFilter_PutFilterState(
 }
 
 /* SAフィルタの状態出力 */
-static void SAFilter_PutFilterState(
-    struct SAFilter *filter, struct NARUBitStream *stream)
+static void NARUSAFilter_PutFilterState(
+    struct NARUSAFilter *filter, struct NARUBitStream *stream)
 {
   int32_t ord;
   uint32_t shift;
@@ -254,10 +266,10 @@ void NARUEncodeProcessor_PutFilterState(
   }
 
   /* NGSAフィルタの状態 */
-  NGSAFilter_PutFilterState(&processor->ngsa, stream);
+  NARUNGSAFilter_PutFilterState(&processor->ngsa, stream);
 
   /* SAフィルタの状態 */
-  SAFilter_PutFilterState(&processor->sa, stream);
+  NARUSAFilter_PutFilterState(&processor->sa, stream);
 }
 
 /* プリエンファシス */
@@ -278,45 +290,8 @@ static int32_t NARUEncodeProcessor_PreEmphasis(struct NARUEncodeProcessor *proce
   return input;
 }
 
-/* NGSAフィルタの自然勾配初期化 */
-static void NGSAFilter_InitializeNaturalGradient(struct NGSAFilter *filter)
-{
-  const int32_t filter_order = filter->filter_order;
-  int32_t *ngrad, *history;
-
-  NARU_ASSERT(filter != NULL);
-
-  ngrad = &filter->ngrad[0];
-  history = &filter->history[0];
-
-  if (filter->ar_order == 1) {
-    /* 1の場合は履歴とAR係数から直接計算 */
-    int32_t ord;
-    int32_t *ar_coef;
-
-    ar_coef = &filter->ar_coef[0];
-
-    for (ord = 0; ord < filter_order - 1; ord++) {
-      ngrad[ord]
-        = history[ord] - NARU_FIXEDPOINT_MUL(ar_coef[0], history[ord + 1], NARU_FIXEDPOINT_DIGITS);
-    }
-    for (ord = 1; ord < filter_order - 1; ord++) {
-      ngrad[ord] 
-        -= NARU_FIXEDPOINT_MUL(ar_coef[0], ngrad[ord - 1], NARU_FIXEDPOINT_DIGITS);
-    }
-    ngrad[filter_order - 1]
-      = history[filter_order - 1] - NARU_FIXEDPOINT_MUL(ar_coef[0], history[filter_order - 2], NARU_FIXEDPOINT_DIGITS);
-  } else {
-    /* 1より大きい場合は履歴を初期値とする */
-    memcpy(ngrad, history, sizeof(int32_t) * (uint32_t)filter_order);
-  }
-
-  /* バッファアクセス高速化のために、フィルタ次数分離れた場所にコピー */
-  memcpy(&ngrad[filter->filter_order], ngrad, sizeof(int32_t) * (uint32_t)filter->filter_order);
-}
-
 /* NGSAフィルタの1サンプル予測処理 */
-static int32_t NGSAFilter_Predict(struct NGSAFilter *filter, int32_t input)
+static int32_t NARUNGSAFilter_Predict(struct NARUNGSAFilter *filter, int32_t input)
 {
   int32_t ord, residual, predict, direction;
   int32_t *ngrad, *history, *ar_coef, *weight;
@@ -377,7 +352,7 @@ static int32_t NGSAFilter_Predict(struct NGSAFilter *filter, int32_t input)
 }
 
 /* SAフィルタの1サンプル予測処理 */
-static int32_t SAFilter_Predict(struct SAFilter *filter, int32_t input)
+static int32_t NARUSAFilter_Predict(struct NARUSAFilter *filter, int32_t input)
 {
   int32_t ord, residual, predict, sign;
   int32_t *history, *weight;
@@ -431,13 +406,7 @@ void NARUEncodeProcessor_Predict(
   NARU_ASSERT(processor->sa.filter_order <= NARU_MAX_FILTER_ORDER);
 
   /* 自然勾配の初期化 */
-  NGSAFilter_InitializeNaturalGradient(&processor->ngsa);
-
-  /* バッファアクセス用のインデックスのマスク */
-  NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(processor->ngsa.filter_order));
-  NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(processor->sa.filter_order));
-  processor->ngsa.buffer_pos_mask = processor->ngsa.filter_order - 1;
-  processor->sa.buffer_pos_mask = processor->sa.filter_order - 1;
+  NARUNGSAFilter_InitializeNaturalGradient(&processor->ngsa);
 
   /* 1サンプル毎に予測 
    * 補足）static関数なので、最適化時に展開されることを期待 */
@@ -445,8 +414,8 @@ void NARUEncodeProcessor_Predict(
     /* プリエンファシス */
     buffer[smpl] = NARUEncodeProcessor_PreEmphasis(processor, buffer[smpl]);
     /* NGSA */
-    buffer[smpl] = NGSAFilter_Predict(&processor->ngsa, buffer[smpl]);
+    buffer[smpl] = NARUNGSAFilter_Predict(&processor->ngsa, buffer[smpl]);
     /* SA */
-    buffer[smpl] = SAFilter_Predict(&processor->sa, buffer[smpl]);
+    buffer[smpl] = NARUSAFilter_Predict(&processor->sa, buffer[smpl]);
   }
 }
