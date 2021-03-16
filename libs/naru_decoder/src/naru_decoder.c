@@ -196,7 +196,7 @@ struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config)
   decoder->config = (*config);
 
   /* 各種ハンドルの作成 */
-  decoder->coder = NARUCoder_Create(config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER);
+  decoder->coder = NARUCoder_Create(config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER, NULL, 0);
   decoder->processor = (struct NARUDecodeProcessor *)malloc(sizeof(struct NARUDecodeProcessor) * config->max_num_channels);
   for (ch = 0; ch < config->max_num_channels; ch++) {
     NARUDecodeProcessor_Reset(&decoder->processor[ch]);

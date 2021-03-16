@@ -39,8 +39,10 @@ typedef uint64_t NARURecursiveRiceParameter;
 struct NARUCoder {
   NARURecursiveRiceParameter** rice_parameter;
   NARURecursiveRiceParameter** init_rice_parameter;
-  uint32_t                    max_num_channels;
-  uint32_t                    max_num_parameters;
+  uint32_t max_num_channels;
+  uint32_t max_num_parameters;
+  uint8_t alloced_by_own;
+  void *work;
 };
 
 #if 0
@@ -321,24 +323,78 @@ static uint32_t NARURecursiveRice_GetCode(
   return val;
 }
 
+/* 符号化ハンドルの作成に必要なワークサイズの計算 */
+int32_t NARUCoder_CalculateWorkSize(uint32_t max_num_channels, uint32_t max_num_parameters)
+{
+  int32_t work_size;
+
+  /* 引数チェック */
+  if ((max_num_channels == 0) || (max_num_parameters == 0)) {
+    return -1;
+  }
+
+  /* ハンドル分のサイズ */
+  work_size = sizeof(struct NARUCoder) + NARU_MEMORY_ALIGNMENT;
+
+  /* パラメータ領域分のサイズ（初期パラメータを含むので2倍） */
+  work_size += 2 * sizeof(NARURecursiveRiceParameter *) * max_num_channels;
+  work_size += 2 * sizeof(NARURecursiveRiceParameter) * max_num_channels * max_num_parameters;
+
+  return work_size;
+}
+
 /* 符号化ハンドルの作成 */
-struct NARUCoder* NARUCoder_Create(uint32_t max_num_channels, uint32_t max_num_parameters)
+struct NARUCoder* NARUCoder_Create(
+    uint32_t max_num_channels, uint32_t max_num_parameters, void *work, int32_t work_size)
 {
   uint32_t ch;
   struct NARUCoder *coder;
-  
-  coder = (struct NARUCoder *)malloc(sizeof(struct NARUCoder));
-  coder->max_num_channels   = max_num_channels;
-  coder->max_num_parameters = max_num_parameters;
+  uint8_t tmp_alloc_by_own = 0;
+  uint8_t *work_ptr;
 
-  coder->rice_parameter       = (NARURecursiveRiceParameter **)malloc(sizeof(NARURecursiveRiceParameter *) * max_num_channels);
-  coder->init_rice_parameter  = (NARURecursiveRiceParameter **)malloc(sizeof(NARURecursiveRiceParameter *) * max_num_channels);
+  /* ワーク領域時前確保の場合 */
+  if ((work == NULL) && (work_size == 0)) {
+    /* 引数を自前の計算値に差し替える */
+    if ((work_size = NARUCoder_CalculateWorkSize(max_num_channels, max_num_parameters)) < 0) {
+      return NULL;
+    }
+    work = malloc((uint32_t)work_size);
+    tmp_alloc_by_own = 1;
+  }
+
+  /* 引数チェック */
+  if ((work == NULL) || (work_size <= 0)
+      || (work_size < NARUCoder_CalculateWorkSize(max_num_channels, max_num_parameters))) {
+    return NULL;
+  }
+
+  /* ワーク領域先頭取得 */
+  work_ptr = (uint8_t *)work;
+
+  /* ハンドル領域確保 */
+  work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work_ptr, NARU_MEMORY_ALIGNMENT);
+  coder = (struct NARUCoder *)work_ptr;
+  work_ptr += sizeof(struct NARUCoder);
+
+  /* ハンドルメンバ設定 */
+  coder->max_num_channels = max_num_channels;
+  coder->max_num_parameters = max_num_parameters;
+  coder->alloced_by_own = tmp_alloc_by_own;
+  coder->work = work;
+
+  /* パラメータ領域確保 */
+  coder->rice_parameter = (NARURecursiveRiceParameter **)work_ptr;
+  work_ptr += sizeof(NARURecursiveRiceParameter *) * max_num_channels;
+  coder->init_rice_parameter = (NARURecursiveRiceParameter **)work_ptr;
+  work_ptr += sizeof(NARURecursiveRiceParameter *) * max_num_channels;
 
   for (ch = 0; ch < max_num_channels; ch++) {
-    coder->rice_parameter[ch] 
-      = (NARURecursiveRiceParameter *)malloc(sizeof(NARURecursiveRiceParameter) * max_num_parameters);
-    coder->init_rice_parameter[ch] 
-      = (NARURecursiveRiceParameter *)malloc(sizeof(NARURecursiveRiceParameter) * max_num_parameters);
+    coder->rice_parameter[ch] = (NARURecursiveRiceParameter *)work_ptr;
+    work_ptr += sizeof(NARURecursiveRiceParameter) * max_num_parameters;
+  }
+  for (ch = 0; ch < max_num_channels; ch++) {
+    coder->init_rice_parameter[ch] = (NARURecursiveRiceParameter *)work_ptr;
+    work_ptr += sizeof(NARURecursiveRiceParameter) * max_num_parameters;
   }
 
   return coder;
@@ -347,18 +403,12 @@ struct NARUCoder* NARUCoder_Create(uint32_t max_num_channels, uint32_t max_num_p
 /* 符号化ハンドルの破棄 */
 void NARUCoder_Destroy(struct NARUCoder *coder)
 {
-  uint32_t ch;
-
   if (coder != NULL) {
-    for (ch = 0; ch < coder->max_num_channels; ch++) {
-      NARU_NULLCHECK_AND_FREE(coder->rice_parameter[ch]);
-      NARU_NULLCHECK_AND_FREE(coder->init_rice_parameter[ch]);
+    /* 自前確保していたら領域開放 */
+    if (coder->alloced_by_own == 1) {
+      free(coder->work);
     }
-    NARU_NULLCHECK_AND_FREE(coder->rice_parameter);
-    NARU_NULLCHECK_AND_FREE(coder->init_rice_parameter);
-    free(coder);
   }
-
 }
 
 /* 初期パラメータの計算 */
