@@ -76,8 +76,10 @@ static void NARUNGSAFilter_GetFilterState(
   NARU_ASSERT(stream != NULL);
 
   /* AR係数 */ 
+  NARU_GETUINT32(stream, &shift, NARU_BLOCKHEADER_ARCOEFSHIFT_BITWIDTH);
   for (ord = 0; ord < filter->ar_order; ord++) {
-    NARU_GETSINT32(stream, &filter->ar_coef[ord], 16);
+    NARU_GETSINT32(stream, &filter->ar_coef[ord], NARU_BLOCKHEADER_ARCOEF_BITWIDTH);
+    filter->ar_coef[ord] <<= shift;
   }
 
   /* フィルタ係数シフト量 */
@@ -96,19 +98,6 @@ static void NARUNGSAFilter_GetFilterState(
     filter->history[ord] <<= shift;
     /* 履歴アクセス高速化のために、次数だけ離れた位置にも記録 */
     filter->history[filter->filter_order + ord] = filter->history[ord];
-  }
-
-  /* ステップサイズに乗じる係数の計算 */
-  if (filter->ar_order == 1) {
-    int32_t scale_int;
-    /* 1.0f / (1.0f - ar_coef[0] ** 2) */
-    scale_int = (1 << 15) - NARU_FIXEDPOINT_MUL(filter->ar_coef[0], filter->ar_coef[0], NARU_FIXEDPOINT_DIGITS);
-    scale_int = (1 << 30) / scale_int;
-    filter->stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
-    /* 係数が大きくなりすぎないようにクリップ */
-    filter->stepsize_scale = NARUUTILITY_MIN(NARUNGSA_MAX_STEPSIZE_SCALE, filter->stepsize_scale);
-  } else {
-    filter->stepsize_scale = 1 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH;
   }
 }
 

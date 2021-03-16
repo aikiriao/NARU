@@ -90,4 +90,20 @@ void NARUNGSAFilter_InitializeNaturalGradient(struct NARUNGSAFilter *filter)
 
   /* バッファアクセス高速化のために、フィルタ次数分離れた場所にコピー */
   memcpy(&ngrad[filter->filter_order], ngrad, sizeof(int32_t) * (uint32_t)filter->filter_order);
+
+  /* ステップサイズに乗じる係数の計算 */
+  if (filter->ar_order == 1) {
+    int32_t scale_int, ar_coef;
+    /* (-1.0f, 1.0f)の範囲内に丸める: 1.0f, -1.0fだと2乗がオーバーフローするため */
+    ar_coef = NARUUTILITY_INNER_VALUE(filter->ar_coef[0],
+        -(1 << NARU_FIXEDPOINT_DIGITS) + 1, (1 << NARU_FIXEDPOINT_DIGITS) - 1);
+    /* 1.0f / (1.0f - ar_coef[0] ** 2) */
+    scale_int = (1 << 15) - NARU_FIXEDPOINT_MUL(ar_coef, ar_coef, NARU_FIXEDPOINT_DIGITS);
+    scale_int = (1 << 30) / scale_int;
+    filter->stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
+    /* 係数が大きくなりすぎないようにクリップ */
+    filter->stepsize_scale = NARUUTILITY_MIN(NARUNGSA_MAX_STEPSIZE_SCALE, filter->stepsize_scale);
+  } else {
+    filter->stepsize_scale = 1 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH;
+  }
 }

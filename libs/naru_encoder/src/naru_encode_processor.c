@@ -144,26 +144,6 @@ void NARUEncodeProcessor_CalculateARCoef(
     double tmp_coef = NARUUtility_Round(coef_double[ord + 1] * pow(2.0f, NARU_FIXEDPOINT_DIGITS));
     processor->ngsa.ar_coef[ord] = (int32_t)tmp_coef;
   }
-
-  /* 丸め */
-  if (ar_order == 1) {
-    /* (-1.0f, 1.0f)の範囲内に丸める: 1.0f, -1.0fだと2乗がオーバーフローするため */
-    processor->ngsa.ar_coef[0] = NARUUTILITY_INNER_VALUE(
-        processor->ngsa.ar_coef[0], -(1 << NARU_FIXEDPOINT_DIGITS) + 1, (1 << NARU_FIXEDPOINT_DIGITS) - 1);
-  }
-
-  /* ステップサイズに乗じる係数の計算 */
-  if (ar_order == 1) {
-    int32_t scale_int;
-    /* 1.0f / (1.0f - ar_coef[0] ** 2) */
-    scale_int = (1 << 15) - NARU_FIXEDPOINT_MUL(processor->ngsa.ar_coef[0], processor->ngsa.ar_coef[0], NARU_FIXEDPOINT_DIGITS);
-    scale_int = (1 << 30) / scale_int;
-    processor->ngsa.stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
-    /* 係数が大きくなりすぎないようにクリップ */
-    processor->ngsa.stepsize_scale = NARUUTILITY_MIN(NARUNGSA_MAX_STEPSIZE_SCALE, processor->ngsa.stepsize_scale);
-  } else {
-    processor->ngsa.stepsize_scale = 1 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH;
-  }
 }
 
 /* NGSAフィルタの状態出力 */
@@ -171,16 +151,17 @@ static void NARUNGSAFilter_PutFilterState(
     struct NARUNGSAFilter *filter, struct NARUBitStream *stream)
 {
   int32_t ord;
-  uint32_t shift, putval;
+  uint32_t shift;
 
   NARU_ASSERT(filter != NULL);
   NARU_ASSERT(stream != NULL);
 
-  /* AR係数: 16bitで記録（TODO: 次数が1のときは負になることはないので1bit削れる） */
+  /* AR係数 */
+  shift = NARUEncodeProcessor_CalculateBitShift(filter->ar_coef, filter->ar_order, NARU_BLOCKHEADER_ARCOEF_BITWIDTH);
+  NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_ARCOEFSHIFT_BITWIDTH));
+  NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_ARCOEFSHIFT_BITWIDTH);
   for (ord = 0; ord < filter->ar_order; ord++) {
-    putval = NARUUTILITY_SINT32_TO_UINT32(filter->ar_coef[ord]);
-    NARU_ASSERT(putval < (1 << 16));
-    NARUBitWriter_PutBits(stream, putval, 16);
+    NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_ARCOEF_BITWIDTH, &filter->ar_coef[ord], shift);
   }
 
   /* フィルタ係数値を固定bit幅に制限 */

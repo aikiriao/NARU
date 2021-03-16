@@ -26,6 +26,10 @@
 #define NARUSA_STEPSIZE_SHIFT                 2
 /* フィルタ係数のbit幅 */
 #define NARU_FILTER_WEIGHT_RANGE_BITWIDTH     18
+/* ブロックヘッダに記録するAR係数のビット幅 */
+#define NARU_BLOCKHEADER_ARCOEF_BITWIDTH      12
+/* ブロックヘッダに記録するAR係数のシフト数のビット幅 */
+#define NARU_BLOCKHEADER_ARCOEFSHIFT_BITWIDTH 3
 /* ブロックヘッダに記録するデータのビット幅 */
 #define NARU_BLOCKHEADER_DATA_BITWIDTH        8
 /* ブロックヘッダに記録するデータのシフト数のビット幅 */
