@@ -94,7 +94,7 @@ struct LPCCalculator *LPCCalculator_Create(uint32_t max_order, void *work, int32
   }
 
   /* ワーク領域取得 */
-  work_ptr = work;
+  work_ptr = (uint8_t *)work;
 
   /* ハンドル領域確保 */
   work_ptr = (uint8_t *)LPCCALCULATOR_ROUNDUP((uintptr_t)work_ptr, LPCCALCULATOR_ALIGNMENT);
@@ -134,7 +134,7 @@ void LPCCalculator_Destroy(struct LPCCalculator *lpcc)
 {
   if (lpcc != NULL) {
     /* ワーク領域を時前確保していたときは開放 */
-    if (lpcc->alloced_by_own) {
+    if (lpcc->alloced_by_own == 1) {
       free(lpcc->work);
     }
   }
