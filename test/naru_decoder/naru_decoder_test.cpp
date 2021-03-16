@@ -14,7 +14,7 @@ extern "C" {
 /* 有効なヘッダをセット */
 #define NARU_SetValidHeader(p_header)\
   do {\
-    struct NARUHeaderInfo *header__p = p_header;\
+    struct NARUHeader *header__p     = p_header;\
     header__p->format_version        = NARU_FORMAT_VERSION;\
     header__p->codec_version         = NARU_CODEC_VERSION;\
     header__p->num_channels          = 1;\
@@ -31,7 +31,7 @@ extern "C" {
 /* ヘッダにある情報からエンコードパラメータを作成 */
 #define NARUEncoder_ConvertHeaderToParameter(p_header, p_parameter)\
   do {\
-    const struct NARUHeaderInfo *header__p = p_header;\
+    const struct NARUHeader *header__p = p_header;\
     struct NARUEncodeParameter *param__p = p_parameter;\
     param__p->num_channels = header__p->num_channels;\
     param__p->sampling_rate = header__p->sampling_rate;\
@@ -66,7 +66,7 @@ TEST(NARUDecoderTest, DecodeHeaderTest)
   /* 成功例 */
   {
     uint8_t data[NARU_HEADER_SIZE] = { 0, };
-    struct NARUHeaderInfo header, tmp_header;
+    struct NARUHeader header, tmp_header;
 
     NARU_SetValidHeader(&header);
 
@@ -89,7 +89,7 @@ TEST(NARUDecoderTest, DecodeHeaderTest)
 
   /* ヘッダデコード失敗ケース */
   {
-    struct NARUHeaderInfo header, getheader;
+    struct NARUHeader header, getheader;
     uint8_t valid_data[NARU_HEADER_SIZE] = { 0, };
     uint8_t data[NARU_HEADER_SIZE];
     
@@ -227,7 +227,7 @@ TEST(NARUDecoderTest, DecodeBlockTest)
   {
     struct NARUDecoder *decoder;
     struct NARUDecoderConfig config;
-    struct NARUHeaderInfo header;
+    struct NARUHeader header;
     uint8_t *data;
     int32_t *output[NARU_MAX_NUM_CHANNELS];
     uint32_t ch, sufficient_size, output_size, out_num_samples;
@@ -270,7 +270,7 @@ TEST(NARUDecoderTest, DecodeBlockTest)
     struct NARUEncoderConfig encoder_config;
     struct NARUDecoderConfig decoder_config;
     struct NARUEncodeParameter parameter;
-    struct NARUHeaderInfo header, tmp_header;
+    struct NARUHeader header, tmp_header;
     uint8_t *data;
     int32_t *input[NARU_MAX_NUM_CHANNELS];
     int32_t *output[NARU_MAX_NUM_CHANNELS];
@@ -344,7 +344,7 @@ TEST(NARUDecoderTest, DecodeBlockTest)
     struct NARUEncoderConfig encoder_config;
     struct NARUDecoderConfig decoder_config;
     struct NARUEncodeParameter parameter;
-    struct NARUHeaderInfo header, tmp_header;
+    struct NARUHeader header, tmp_header;
     uint8_t *data;
     int32_t *input[NARU_MAX_NUM_CHANNELS];
     int32_t *output[NARU_MAX_NUM_CHANNELS];

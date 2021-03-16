@@ -30,13 +30,13 @@ static NARUApiResult NARUDecoder_DecodeCompressData(
 
 /* ヘッダデコード */
 NARUApiResult NARUDecoder_DecodeHeader(
-    const uint8_t *data, uint32_t data_size, struct NARUHeaderInfo *header)
+    const uint8_t *data, uint32_t data_size, struct NARUHeader *header)
 {
   const uint8_t *data_pos;
   uint32_t u32buf;
   uint16_t u16buf;
   uint8_t  u8buf;
-  struct NARUHeaderInfo tmp_header;
+  struct NARUHeader tmp_header;
 
   /* 引数チェック */
   if ((data == NULL) || (header == NULL)) {
@@ -109,7 +109,7 @@ NARUApiResult NARUDecoder_DecodeHeader(
 }
 
 /* ヘッダのフォーマットチェック */
-static NARUError NARUDecoder_CheckHeaderFormat(const struct NARUHeaderInfo *header)
+static NARUError NARUDecoder_CheckHeaderFormat(const struct NARUHeader *header)
 {
   /* 内部モジュールなのでNULLが渡されたら落とす */
   NARU_ASSERT(header != NULL);
@@ -219,7 +219,7 @@ void NARUDecoder_Destroy(struct NARUDecoder *decoder)
 
 /* デコーダにヘッダをセット */
 NARUApiResult NARUDecoder_SetHeader(
-    struct NARUDecoder *decoder, const struct NARUHeaderInfo *header)
+    struct NARUDecoder *decoder, const struct NARUHeader *header)
 {
   uint32_t ch;
 
@@ -253,7 +253,7 @@ static NARUApiResult NARUDecoder_DecodeRawData(
     int32_t **buffer, uint32_t num_decode_samples, uint32_t *decode_size)
 {
   uint32_t ch, smpl;
-  const struct NARUHeaderInfo *header;
+  const struct NARUHeader *header;
   const uint8_t *read_ptr;
 
   /* 内部関数なので不正な引数はアサートで落とす */
@@ -319,7 +319,7 @@ static NARUApiResult NARUDecoder_DecodeCompressData(
 {
   uint32_t ch;
   struct NARUBitStream stream;
-  const struct NARUHeaderInfo *header;
+  const struct NARUHeader *header;
 
   /* 内部関数なので不正な引数はアサートで落とす */
   NARU_ASSERT(decoder != NULL);
@@ -392,7 +392,7 @@ static NARUApiResult NARUDecoder_DecodeBlock(
   uint32_t tmp_num_decode_samples, block_header_size, block_data_size;
   NARUApiResult ret;
   NARUBlockDataType block_type;
-  const struct NARUHeaderInfo *header;
+  const struct NARUHeader *header;
   const uint8_t *read_ptr;
 
   /* 引数チェック */
@@ -478,8 +478,8 @@ NARUApiResult NARUDecoder_DecodeWhole(
   uint32_t progress, ch, read_offset, read_block_size, num_decode_samples;
   const uint8_t *read_pos;
   int32_t *buffer_ptr[NARU_MAX_NUM_CHANNELS];
-  struct NARUHeaderInfo tmp_header;
-  const struct NARUHeaderInfo *header;
+  struct NARUHeader tmp_header;
+  const struct NARUHeader *header;
 
   /* 引数チェック */
   if ((decoder == NULL) || (data == NULL) || (buffer == NULL)) {

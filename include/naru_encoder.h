@@ -32,7 +32,7 @@ extern "C" {
 
 /* ヘッダエンコード */
 NARUApiResult NARUEncoder_EncodeHeader(
-  const struct NARUHeaderInfo *header_info, uint8_t *data, uint32_t data_size);
+  const struct NARUHeader *header, uint8_t *data, uint32_t data_size);
 
 /* エンコーダハンドル作成 */
 struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config);

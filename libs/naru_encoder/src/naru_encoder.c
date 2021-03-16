@@ -27,7 +27,7 @@ struct NARUEncoder {
 /* エンコードパラメータをヘッダに変換 */
 static NARUError NARUEncoder_ConvertParameterToHeader(
     const struct NARUEncodeParameter *parameter, uint32_t num_samples,
-    struct NARUHeaderInfo *header);
+    struct NARUHeader *header);
 /* 単一データブロックエンコード */
 /* 補足）実装の簡略化のため、ストリーミングエンコードには対応しない。そのため非公開。 */
 static NARUApiResult NARUEncoder_EncodeBlock(
@@ -44,7 +44,7 @@ static void NARUEncoder_MakeAnalyzingSignal(
 
 /* ヘッダエンコード */
 NARUApiResult NARUEncoder_EncodeHeader(
-    const struct NARUHeaderInfo *header, uint8_t *data, uint32_t data_size)
+    const struct NARUHeader *header, uint8_t *data, uint32_t data_size)
 {
   uint8_t *data_pos;
 
@@ -142,9 +142,9 @@ NARUApiResult NARUEncoder_EncodeHeader(
 /* エンコードパラメータをヘッダに変換 */
 static NARUError NARUEncoder_ConvertParameterToHeader(
     const struct NARUEncodeParameter *parameter, uint32_t num_samples,
-    struct NARUHeaderInfo *header)
+    struct NARUHeader *header)
 {
-  struct NARUHeaderInfo tmp_header = { 0, };
+  struct NARUHeader tmp_header = { 0, };
 
   /* 引数チェック */
   if ((parameter == NULL) || (header == NULL)) {
@@ -266,7 +266,7 @@ NARUApiResult NARUEncoder_SetEncodeParameter(
     struct NARUEncoder *encoder, const struct NARUEncodeParameter *parameter)
 {
   uint32_t ch;
-  struct NARUHeaderInfo tmp_header;
+  struct NARUHeader tmp_header;
 
   /* 引数チェック */
   if ((encoder == NULL) || (parameter == NULL)) {
@@ -300,7 +300,7 @@ static NARUBlockDataType NARUEncoder_DecideBlockDataType(
 {
   uint32_t ch, smpl;
   double parcor_coef[NARU_MAX_AR_ORDER + 1], mean_length;
-  const struct NARUHeaderInfo *header;
+  const struct NARUHeader *header;
   LPCCalculatorApiResult ret;
 
   NARU_ASSERT(encoder != NULL);
@@ -374,7 +374,7 @@ static NARUApiResult NARUEncoder_EncodeRawData(
     uint8_t *data, uint32_t data_size, uint32_t *output_size)
 {
   uint32_t ch, smpl;
-  const struct NARUHeaderInfo *header;
+  const struct NARUHeader *header;
   uint8_t *data_ptr;
 
   /* 内部関数なので不正な引数はアサートで落とす */
@@ -421,7 +421,7 @@ static NARUApiResult NARUEncoder_EncodeCompressData(
   uint32_t ch;
   struct NARUBitStream stream;
   int32_t *buffer[NARU_MAX_NUM_CHANNELS];
-  const struct NARUHeaderInfo *header;
+  const struct NARUHeader *header;
 
   /* 内部関数なので不正な引数はアサートで落とす */
   NARU_ASSERT(encoder != NULL);
@@ -511,7 +511,7 @@ static NARUApiResult NARUEncoder_EncodeBlock(
     uint8_t *data, uint32_t data_size, uint32_t *output_size)
 {
   uint8_t *data_ptr;
-  const struct NARUHeaderInfo *header;
+  const struct NARUHeader *header;
   NARUBlockDataType block_type;
   NARUApiResult ret;
   uint32_t block_header_size, block_data_size;
@@ -591,7 +591,7 @@ NARUApiResult NARUEncoder_EncodeWhole(
   uint32_t progress, ch, write_size, write_offset, num_encode_samples;
   uint8_t *data_pos;
   const int32_t *input_ptr[NARU_MAX_NUM_CHANNELS];
-  const struct NARUHeaderInfo *header;
+  const struct NARUHeader *header;
 
   /* 引数チェック */
   if ((encoder == NULL) || (input == NULL)

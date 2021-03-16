@@ -40,7 +40,7 @@ typedef enum NARUChannelProcessMethodTag {
 } NARUChannelProcessMethod;
 
 /* ヘッダ情報 */
-struct NARUHeaderInfo {
+struct NARUHeader {
   uint32_t format_version;                    /* フォーマットバージョン         */
   uint32_t codec_version;                     /* エンコーダバージョン           */
   uint16_t num_channels;                      /* チャンネル数                   */

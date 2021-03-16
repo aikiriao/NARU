@@ -19,7 +19,7 @@ extern "C" {
 
 /* ヘッダデコード */
 NARUApiResult NARUDecoder_DecodeHeader(
-    const uint8_t *data, uint32_t data_size, struct NARUHeaderInfo *header);
+    const uint8_t *data, uint32_t data_size, struct NARUHeader *header);
 
 /* デコーダハンドルの作成 */
 struct NARUDecoder* NARUDecoder_Create(const struct NARUDecoderConfig *condig);
@@ -29,7 +29,7 @@ void NARUDecoder_Destroy(struct NARUDecoder *decoder);
 
 /* デコーダにヘッダをセット */
 NARUApiResult NARUDecoder_SetHeader(
-    struct NARUDecoder *decoder, const struct NARUHeaderInfo *header);
+    struct NARUDecoder *decoder, const struct NARUHeader *header);
 
 /* ヘッダを含めて全ブロックデコード */
 NARUApiResult NARUDecoder_DecodeWhole(

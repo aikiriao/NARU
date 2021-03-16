@@ -11,7 +11,7 @@ extern "C" {
 /* 有効なヘッダをセット */
 #define NARU_SetValidHeader(p_header)\
   do {\
-    struct NARUHeaderInfo *header__p = p_header;\
+    struct NARUHeader *header__p     = p_header;\
     header__p->format_version        = NARU_FORMAT_VERSION;\
     header__p->codec_version         = NARU_CODEC_VERSION;\
     header__p->num_channels          = 1;\
@@ -53,7 +53,7 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
 {
   /* ヘッダエンコード成功ケース */
   {
-    struct NARUHeaderInfo header;
+    struct NARUHeader header;
     uint8_t data[NARU_HEADER_SIZE] = { 0, };
 
     NARU_SetValidHeader(&header);
@@ -68,7 +68,7 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
 
   /* ヘッダエンコード失敗ケース */
   {
-    struct NARUHeaderInfo header;
+    struct NARUHeader header;
     uint8_t data[NARU_HEADER_SIZE] = { 0, };
 
     /* 引数が不正 */
