@@ -109,7 +109,7 @@ static int do_decode(const char* in_filename, const char* out_filename)
   struct stat fstat;
   struct NARUDecoder* decoder;
   struct NARUDecoderConfig config;
-  struct NARUHeaderInfo header;
+  struct NARUHeader header;
   uint8_t* buffer;
   uint32_t ch, smpl, buffer_size;
   NARUApiResult ret;
