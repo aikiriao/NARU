@@ -6,97 +6,146 @@
 #include <string.h>
 #include <assert.h>
 
-/* NULLチェックと領域解放 */
-#define NULLCHECK_AND_FREE(ptr) { \
-  if ((ptr) != NULL) {            \
-    free(ptr);                    \
-    (ptr) = NULL;                 \
-  }                               \
-}
+/* メモリアラインメント */
+#define LPCCALCULATOR_ALIGNMENT 16
+
+/* nの倍数切り上げ */
+#define LPCCALCULATOR_ROUNDUP(val, n) ((((val) + ((n) - 1)) / (n)) * (n))
 
 /* 内部エラー型 */
 typedef enum LPCCalculatorErrorTag {
-  LPCCALCULATOR_ERROR_OK,
+  LPCCALCULATOR_ERROR_OK = 0,
   LPCCALCULATOR_ERROR_NG,
   LPCCALCULATOR_ERROR_INVALID_ARGUMENT
 } LPCCalculatorError;
 
 /* LPC計算ハンドル */
 struct LPCCalculator {
-  uint32_t  max_order;     /* 最大次数           */
+  uint32_t max_order;     /* 最大次数           */
   /* 内部的な計算結果は精度を担保するため全てdoubleで持つ */
   /* floatだとサンプル数を増やすと標本自己相関値の誤差に起因して出力の計算結果がnanになる */
-  double*   a_vec;         /* 計算用ベクトル1    */
-  double*   e_vec;         /* 計算用ベクトル2    */
-  double*   u_vec;         /* 計算用ベクトル3    */
-  double*   v_vec;         /* 計算用ベクトル4    */
-  double*   auto_corr;     /* 標本自己相関       */
-  double*   lpc_coef;      /* LPC係数ベクトル    */
-  double*   parcor_coef;   /* PARCOR係数ベクトル */
+  double *a_vec;         /* 計算用ベクトル1    */
+  double *e_vec;         /* 計算用ベクトル2    */
+  double *u_vec;         /* 計算用ベクトル3    */
+  double *v_vec;         /* 計算用ベクトル4    */
+  double *auto_corr;     /* 標本自己相関       */
+  double *lpc_coef;      /* LPC係数ベクトル    */
+  double *parcor_coef;   /* PARCOR係数ベクトル */
+  uint8_t alloced_by_own; /* 自分で領域確保したか？ */
+  void *work;             /* ワーク領域先頭ポインタ */
 };
 
 /*（標本）自己相関の計算 */
 static LPCCalculatorError LPCCalculator_CalculateAutoCorrelation(
-    const double* data, uint32_t num_samples,
-    double* auto_corr, uint32_t order);
+    const double *data, uint32_t num_samples,
+    double *auto_corr, uint32_t order);
 /* Levinson-Durbin再帰計算 */
 static LPCCalculatorError LPCCalculator_LevinsonDurbinRecursion(
-    struct LPCCalculator* lpc, const double* auto_corr,
-    double* lpc_coef, double* parcor_coef, uint32_t order);
+    struct LPCCalculator *lpc, const double *auto_corr,
+    double *lpc_coef, double *parcor_coef, uint32_t order);
 /* 係数計算の共通関数 */
 static LPCCalculatorError LPCCalculator_CalculateCoef(
-    struct LPCCalculator* lpc, 
-    const double* data, uint32_t num_samples, uint32_t order);
+    struct LPCCalculator *lpc, 
+    const double *data, uint32_t num_samples, uint32_t order);
 
 /* log2関数（C89で定義されていない） */
 static double LPCCalculator_Log2(double x);
 
-/* LPC係数計算ハンドルの作成 */
-struct LPCCalculator* LPCCalculator_Create(uint32_t max_order)
+/* LPC係数計算ハンドルのワークサイズ計算 */
+int32_t LPCCalculator_CalculateWorkSize(uint32_t max_order)
 {
-  struct LPCCalculator* lpcc;
+  int32_t work_size;
 
-  lpcc = (struct LPCCalculator *)malloc(sizeof(struct LPCCalculator));
+  /* 引数チェック */
+  if (max_order == 0) {
+    return -1;
+  }
 
+  work_size = sizeof(struct LPCCalculator) + LPCCALCULATOR_ALIGNMENT;
+  work_size += sizeof(double) * (max_order + 2) * 4; /* a, e, u, v ベクトル分の領域 */
+  work_size += sizeof(double) * (max_order + 1); /* 標本自己相関の領域 */
+  work_size += sizeof(double) * (max_order + 1) * 2; /* 係数ベクトルの領域 */
+
+  return work_size;
+}
+
+/* LPC係数計算ハンドルの作成 */
+struct LPCCalculator *LPCCalculator_Create(uint32_t max_order, void *work, int32_t work_size)
+{
+  struct LPCCalculator *lpcc;
+  uint8_t *work_ptr;
+  uint8_t tmp_alloc_by_own = 0;
+
+  /* 自前でワーク領域確保 */
+  if ((work == NULL) && (work_size == 0)) {
+    if ((work_size = LPCCalculator_CalculateWorkSize(max_order)) < 0) {
+      return NULL;
+    }
+    work = malloc((uint32_t)work_size);
+    tmp_alloc_by_own = 1;
+  }
+
+  /* 引数チェック */
+  if ((work == NULL) || (work_size < LPCCalculator_CalculateWorkSize(max_order))) {
+    if (tmp_alloc_by_own) {
+      free(work);
+    }
+    return NULL;
+  }
+
+  /* ワーク領域取得 */
+  work_ptr = work;
+
+  /* ハンドル領域確保 */
+  work_ptr = (uint8_t *)LPCCALCULATOR_ROUNDUP((uintptr_t)work_ptr, LPCCALCULATOR_ALIGNMENT);
+  lpcc = (struct LPCCalculator *)work_ptr;
+  work_ptr += sizeof(struct LPCCalculator);
+
+  /* ハンドルメンバの設定 */
   lpcc->max_order = max_order;
+  lpcc->work = work;
+  lpcc->alloced_by_own = tmp_alloc_by_own;
 
   /* 計算用ベクトルの領域割当 */
-  lpcc->a_vec = (double *)malloc(sizeof(double) * (max_order + 2)); /* a_0, a_k+1を含めるとmax_order+2 */
-  lpcc->e_vec = (double *)malloc(sizeof(double) * (max_order + 2)); /* e_0, e_k+1を含めるとmax_order+2 */
-  lpcc->u_vec = (double *)malloc(sizeof(double) * (max_order + 2));
-  lpcc->v_vec = (double *)malloc(sizeof(double) * (max_order + 2));
+  lpcc->a_vec = (double *)work_ptr;
+  work_ptr += sizeof(double) * (max_order + 2); /* a_0, a_k+1を含めるとmax_order+2 */
+  lpcc->e_vec = (double *)work_ptr;
+  work_ptr += sizeof(double) * (max_order + 2); /* e_0, e_k+1を含めるとmax_order+2 */
+  lpcc->u_vec = (double *)work_ptr;
+  work_ptr += sizeof(double) * (max_order + 2);
+  lpcc->v_vec = (double *)work_ptr;
+  work_ptr += sizeof(double) * (max_order + 2);
 
   /* 標本自己相関の領域割当 */
-  lpcc->auto_corr = (double *)malloc(sizeof(double) * (max_order + 1));
+  lpcc->auto_corr = (double *)work_ptr;
+  work_ptr += sizeof(double) * (max_order + 1);
 
   /* 係数ベクトルの領域割当 */
-  lpcc->lpc_coef     = (double *)malloc(sizeof(double) * (max_order + 1));
-  lpcc->parcor_coef  = (double *)malloc(sizeof(double) * (max_order + 1));
+  lpcc->lpc_coef = (double *)work_ptr;
+  work_ptr += sizeof(double) * (max_order + 1);
+  lpcc->parcor_coef = (double *)work_ptr;
+  work_ptr += sizeof(double) * (max_order + 1);
 
   return lpcc;
 }
 
 /* LPC係数計算ハンドルの破棄 */
-void LPCCalculator_Destroy(struct LPCCalculator* lpcc)
+void LPCCalculator_Destroy(struct LPCCalculator *lpcc)
 {
   if (lpcc != NULL) {
-    NULLCHECK_AND_FREE(lpcc->a_vec);
-    NULLCHECK_AND_FREE(lpcc->e_vec);
-    NULLCHECK_AND_FREE(lpcc->u_vec);
-    NULLCHECK_AND_FREE(lpcc->v_vec);
-    NULLCHECK_AND_FREE(lpcc->auto_corr);
-    NULLCHECK_AND_FREE(lpcc->lpc_coef);
-    NULLCHECK_AND_FREE(lpcc->parcor_coef);
-    free(lpcc);
+    /* ワーク領域を時前確保していたときは開放 */
+    if (lpcc->alloced_by_own) {
+      free(lpcc->work);
+    }
   }
 }
 
 /* Levinson-Durbin再帰計算によりLPC係数を求める */
 /* 係数parcor_coefはorder+1個の配列 */
 LPCCalculatorApiResult LPCCalculator_CalculateLPCCoef(
-    struct LPCCalculator* lpcc,
-    const double* data, uint32_t num_samples,
-    double* lpc_coef, uint32_t order)
+    struct LPCCalculator *lpcc,
+    const double *data, uint32_t num_samples,
+    double *lpc_coef, uint32_t order)
 {
   /* 引数チェック */
   if (lpcc == NULL || data == NULL || lpc_coef == NULL) {
@@ -123,9 +172,9 @@ LPCCalculatorApiResult LPCCalculator_CalculateLPCCoef(
 /* Levinson-Durbin再帰計算によりPARCOR係数を求める（倍精度） */
 /* 係数parcor_coefはorder+1個の配列 */
 LPCCalculatorApiResult  LPCCalculator_CalculatePARCORCoef(
-    struct LPCCalculator* lpcc,
-    const double* data, uint32_t num_samples,
-    double* parcor_coef, uint32_t order)
+    struct LPCCalculator *lpcc,
+    const double *data, uint32_t num_samples,
+    double *parcor_coef, uint32_t order)
 {
   /* 引数チェック */
   if (lpcc == NULL || data == NULL || parcor_coef == NULL) {
@@ -151,8 +200,8 @@ LPCCalculatorApiResult  LPCCalculator_CalculatePARCORCoef(
 
 /* 係数計算の共通関数 */
 static LPCCalculatorError LPCCalculator_CalculateCoef(
-    struct LPCCalculator* lpc, 
-    const double* data, uint32_t num_samples, uint32_t order)
+    struct LPCCalculator *lpc, 
+    const double *data, uint32_t num_samples, uint32_t order)
 {
   /* 引数チェック */
   if (lpc == NULL) {
@@ -187,16 +236,16 @@ static LPCCalculatorError LPCCalculator_CalculateCoef(
 
 /* Levinson-Durbin再帰計算 */
 static LPCCalculatorError LPCCalculator_LevinsonDurbinRecursion(
-    struct LPCCalculator* lpc, const double* auto_corr,
-    double* lpc_coef, double* parcor_coef, uint32_t order)
+    struct LPCCalculator *lpc, const double *auto_corr,
+    double *lpc_coef, double *parcor_coef, uint32_t order)
 {
   uint32_t delay, i;
   double gamma;      /* 反射係数 */
   /* オート変数にポインタをコピー */
-  double* a_vec = lpc->a_vec;
-  double* e_vec = lpc->e_vec;
-  double* u_vec = lpc->u_vec;
-  double* v_vec = lpc->v_vec;
+  double *a_vec = lpc->a_vec;
+  double *e_vec = lpc->e_vec;
+  double *u_vec = lpc->u_vec;
+  double *v_vec = lpc->v_vec;
 
   /* 引数チェック */
   if (lpc == NULL || lpc_coef == NULL || auto_corr == NULL) {
@@ -265,8 +314,8 @@ static LPCCalculatorError LPCCalculator_LevinsonDurbinRecursion(
 
 /*（標本）自己相関の計算 */
 static LPCCalculatorError LPCCalculator_CalculateAutoCorrelation(
-    const double* data, uint32_t num_samples,
-    double* auto_corr, uint32_t order)
+    const double *data, uint32_t num_samples,
+    double *auto_corr, uint32_t order)
 {
   uint32_t i, lag;
 
@@ -333,9 +382,9 @@ static double LPCCalculator_Log2(double x)
 
 /* 入力データとPARCOR係数からサンプルあたりの推定符号長を求める */
 LPCCalculatorApiResult LPCCalculator_EstimateCodeLength(
-    const double* data, uint32_t num_samples, uint32_t bits_per_sample,
-    const double* parcor_coef, uint32_t order,
-    double* length_per_sample_bits)
+    const double *data, uint32_t num_samples, uint32_t bits_per_sample,
+    const double *parcor_coef, uint32_t order,
+    double *length_per_sample_bits)
 {
   uint32_t smpl, ord;
   double log2_mean_res_power, log2_var_ratio;

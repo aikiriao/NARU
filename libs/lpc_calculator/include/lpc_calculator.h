@@ -19,31 +19,31 @@ struct LPCCalculator;
 extern "C" {
 #endif
 
+/* LPC係数計算ハンドルのワークサイズ計算 */
+int32_t LPCCalculator_CalculateWorkSize(uint32_t max_order);
+
 /* LPC係数計算ハンドルの作成 */
-struct LPCCalculator* LPCCalculator_Create(uint32_t max_order);
+struct LPCCalculator *LPCCalculator_Create(uint32_t max_order, void *work, int32_t work_size);
 
 /* LPC係数計算ハンドルの破棄 */
-void LPCCalculator_Destroy(struct LPCCalculator* lpcc);
+void LPCCalculator_Destroy(struct LPCCalculator *lpcc);
 
 /* Levinson-Durbin再帰計算によりLPC係数を求める */
 /* 係数parcor_coefはorder+1個の配列 */
 LPCCalculatorApiResult LPCCalculator_CalculateLPCCoef(
-    struct LPCCalculator* lpcc,
-    const double* data, uint32_t num_samples,
-    double* lpc_coef, uint32_t order);
+  struct LPCCalculator *lpcc,
+  const double *data, uint32_t num_samples, double *lpc_coef, uint32_t order);
 
 /* Levinson-Durbin再帰計算によりPARCOR係数を求める（倍精度） */
 /* 係数parcor_coefはorder+1個の配列 */
 LPCCalculatorApiResult LPCCalculator_CalculatePARCORCoef(
-    struct LPCCalculator* lpcc,
-    const double* data, uint32_t num_samples,
-    double* parcor_coef, uint32_t order);
+  struct LPCCalculator *lpcc,
+  const double *data, uint32_t num_samples, double *parcor_coef, uint32_t order);
 
 /* 入力データとPARCOR係数からサンプルあたりの推定符号長を求める */
 LPCCalculatorApiResult LPCCalculator_EstimateCodeLength(
-    const double* data, uint32_t num_samples, uint32_t bits_per_sample,
-    const double* parcor_coef, uint32_t order, 
-    double* length_per_sample_bits);
+  const double *data, uint32_t num_samples, uint32_t bits_per_sample,
+  const double *parcor_coef, uint32_t order, double *length_per_sample_bits);
 
 #ifdef __cplusplus
 }

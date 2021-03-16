@@ -223,7 +223,7 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config)
   encoder->config = (*config);
 
   /* 各種ハンドルの作成 */
-  encoder->lpcc = LPCCalculator_Create(config->max_filter_order);
+  encoder->lpcc = LPCCalculator_Create(config->max_filter_order, NULL, 0);
   encoder->coder = NARUCoder_Create(config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER);
   encoder->processor = (struct NARUEncodeProcessor *)malloc(sizeof(struct NARUEncodeProcessor) * config->max_num_channels);
   for (ch = 0; ch < config->max_num_channels; ch++) {
