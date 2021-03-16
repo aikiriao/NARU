@@ -87,7 +87,7 @@ struct LPCCalculator *LPCCalculator_Create(uint32_t max_order, void *work, int32
 
   /* 引数チェック */
   if ((work == NULL) || (work_size < LPCCalculator_CalculateWorkSize(max_order))) {
-    if (tmp_alloc_by_own) {
+    if (tmp_alloc_by_own == 1) {
       free(work);
     }
     return NULL;
@@ -148,7 +148,7 @@ LPCCalculatorApiResult LPCCalculator_CalculateLPCCoef(
     double *lpc_coef, uint32_t order)
 {
   /* 引数チェック */
-  if (lpcc == NULL || data == NULL || lpc_coef == NULL) {
+  if ((lpcc == NULL) || (data == NULL) || (lpc_coef == NULL)) {
     return LPCCALCULATOR_APIRESULT_INVALID_ARGUMENT;
   }
 
