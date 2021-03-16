@@ -10,7 +10,7 @@
 
 /* デコーダハンドル */
 struct NARUDecoder {
-  struct NARUHeaderInfo      header;
+  struct NARUHeader header;               /* ヘッダ */
   struct NARUDecodeProcessor *processor;  /* 信号処理ハンドル */
   struct NARUCoder           *coder;      /* 符号化ハンドル */
   uint8_t                    set_header;  /* ヘッダセット済みか？ */

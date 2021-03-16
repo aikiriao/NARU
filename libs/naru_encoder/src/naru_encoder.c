@@ -13,8 +13,8 @@
 
 /* エンコーダハンドル */
 struct NARUEncoder {
-  struct NARUHeaderInfo      header;      /* ヘッダ */
   struct LPCCalculator       *lpcc;       /* LPC計算ハンドル */
+  struct NARUHeader header;               /* ヘッダ */
   struct NARUEncodeProcessor *processor;  /* 信号処理ハンドル */
   struct NARUCoder           *coder;      /* 符号化ハンドル */
   uint8_t set_parameter;                  /* パラメータセット済み？ */
