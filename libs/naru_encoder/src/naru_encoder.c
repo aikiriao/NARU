@@ -11,17 +11,23 @@
 #include <string.h>
 #include <math.h>
 
+/* 引数のフィルタ次数に対応する最大AR次数の計算 */
+#define NARUENCODER_MAX_ARORDER(filter_order) ((((filter_order) + 1) / 2) - 1)
+
 /* エンコーダハンドル */
 struct NARUEncoder {
-  struct LPCCalculator       *lpcc;       /* LPC計算ハンドル */
   struct NARUHeader header;               /* ヘッダ */
+  struct LPCCalculator *lpcc;             /* LPC計算ハンドル */
   struct NARUEncodeProcessor *processor;  /* 信号処理ハンドル */
-  struct NARUCoder           *coder;      /* 符号化ハンドル */
+  struct NARUCoder *coder;                /* 符号化ハンドル */
+  uint32_t max_num_channels;              /* バッファチャンネル数 */
+  uint32_t max_num_samples_per_block;     /* バッファサンプル数 */
   uint8_t set_parameter;                  /* パラメータセット済み？ */
-  struct NARUEncoderConfig   config;      /* 生成時コンフィグ */
-  double  *window;                        /* 窓 */
+  double *window;                         /* 窓 */
   int32_t **buffer;                       /* 信号バッファ */
-  double  *buffer_double;                 /* 信号処理バッファ（浮動小数） */
+  double *buffer_double;                  /* 信号処理バッファ（浮動小数） */
+  uint8_t alloced_by_own;                 /* 領域を自前確保しているか？ */
+  void *work;                             /* ワーク領域先頭ポインタ */
 };
 
 /* エンコードパラメータをヘッダに変換 */
@@ -197,14 +203,73 @@ static NARUError NARUEncoder_ConvertParameterToHeader(
   return NARU_ERROR_OK;
 }
 
-/* エンコーダハンドル作成 */
-struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config)
+/* エンコーダハンドル作成に必要なワークサイズ計算 */
+int32_t NARUEncoder_CalculateWorkSize(const struct NARUEncoderConfig *config)
 {
-  uint32_t ch;
-  struct NARUEncoder *encoder;
+  int32_t work_size, tmp_work_size;
 
   /* 引数チェック */
   if (config == NULL) {
+    return -1;
+  }
+
+  /* コンフィグチェック */
+  if ((config->max_num_channels == 0)
+      || (config->max_num_samples_per_block == 0)
+      || (config->max_filter_order == 0)
+      || !NARUUTILITY_IS_POWERED_OF_2(config->max_filter_order)) {
+    return -1;
+  }
+
+  /* ハンドル本体のサイズ */
+  work_size = sizeof(struct NARUEncoder) + NARU_MEMORY_ALIGNMENT;
+
+  /* LPC計算ハンドルのサイズ */
+  if ((tmp_work_size = LPCCalculator_CalculateWorkSize(NARUENCODER_MAX_ARORDER(config->max_filter_order))) < 0) {
+    return -1;
+  }
+  work_size += tmp_work_size;
+
+  /* 符号化ハンドルのサイズ */
+  if ((tmp_work_size = NARUCoder_CalculateWorkSize(
+      config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER)) < 0) {
+    return -1;
+  }
+  work_size += tmp_work_size;
+
+  /* 信号処理ハンドルのサイズ */
+  work_size += sizeof(struct NARUEncodeProcessor) * config->max_num_channels;
+
+  /* 窓と信号処理バッファのサイズ */
+  work_size += 2 * sizeof(double) * config->max_num_samples_per_block;
+
+  /* 信号処理バッファのサイズ */
+  work_size += sizeof(int32_t *) * config->max_num_channels;
+  work_size += sizeof(int32_t) * config->max_num_channels * config->max_num_samples_per_block;
+
+  return work_size;
+}
+
+/* エンコーダハンドル作成 */
+struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config, void *work, int32_t work_size)
+{
+  uint32_t ch;
+  struct NARUEncoder *encoder;
+  uint8_t tmp_alloc_by_own = 0;
+  uint8_t *work_ptr;
+
+  /* ワーク領域時前確保の場合 */
+  if ((work == NULL) && (work_size == 0)) {
+    if ((work_size = NARUEncoder_CalculateWorkSize(config)) < 0) {
+      return NULL;
+    }
+    work = malloc((uint32_t)work_size);
+    tmp_alloc_by_own = 1;
+  }
+
+  /* 引数チェック */
+  if ((config == NULL) || (work == NULL)
+    || (work_size < NARUEncoder_CalculateWorkSize(config))) {
     return NULL;
   }
 
@@ -216,31 +281,67 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config)
     return NULL;
   }
 
-  /* エンコーダの領域確保 */
-  encoder = (struct NARUEncoder *)malloc(sizeof(struct NARUEncoder));
+  /* ワーク領域先頭ポインタ取得 */
+  work_ptr = (uint8_t *)work;
 
-  /* 生成時コンフィグを保持 */
-  encoder->config = (*config);
+  /* エンコーダハンドル領域確保 */
+  work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work_ptr, NARU_MEMORY_ALIGNMENT);
+  encoder = (struct NARUEncoder *)work_ptr;
+  work_ptr += sizeof(struct NARUEncoder);
 
-  /* 各種ハンドルの作成 */
-  encoder->lpcc = LPCCalculator_Create(config->max_filter_order, NULL, 0);
-  encoder->coder = NARUCoder_Create(config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER, NULL, 0);
-  encoder->processor = (struct NARUEncodeProcessor *)malloc(sizeof(struct NARUEncodeProcessor) * config->max_num_channels);
+  /* エンコーダメンバ設定 */
+  encoder->set_parameter = 0;
+  encoder->alloced_by_own = tmp_alloc_by_own;
+  encoder->work = work;
+  encoder->max_num_channels = config->max_num_channels;
+  encoder->max_num_samples_per_block = config->max_num_samples_per_block;
+
+  /* LPC計算ハンドルの作成 */
+  {
+    const uint32_t max_ar_order = NARUENCODER_MAX_ARORDER(config->max_filter_order);
+    int32_t lpcc_size = LPCCalculator_CalculateWorkSize(max_ar_order);
+    if ((encoder->lpcc = LPCCalculator_Create(max_ar_order, work_ptr, lpcc_size)) == NULL) {
+      return NULL;
+    }
+    work_ptr += lpcc_size;
+  }
+
+  /* 符号化ハンドルの作成 */
+  {
+    int32_t coder_size
+      = NARUCoder_CalculateWorkSize(config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER);
+    if ((encoder->coder = NARUCoder_Create(config->max_num_channels,
+          NARUCODER_NUM_RECURSIVERICE_PARAMETER, work_ptr, coder_size)) == NULL) {
+      return NULL;
+    }
+    work_ptr += coder_size;
+  }
+
+  /* 信号処理ハンドルの作成 */
+  encoder->processor = (struct NARUEncodeProcessor *)work_ptr;
+  work_ptr += sizeof(struct NARUEncodeProcessor) * config->max_num_channels;
+
+  /* バッファ領域の確保 */
+  encoder->window = (double *)work_ptr;
+  work_ptr += sizeof(double) * config->max_num_samples_per_block;
+  encoder->buffer_double = (double *)work_ptr;
+  work_ptr += sizeof(double) * config->max_num_samples_per_block;
+  encoder->buffer = (int32_t **)work_ptr;
+  work_ptr += sizeof(int32_t *) * config->max_num_channels;
+  for (ch = 0; ch < config->max_num_channels; ch++) {
+    encoder->buffer[ch] = (int32_t *)work_ptr;
+    work_ptr += sizeof(int32_t) * config->max_num_samples_per_block;
+  }
+
+  /* バッファオーバーランチェック */
+  /* 補足）既にメモリを破壊している可能性があるので、チェックに失敗したら落とす */
+  NARU_ASSERT((work_ptr - (uint8_t *)work) <= work_size);
+
+  /* 信号処理ハンドルのリセット */
   for (ch = 0; ch < config->max_num_channels; ch++) {
     NARUEncodeProcessor_Reset(&encoder->processor[ch]);
   }
 
-  /* バッファ領域の確保 */
-  encoder->window = (double *)malloc(sizeof(double) * config->max_num_samples_per_block);
-  encoder->buffer = (int32_t **)malloc(sizeof(int32_t *) * config->max_num_channels);
-  for (ch = 0; ch < config->max_num_channels; ch++) {
-    encoder->buffer[ch] = (int32_t *)malloc(sizeof(int32_t) * config->max_num_samples_per_block);
-  }
-  encoder->buffer_double = (double *)malloc(sizeof(double) * config->max_num_samples_per_block);
-
-  /* パラメータは未セットに */
-  encoder->set_parameter = 0;
-  
   return encoder;
 }
 
@@ -248,16 +349,11 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config)
 void NARUEncoder_Destroy(struct NARUEncoder *encoder)
 {
   if (encoder != NULL) {
-    uint32_t ch;
-    for (ch = 0; ch < encoder->config.max_num_channels; ch++) {
-      NARU_NULLCHECK_AND_FREE(encoder->buffer[ch]);
-    }
-    NARU_NULLCHECK_AND_FREE(encoder->window);
-    NARU_NULLCHECK_AND_FREE(encoder->buffer);
-    NARU_NULLCHECK_AND_FREE(encoder->buffer_double);
     LPCCalculator_Destroy(encoder->lpcc);
     NARUCoder_Destroy(encoder->coder);
-    NARU_NULLCHECK_AND_FREE(encoder->processor);
+    if (encoder->alloced_by_own == 1) {
+      free(encoder->work);
+    }
   }
 }
 
@@ -277,6 +373,12 @@ NARUApiResult NARUEncoder_SetEncodeParameter(
   /* 総サンプル数はダミー値を入れる */
   if (NARUEncoder_ConvertParameterToHeader(parameter, 0, &tmp_header) != NARU_ERROR_OK) {
     return NARU_APIRESULT_INVALID_FORMAT;
+  }
+
+  /* エンコーダの容量を越えてないかチェック */
+  if ((encoder->max_num_samples_per_block < parameter->num_samples_per_block)
+      || (encoder->max_num_channels < parameter->num_channels)) {
+    return NARU_APIRESULT_INSUFFICIENT_BUFFER;
   }
 
   /* ヘッダ設定 */

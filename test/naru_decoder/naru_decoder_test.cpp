@@ -219,10 +219,152 @@ TEST(NARUDecoderTest, DecodeHeaderTest)
   }
 }
 
+/* デコーダハンドル生成破棄テスト */
+TEST(NARUDecoderTest, CreateDestroyHandleTest)
+{
+  /* ワークサイズ計算テスト */
+  {
+    int32_t work_size;
+    struct NARUDecoderConfig config;
+
+    /* 最低限構造体本体よりは大きいはず */
+    NARUDecoder_SetValidConfig(&config);
+    work_size = NARUDecoder_CalculateWorkSize(&config);
+    ASSERT_TRUE(work_size > sizeof(struct NARUDecoder));
+
+    /* 不正な引数 */
+    EXPECT_TRUE(NARUDecoder_CalculateWorkSize(NULL) < 0);
+
+    /* 不正なコンフィグ */
+    NARUDecoder_SetValidConfig(&config);
+    config.max_num_channels = 0;
+    EXPECT_TRUE(NARUDecoder_CalculateWorkSize(&config) < 0);
+
+    NARUDecoder_SetValidConfig(&config);
+    config.max_filter_order = 0;
+    EXPECT_TRUE(NARUDecoder_CalculateWorkSize(&config) < 0);
+
+    /* フィルタ次数は2の冪乗数を期待している */
+    NARUDecoder_SetValidConfig(&config);
+    config.max_filter_order = 3;
+    EXPECT_TRUE(NARUDecoder_CalculateWorkSize(&config) < 0);
+  }
+
+  /* ワーク領域渡しによるハンドル作成（成功例） */
+  {
+    void *work;
+    int32_t work_size;
+    struct NARUDecoder *decoder;
+    struct NARUDecoderConfig config;
+
+    NARUDecoder_SetValidConfig(&config);
+    work_size = NARUDecoder_CalculateWorkSize(&config);
+    work = malloc(work_size);
+
+    decoder = NARUDecoder_Create(&config, work, work_size);
+    ASSERT_TRUE(decoder != NULL);
+    EXPECT_TRUE(decoder->work == work);
+    EXPECT_EQ(decoder->set_header, 0);
+    EXPECT_EQ(decoder->alloced_by_own, 0);
+    EXPECT_TRUE(decoder->processor != NULL);
+    EXPECT_TRUE(decoder->coder != NULL);
+
+    NARUDecoder_Destroy(decoder);
+    free(work);
+  }
+
+  /* 自前確保によるハンドル作成（成功例） */
+  {
+    struct NARUDecoder *decoder;
+    struct NARUDecoderConfig config;
+
+    NARUDecoder_SetValidConfig(&config);
+
+    decoder = NARUDecoder_Create(&config, NULL, 0);
+    ASSERT_TRUE(decoder != NULL);
+    EXPECT_TRUE(decoder->work != NULL);
+    EXPECT_EQ(decoder->set_header, 0);
+    EXPECT_EQ(decoder->alloced_by_own, 1);
+    EXPECT_TRUE(decoder->processor != NULL);
+    EXPECT_TRUE(decoder->coder != NULL);
+
+    NARUDecoder_Destroy(decoder);
+  }
+
+  /* ワーク領域渡しによるハンドル作成（失敗ケース） */
+  {
+    void *work;
+    int32_t work_size;
+    struct NARUDecoder *decoder;
+    struct NARUDecoderConfig config;
+
+    NARUDecoder_SetValidConfig(&config);
+    work_size = NARUDecoder_CalculateWorkSize(&config);
+    work = malloc(work_size);
+
+    /* 引数が不正 */
+    decoder = NARUDecoder_Create(NULL, work, work_size);
+    EXPECT_TRUE(decoder == NULL);
+    decoder = NARUDecoder_Create(&config, NULL, work_size);
+    EXPECT_TRUE(decoder == NULL);
+    decoder = NARUDecoder_Create(&config, work, 0);
+    EXPECT_TRUE(decoder == NULL);
+
+    /* ワークサイズ不足 */
+    decoder = NARUDecoder_Create(&config, work, work_size - 1);
+    EXPECT_TRUE(decoder == NULL);
+
+    /* コンフィグが不正 */
+    NARUDecoder_SetValidConfig(&config);
+    config.max_num_channels = 0;
+    decoder = NARUDecoder_Create(&config, work, work_size);
+    EXPECT_TRUE(decoder == NULL);
+
+    NARUDecoder_SetValidConfig(&config);
+    config.max_filter_order = 0;
+    decoder = NARUDecoder_Create(&config, work, work_size);
+    EXPECT_TRUE(decoder == NULL);
+
+    /* フィルタ次数は2の冪乗数を期待している */
+    NARUDecoder_SetValidConfig(&config);
+    config.max_filter_order = 3;
+    decoder = NARUDecoder_Create(&config, work, work_size);
+    EXPECT_TRUE(decoder == NULL);
+  }
+
+  /* 自前確保によるハンドル作成（失敗ケース） */
+  {
+    struct NARUDecoder *decoder;
+    struct NARUDecoderConfig config;
+
+    NARUDecoder_SetValidConfig(&config);
+
+    /* 引数が不正 */
+    decoder = NARUDecoder_Create(NULL, NULL, 0);
+    EXPECT_TRUE(decoder == NULL);
+
+    /* コンフィグが不正 */
+    NARUDecoder_SetValidConfig(&config);
+    config.max_num_channels = 0;
+    decoder = NARUDecoder_Create(&config, NULL, 0);
+    EXPECT_TRUE(decoder == NULL);
+
+    NARUDecoder_SetValidConfig(&config);
+    config.max_filter_order = 0;
+    decoder = NARUDecoder_Create(&config, NULL, 0);
+    EXPECT_TRUE(decoder == NULL);
+
+    /* フィルタ次数は2の冪乗数を期待している */
+    NARUDecoder_SetValidConfig(&config);
+    config.max_filter_order = 3;
+    decoder = NARUDecoder_Create(&config, NULL, 0);
+    EXPECT_TRUE(decoder == NULL);
+  }
+}
+
 /* 1ブロックデコードテスト */
 TEST(NARUDecoderTest, DecodeBlockTest)
 {
-
   /* ヘッダ設定前にデコードしてエラー */
   {
     struct NARUDecoder *decoder;
@@ -245,7 +387,7 @@ TEST(NARUDecoderTest, DecodeBlockTest)
     }
 
     /* デコーダ作成 */
-    decoder = NARUDecoder_Create(&config);
+    decoder = NARUDecoder_Create(&config, NULL, 0);
     ASSERT_TRUE(decoder != NULL);
 
     /* ヘッダセット前にデコーダしようとする */
@@ -291,8 +433,8 @@ TEST(NARUDecoderTest, DecodeBlockTest)
     }
 
     /* エンコーダデコーダ作成 */
-    encoder = NARUEncoder_Create(&encoder_config);
-    decoder = NARUDecoder_Create(&decoder_config);
+    encoder = NARUEncoder_Create(&encoder_config, NULL, 0);
+    decoder = NARUDecoder_Create(&decoder_config, NULL, 0);
     ASSERT_TRUE(encoder != NULL);
     ASSERT_TRUE(decoder != NULL);
 
@@ -365,8 +507,8 @@ TEST(NARUDecoderTest, DecodeBlockTest)
     }
 
     /* エンコーダデコーダ作成 */
-    encoder = NARUEncoder_Create(&encoder_config);
-    decoder = NARUDecoder_Create(&decoder_config);
+    encoder = NARUEncoder_Create(&encoder_config, NULL, 0);
+    decoder = NARUDecoder_Create(&decoder_config, NULL, 0);
     ASSERT_TRUE(encoder != NULL);
     ASSERT_TRUE(decoder != NULL);
 

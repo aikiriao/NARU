@@ -136,6 +136,173 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
 
 }
 
+/* エンコードハンドル作成破棄テスト */
+TEST(NARUEncoderTest, CreateDestroyHandleTest)
+{
+  /* ワークサイズ計算テスト */
+  {
+    int32_t work_size;
+    struct NARUEncoderConfig config;
+
+    /* 最低限構造体本体よりは大きいはず */
+    NARUEncoder_SetValidConfig(&config);
+    work_size = NARUEncoder_CalculateWorkSize(&config);
+    ASSERT_TRUE(work_size > sizeof(struct NARUEncoder));
+
+    /* 不正な引数 */
+    EXPECT_TRUE(NARUEncoder_CalculateWorkSize(NULL) < 0);
+
+    /* 不正なコンフィグ */
+    NARUEncoder_SetValidConfig(&config);
+    config.max_num_channels = 0;
+    EXPECT_TRUE(NARUEncoder_CalculateWorkSize(&config) < 0);
+
+    NARUEncoder_SetValidConfig(&config);
+    config.max_num_samples_per_block = 0;
+    EXPECT_TRUE(NARUEncoder_CalculateWorkSize(&config) < 0);
+
+    NARUEncoder_SetValidConfig(&config);
+    config.max_filter_order = 0;
+    EXPECT_TRUE(NARUEncoder_CalculateWorkSize(&config) < 0);
+
+    /* フィルタ次数は2の冪乗数を期待している */
+    NARUEncoder_SetValidConfig(&config);
+    config.max_filter_order = 3;
+    EXPECT_TRUE(NARUEncoder_CalculateWorkSize(&config) < 0);
+  }
+
+  /* ワーク領域渡しによるハンドル作成（成功例） */
+  {
+    void *work;
+    int32_t work_size;
+    struct NARUEncoder *encoder;
+    struct NARUEncoderConfig config;
+
+    NARUEncoder_SetValidConfig(&config);
+    work_size = NARUEncoder_CalculateWorkSize(&config);
+    work = malloc(work_size);
+
+    encoder = NARUEncoder_Create(&config, work, work_size);
+    ASSERT_TRUE(encoder != NULL);
+    EXPECT_TRUE(encoder->work == work);
+    EXPECT_EQ(encoder->set_parameter, 0);
+    EXPECT_EQ(encoder->alloced_by_own, 0);
+    EXPECT_TRUE(encoder->lpcc != NULL);
+    EXPECT_TRUE(encoder->processor != NULL);
+    EXPECT_TRUE(encoder->coder != NULL);
+    EXPECT_TRUE(encoder->window != NULL);
+    EXPECT_TRUE(encoder->buffer != NULL);
+    EXPECT_TRUE(encoder->buffer[0] != NULL);
+    EXPECT_TRUE(encoder->buffer_double != NULL);
+
+    NARUEncoder_Destroy(encoder);
+    free(work);
+  }
+
+  /* 自前確保によるハンドル作成（成功例） */
+  {
+    struct NARUEncoder *encoder;
+    struct NARUEncoderConfig config;
+
+    NARUEncoder_SetValidConfig(&config);
+
+    encoder = NARUEncoder_Create(&config, NULL, 0);
+    ASSERT_TRUE(encoder != NULL);
+    EXPECT_TRUE(encoder->work != NULL);
+    EXPECT_EQ(encoder->set_parameter, 0);
+    EXPECT_EQ(encoder->alloced_by_own, 1);
+    EXPECT_TRUE(encoder->lpcc != NULL);
+    EXPECT_TRUE(encoder->processor != NULL);
+    EXPECT_TRUE(encoder->coder != NULL);
+    EXPECT_TRUE(encoder->window != NULL);
+    EXPECT_TRUE(encoder->buffer != NULL);
+    EXPECT_TRUE(encoder->buffer[0] != NULL);
+    EXPECT_TRUE(encoder->buffer_double != NULL);
+
+    NARUEncoder_Destroy(encoder);
+  }
+
+  /* ワーク領域渡しによるハンドル作成（失敗ケース） */
+  {
+    void *work;
+    int32_t work_size;
+    struct NARUEncoder *encoder;
+    struct NARUEncoderConfig config;
+
+    NARUEncoder_SetValidConfig(&config);
+    work_size = NARUEncoder_CalculateWorkSize(&config);
+    work = malloc(work_size);
+
+    /* 引数が不正 */
+    encoder = NARUEncoder_Create(NULL, work, work_size);
+    EXPECT_TRUE(encoder == NULL);
+    encoder = NARUEncoder_Create(&config, NULL, work_size);
+    EXPECT_TRUE(encoder == NULL);
+    encoder = NARUEncoder_Create(&config, work, 0);
+    EXPECT_TRUE(encoder == NULL);
+
+    /* ワークサイズ不足 */
+    encoder = NARUEncoder_Create(&config, work, work_size - 1);
+    EXPECT_TRUE(encoder == NULL);
+
+    /* コンフィグが不正 */
+    NARUEncoder_SetValidConfig(&config);
+    config.max_num_channels = 0;
+    encoder = NARUEncoder_Create(&config, work, work_size);
+    EXPECT_TRUE(encoder == NULL);
+
+    NARUEncoder_SetValidConfig(&config);
+    config.max_num_samples_per_block = 0;
+    encoder = NARUEncoder_Create(&config, work, work_size);
+    EXPECT_TRUE(encoder == NULL);
+
+    NARUEncoder_SetValidConfig(&config);
+    config.max_filter_order = 0;
+    encoder = NARUEncoder_Create(&config, work, work_size);
+    EXPECT_TRUE(encoder == NULL);
+
+    /* フィルタ次数は2の冪乗数を期待している */
+    NARUEncoder_SetValidConfig(&config);
+    config.max_filter_order = 3;
+    encoder = NARUEncoder_Create(&config, work, work_size);
+    EXPECT_TRUE(encoder == NULL);
+  }
+
+  /* 自前確保によるハンドル作成（失敗ケース） */
+  {
+    struct NARUEncoder *encoder;
+    struct NARUEncoderConfig config;
+
+    NARUEncoder_SetValidConfig(&config);
+
+    /* 引数が不正 */
+    encoder = NARUEncoder_Create(NULL, NULL, 0);
+    EXPECT_TRUE(encoder == NULL);
+
+    /* コンフィグが不正 */
+    NARUEncoder_SetValidConfig(&config);
+    config.max_num_channels = 0;
+    encoder = NARUEncoder_Create(&config, NULL, 0);
+    EXPECT_TRUE(encoder == NULL);
+
+    NARUEncoder_SetValidConfig(&config);
+    config.max_num_samples_per_block = 0;
+    encoder = NARUEncoder_Create(&config, NULL, 0);
+    EXPECT_TRUE(encoder == NULL);
+
+    NARUEncoder_SetValidConfig(&config);
+    config.max_filter_order = 0;
+    encoder = NARUEncoder_Create(&config, NULL, 0);
+    EXPECT_TRUE(encoder == NULL);
+
+    /* フィルタ次数は2の冪乗数を期待している */
+    NARUEncoder_SetValidConfig(&config);
+    config.max_filter_order = 3;
+    encoder = NARUEncoder_Create(&config, NULL, 0);
+    EXPECT_TRUE(encoder == NULL);
+  }
+}
+
 /* 1ブロックエンコードテスト */
 TEST(NARUEncoderTest, EncodeBlockTest)
 {
@@ -161,7 +328,7 @@ TEST(NARUEncoderTest, EncodeBlockTest)
     }
 
     /* エンコーダ作成 */
-    encoder = NARUEncoder_Create(&config);
+    encoder = NARUEncoder_Create(&config, NULL, 0);
     ASSERT_TRUE(encoder != NULL);
 
     /* 無効な引数を渡す */
@@ -222,7 +389,7 @@ TEST(NARUEncoderTest, EncodeBlockTest)
     }
 
     /* エンコーダ作成 */
-    encoder = NARUEncoder_Create(&config);
+    encoder = NARUEncoder_Create(&config, NULL, 0);
     ASSERT_TRUE(encoder != NULL);
 
     /* パラメータセット前にエンコード: エラー */
@@ -276,7 +443,7 @@ TEST(NARUEncoderTest, EncodeBlockTest)
     }
 
     /* エンコーダ作成 */
-    encoder = NARUEncoder_Create(&config);
+    encoder = NARUEncoder_Create(&config, NULL, 0);
     ASSERT_TRUE(encoder != NULL);
 
     /* パラメータ設定 */

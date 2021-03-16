@@ -363,7 +363,7 @@ struct NARUCoder* NARUCoder_Create(
   }
 
   /* 引数チェック */
-  if ((work == NULL) || (work_size <= 0)
+  if ((work == NULL) || (max_num_channels == 0) || (max_num_parameters == 0)
       || (work_size < NARUCoder_CalculateWorkSize(max_num_channels, max_num_parameters))) {
     return NULL;
   }

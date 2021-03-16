@@ -8,6 +8,102 @@ extern "C" {
 #include "../../libs/naru_coder/src/naru_coder.c"
 }
 
+/* ハンドル作成破棄テスト */
+TEST(NARUCoderTest, CreateDestroyHandleTest)
+{
+  /* ワークサイズ計算テスト */
+  {
+    int32_t work_size;
+
+    /* 最低限構造体本体よりは大きいはず */
+    work_size = NARUCoder_CalculateWorkSize(1, 1);
+    ASSERT_TRUE(work_size > sizeof(struct NARUCoder));
+
+    /* 不正なコンフィグ */
+    EXPECT_TRUE(NARUCoder_CalculateWorkSize(0, 1) < 0);
+    EXPECT_TRUE(NARUCoder_CalculateWorkSize(1, 0) < 0);
+  }
+
+  /* ワーク領域渡しによるハンドル作成（成功例） */
+  {
+    void *work;
+    int32_t work_size;
+    struct NARUCoder *coder;
+
+    work_size = NARUCoder_CalculateWorkSize(1, 1);
+    work = malloc(work_size);
+
+    coder = NARUCoder_Create(1, 1, work, work_size);
+    ASSERT_TRUE(coder != NULL);
+    EXPECT_TRUE(coder->work == work);
+    EXPECT_EQ(coder->alloced_by_own, 0);
+    EXPECT_EQ(coder->max_num_channels, 1);
+    EXPECT_EQ(coder->max_num_parameters, 1);
+    EXPECT_TRUE(coder->rice_parameter != NULL);
+    EXPECT_TRUE(coder->rice_parameter[0] != NULL);
+    EXPECT_TRUE(coder->init_rice_parameter != NULL);
+    EXPECT_TRUE(coder->init_rice_parameter[0] != NULL);
+
+    NARUCoder_Destroy(coder);
+    free(work);
+  }
+
+  /* 自前確保によるハンドル作成（成功例） */
+  {
+    struct NARUCoder *coder;
+
+    coder = NARUCoder_Create(1, 1, NULL, 0);
+    ASSERT_TRUE(coder != NULL);
+    EXPECT_TRUE(coder->work != NULL);
+    EXPECT_EQ(coder->alloced_by_own, 1);
+    EXPECT_EQ(coder->max_num_channels, 1);
+    EXPECT_EQ(coder->max_num_parameters, 1);
+    EXPECT_TRUE(coder->rice_parameter != NULL);
+    EXPECT_TRUE(coder->rice_parameter[0] != NULL);
+    EXPECT_TRUE(coder->init_rice_parameter != NULL);
+    EXPECT_TRUE(coder->init_rice_parameter[0] != NULL);
+
+    NARUCoder_Destroy(coder);
+  }
+
+  /* ワーク領域渡しによるハンドル作成（失敗ケース） */
+  {
+    void *work;
+    int32_t work_size;
+    struct NARUCoder *coder;
+
+    work_size = NARUCoder_CalculateWorkSize(1, 1);
+    work = malloc(work_size);
+
+    /* 引数が不正 */
+    coder = NARUCoder_Create(1, 1, NULL, work_size);
+    EXPECT_TRUE(coder == NULL);
+    coder = NARUCoder_Create(1, 1, work, 0);
+    EXPECT_TRUE(coder == NULL);
+
+    /* ワークサイズ不足 */
+    coder = NARUCoder_Create(1, 1, work, work_size - 1);
+    EXPECT_TRUE(coder == NULL);
+
+    /* 生成コンフィグが不正 */
+    coder = NARUCoder_Create(0, 1, work, work_size);
+    EXPECT_TRUE(coder == NULL);
+    coder = NARUCoder_Create(1, 0, work, work_size);
+    EXPECT_TRUE(coder == NULL);
+  }
+
+  /* 自前確保によるハンドル作成（失敗ケース） */
+  {
+    struct NARUCoder *coder;
+
+    /* 生成コンフィグが不正 */
+    coder = NARUCoder_Create(0, 1, NULL, 0);
+    EXPECT_TRUE(coder == NULL);
+    coder = NARUCoder_Create(1, 0, NULL, 0);
+    EXPECT_TRUE(coder == NULL);
+  }
+}
+
 /* 再帰的ライス符号テスト */
 TEST(NARUCoderTest, RecursiveRiceTest)
 {

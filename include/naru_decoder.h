@@ -6,8 +6,8 @@
 
 /* デコーダコンフィグ */
 struct NARUDecoderConfig {
-	uint32_t max_num_channels; /* エンコード可能な最大チャンネル数 */
-	uint8_t  max_filter_order; /* 最大フィルタ次数 */
+	uint32_t max_num_channels;  /* エンコード可能な最大チャンネル数 */
+	uint8_t max_filter_order;   /* 最大フィルタ次数 */
 };
 
 /* デコーダハンドル */
@@ -21,8 +21,11 @@ extern "C" {
 NARUApiResult NARUDecoder_DecodeHeader(
     const uint8_t *data, uint32_t data_size, struct NARUHeader *header);
 
+/* デコーダハンドルの作成に必要なワークサイズの計算 */
+int32_t NARUDecoder_CalculateWorkSize(const struct NARUDecoderConfig *condig);
+
 /* デコーダハンドルの作成 */
-struct NARUDecoder* NARUDecoder_Create(const struct NARUDecoderConfig *condig);
+struct NARUDecoder* NARUDecoder_Create(const struct NARUDecoderConfig *condig, void *work, int32_t work_size);
 
 /* デコーダハンドルの破棄 */
 void NARUDecoder_Destroy(struct NARUDecoder *decoder);

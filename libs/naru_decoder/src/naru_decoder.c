@@ -12,9 +12,11 @@
 struct NARUDecoder {
   struct NARUHeader header;               /* ヘッダ */
   struct NARUDecodeProcessor *processor;  /* 信号処理ハンドル */
-  struct NARUCoder           *coder;      /* 符号化ハンドル */
-  uint8_t                    set_header;  /* ヘッダセット済みか？ */
-  struct NARUDecoderConfig   config;      /* 生成時コンフィグ */
+  struct NARUCoder *coder;                /* 符号化ハンドル */
+  uint32_t max_num_channels;              /* デコード可能な最大チャンネル数 */
+  uint8_t set_header;                     /* ヘッダセット済みか？ */
+  uint8_t alloced_by_own;                 /* 領域自前確保か？ */
+  void *work;                             /* ワーク領域先頭ポインタ */
 };
 
 /* 生データブロックデコード */
@@ -171,14 +173,59 @@ static NARUError NARUDecoder_CheckHeaderFormat(const struct NARUHeader *header)
   return NARU_ERROR_OK;
 }
 
-/* デコーダハンドル作成 */
-struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config)
+/* デコーダハンドルの作成に必要なワークサイズの計算 */
+int32_t NARUDecoder_CalculateWorkSize(const struct NARUDecoderConfig *config)
 {
-  uint32_t ch;
-  struct NARUDecoder *decoder;
+  int32_t work_size, tmp_work_size;
 
   /* 引数チェック */
   if (config == NULL) {
+    return -1;
+  }
+
+  /* コンフィグチェック */
+  if ((config->max_num_channels == 0)
+      || (config->max_filter_order == 0)
+      || !NARUUTILITY_IS_POWERED_OF_2(config->max_filter_order)) {
+    return -1;
+  }
+
+  /* 構造体サイズ（+メモリアラインメント） */
+  work_size = sizeof(struct NARUDecoder) + NARU_MEMORY_ALIGNMENT;
+
+  /* コーダーハンドル */
+  if ((tmp_work_size = NARUCoder_CalculateWorkSize(
+        config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER)) < 0) {
+    return -1;
+  }
+  work_size += tmp_work_size;
+
+  /* 信号処理ハンドル */
+  work_size += sizeof(struct NARUDecodeProcessor) * config->max_num_channels;
+
+  return work_size;
+}
+
+/* デコーダハンドル作成 */
+struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config, void *work, int32_t work_size)
+{
+  uint32_t ch;
+  struct NARUDecoder *decoder;
+  uint8_t *work_ptr;
+  uint8_t tmp_alloc_by_own = 0;
+
+  /* 領域自前確保の場合 */
+  if ((work == NULL) && (work_size == 0)) {
+    if ((work_size = NARUDecoder_CalculateWorkSize(config)) < 0) {
+      return NULL;
+    }
+    work = malloc((uint32_t)work_size);
+    tmp_alloc_by_own = 1;
+  }
+
+  /* 引数チェック */
+  if ((config == NULL) || (work == NULL)
+      || (work_size < NARUDecoder_CalculateWorkSize(config))) {
     return NULL;
   }
 
@@ -189,21 +236,42 @@ struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config)
     return NULL;
   }
 
-  /* デコーダの領域確保 */
-  decoder = (struct NARUDecoder *)malloc(sizeof(struct NARUDecoder));
+  /* ワーク領域先頭ポインタ取得 */
+  work_ptr = (uint8_t *)work;
 
-  /* 生成時コンフィグを保持 */
-  decoder->config = (*config);
+  /* 構造体領域確保 */
+  work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work_ptr, NARU_MEMORY_ALIGNMENT);
+  decoder = (struct NARUDecoder *)work_ptr;
+  work_ptr += sizeof(struct NARUDecoder);
 
-  /* 各種ハンドルの作成 */
-  decoder->coder = NARUCoder_Create(config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER, NULL, 0);
-  decoder->processor = (struct NARUDecodeProcessor *)malloc(sizeof(struct NARUDecodeProcessor) * config->max_num_channels);
+  /* 構造体メンバセット */
+  decoder->set_header = 0; /* ヘッダは未セットに */
+  decoder->alloced_by_own = tmp_alloc_by_own;
+  decoder->work = work;
+  decoder->max_num_channels = config->max_num_channels;
+
+  /* コーダーハンドルの作成 */
+  {
+    int32_t coder_size
+      = NARUCoder_CalculateWorkSize(config->max_num_channels, NARUCODER_NUM_RECURSIVERICE_PARAMETER);
+    if ((decoder->coder = NARUCoder_Create(config->max_num_channels,
+        NARUCODER_NUM_RECURSIVERICE_PARAMETER, work_ptr, coder_size)) == NULL) {
+      return NULL;
+    }
+    work_ptr += coder_size;
+  }
+
+  decoder->processor = (struct NARUDecodeProcessor *)work_ptr;
+  work_ptr += sizeof(struct NARUDecodeProcessor) * config->max_num_channels;
+
+  /* バッファオーバーランチェック */
+  /* 補足）既にメモリを破壊している可能性があるので、チェックに失敗したら落とす */
+  NARU_ASSERT((work_ptr - (uint8_t *)work) <= work_size);
+
+  /* 信号処理ハンドルのリセット */
   for (ch = 0; ch < config->max_num_channels; ch++) {
     NARUDecodeProcessor_Reset(&decoder->processor[ch]);
   }
-
-  /* ヘッダは未セットに */
-  decoder->set_header = 0;
   
   return decoder;
 }
@@ -212,8 +280,10 @@ struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config)
 void NARUDecoder_Destroy(struct NARUDecoder *decoder)
 {
   if (decoder != NULL) {
-    NARU_NULLCHECK_AND_FREE(decoder->processor);
     NARUCoder_Destroy(decoder->coder);
+    if (decoder->alloced_by_own == 1) {
+      free(decoder->work);
+    }
   }
 }
 
@@ -231,6 +301,11 @@ NARUApiResult NARUDecoder_SetHeader(
   /* ヘッダの有効性チェック */
   if (NARUDecoder_CheckHeaderFormat(header) != NARU_ERROR_OK) {
     return NARU_APIRESULT_INVALID_FORMAT;
+  }
+
+  /* デコーダの容量を越えてないかチェック */
+  if (decoder->max_num_channels < header->num_channels) {
+    return NARU_APIRESULT_INSUFFICIENT_BUFFER;
   }
 
   /* フィルタパラメータ設定 */

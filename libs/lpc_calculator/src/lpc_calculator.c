@@ -86,7 +86,8 @@ struct LPCCalculator *LPCCalculator_Create(uint32_t max_order, void *work, int32
   }
 
   /* 引数チェック */
-  if ((work == NULL) || (work_size < LPCCalculator_CalculateWorkSize(max_order))) {
+  if ((work == NULL) || (max_order == 0)
+      || (work_size < LPCCalculator_CalculateWorkSize(max_order))) {
     if (tmp_alloc_by_own == 1) {
       free(work);
     }
