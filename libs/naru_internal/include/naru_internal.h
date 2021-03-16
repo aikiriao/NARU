@@ -3,6 +3,9 @@
 
 #include "naru.h"
 
+/* 本ライブラリのメモリアラインメント */
+#define NARU_MEMORY_ALIGNMENT                 16
+
 /* 内部エンコードパラメータ */
 /* ブロック先頭の同期コード */
 #define NARU_BLOCK_SYNC_CODE                  0xFFFF

@@ -18,6 +18,8 @@
 #endif
 /* 符号関数 ハッカーのたのしみより引用 補足）val==0の時は0を返す */
 #define NARUUTILITY_SIGN(val)  (int32_t)((-(((uint32_t)(val)) >> 31)) | (((uint32_t)-(val)) >> 31))
+/* nの倍数への切り上げ */
+#define NARUUTILITY_ROUNDUP(val, n) ((((val) + ((n) - 1)) / (n)) * (n))
 /* 最大値の取得 */
 #define NARUUTILITY_MAX(a,b) (((a) > (b)) ? (a) : (b))
 /* 最小値の取得 */
