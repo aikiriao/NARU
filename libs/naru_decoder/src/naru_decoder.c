@@ -8,14 +8,23 @@
 
 #include <stdlib.h>
 
+/* 内部状態フラグ */
+#define NARUDECODER_STATUS_FLAG_ALLOCED_BY_OWN  (1 << 0)  /* 領域を自己割当した */
+#define NARUDECODER_STATUS_FLAG_SET_HEADER      (1 << 1)  /* ヘッダセット済み */
+#define NARUDECODER_STATUS_FLAG_CRC16_CHECK     (1 << 2)  /* CRC16の検査を行う */
+
+/* 内部状態フラグ操作マクロ */
+#define NARUDECODER_SET_STATUS_FLAG(decoder, flag)    ((decoder->status_flags) |= (flag))
+#define NARUDECODER_CLEAR_STATUS_FLAG(decoder, flag)  ((decoder->status_flags) &= ~(flag))
+#define NARUDECODER_GET_STATUS_FLAG(decoder, flag)    ((decoder->status_flags) & (flag))
+
 /* デコーダハンドル */
 struct NARUDecoder {
   struct NARUHeader header;               /* ヘッダ */
   struct NARUDecodeProcessor *processor;  /* 信号処理ハンドル */
   struct NARUCoder *coder;                /* 符号化ハンドル */
   uint32_t max_num_channels;              /* デコード可能な最大チャンネル数 */
-  uint8_t set_header;                     /* ヘッダセット済みか？ */
-  uint8_t alloced_by_own;                 /* 領域自前確保か？ */
+  uint8_t status_flags;                   /* 内部状態フラグ */
   void *work;                             /* ワーク領域先頭ポインタ */
 };
 
@@ -245,10 +254,12 @@ struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config, v
   work_ptr += sizeof(struct NARUDecoder);
 
   /* 構造体メンバセット */
-  decoder->set_header = 0; /* ヘッダは未セットに */
-  decoder->alloced_by_own = tmp_alloc_by_own;
   decoder->work = work;
   decoder->max_num_channels = config->max_num_channels;
+  decoder->status_flags = 0;  /* 状態クリア */
+  if (tmp_alloc_by_own == 1) {
+    NARUDECODER_SET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_ALLOCED_BY_OWN);
+  }
 
   /* コーダーハンドルの作成 */
   {
@@ -261,6 +272,7 @@ struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config, v
     work_ptr += coder_size;
   }
 
+  /* 信号処理ハンドルの領域確保 */
   decoder->processor = (struct NARUDecodeProcessor *)work_ptr;
   work_ptr += sizeof(struct NARUDecodeProcessor) * config->max_num_channels;
 
@@ -281,7 +293,7 @@ void NARUDecoder_Destroy(struct NARUDecoder *decoder)
 {
   if (decoder != NULL) {
     NARUCoder_Destroy(decoder->coder);
-    if (decoder->alloced_by_own == 1) {
+    if (NARUDECODER_GET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_ALLOCED_BY_OWN)) {
       free(decoder->work);
     }
   }
@@ -316,7 +328,7 @@ NARUApiResult NARUDecoder_SetHeader(
 
   /* ヘッダセット */
   decoder->header = (*header);
-  decoder->set_header = 1;
+  NARUDECODER_SET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_SET_HEADER);
 
   return NARU_APIRESULT_OK;
 }
@@ -478,7 +490,7 @@ static NARUApiResult NARUDecoder_DecodeBlock(
   }
 
   /* ヘッダがまだセットされていない */
-  if (decoder->set_header != 1) {
+  if (!NARUDECODER_GET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_SET_HEADER)) {
     return NARU_APIRESULT_PARAMETER_NOT_SET;
   }
 

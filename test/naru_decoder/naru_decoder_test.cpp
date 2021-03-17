@@ -264,8 +264,8 @@ TEST(NARUDecoderTest, CreateDestroyHandleTest)
     decoder = NARUDecoder_Create(&config, work, work_size);
     ASSERT_TRUE(decoder != NULL);
     EXPECT_TRUE(decoder->work == work);
-    EXPECT_EQ(decoder->set_header, 0);
-    EXPECT_EQ(decoder->alloced_by_own, 0);
+    EXPECT_FALSE(NARUDECODER_GET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_ALLOCED_BY_OWN));
+    EXPECT_FALSE(NARUDECODER_GET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_SET_HEADER));
     EXPECT_TRUE(decoder->processor != NULL);
     EXPECT_TRUE(decoder->coder != NULL);
 
@@ -283,8 +283,8 @@ TEST(NARUDecoderTest, CreateDestroyHandleTest)
     decoder = NARUDecoder_Create(&config, NULL, 0);
     ASSERT_TRUE(decoder != NULL);
     EXPECT_TRUE(decoder->work != NULL);
-    EXPECT_EQ(decoder->set_header, 0);
-    EXPECT_EQ(decoder->alloced_by_own, 1);
+    EXPECT_TRUE(NARUDECODER_GET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_ALLOCED_BY_OWN));
+    EXPECT_FALSE(NARUDECODER_GET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_SET_HEADER));
     EXPECT_TRUE(decoder->processor != NULL);
     EXPECT_TRUE(decoder->coder != NULL);
 
