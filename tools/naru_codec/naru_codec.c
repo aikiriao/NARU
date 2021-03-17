@@ -117,6 +117,7 @@ static int do_decode(const char* in_filename, const char* out_filename)
   /* デコーダハンドルの作成 */
   config.max_num_channels = NARU_MAX_NUM_CHANNELS;
   config.max_filter_order = NARU_MAX_FILTER_ORDER;
+  config.check_crc        = 1;
   if ((decoder = NARUDecoder_Create(&config, NULL, 0)) == NULL) {
     fprintf(stderr, "Failed to create decoder handle. \n");
     return 1;

@@ -23,13 +23,14 @@
 
 /* API結果型 */
 typedef enum NARUApiResultTag {
-  NARU_APIRESULT_OK = 0,              /* 成功                         */
-  NARU_APIRESULT_INVALID_ARGUMENT,    /* 無効な引数                   */
-  NARU_APIRESULT_INVALID_FORMAT,      /* 不正なフォーマット           */
-  NARU_APIRESULT_INSUFFICIENT_BUFFER, /* バッファサイズが足りない     */
-  NARU_APIRESULT_INSUFFICIENT_DATA,   /* データが足りない             */
-  NARU_APIRESULT_PARAMETER_NOT_SET,   /* パラメータがセットされてない */
-  NARU_APIRESULT_NG                   /* 分類不能な失敗               */
+  NARU_APIRESULT_OK = 0,                  /* 成功                         */
+  NARU_APIRESULT_INVALID_ARGUMENT,        /* 無効な引数                   */
+  NARU_APIRESULT_INVALID_FORMAT,          /* 不正なフォーマット           */
+  NARU_APIRESULT_INSUFFICIENT_BUFFER,     /* バッファサイズが足りない     */
+  NARU_APIRESULT_INSUFFICIENT_DATA,       /* データが足りない             */
+  NARU_APIRESULT_PARAMETER_NOT_SET,       /* パラメータがセットされてない */
+  NARU_APIRESULT_DETECT_DATA_CORRUPTION,  /* データ破損を検知した         */
+  NARU_APIRESULT_NG                       /* 分類不能な失敗               */
 } NARUApiResult; 
 
 /* マルチチャンネル処理法 */

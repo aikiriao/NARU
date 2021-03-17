@@ -225,6 +225,7 @@ static int32_t NARUEncodeDecodeTest_ExecuteTestCase(const struct EncodeDecodeTes
   encoder_config.max_filter_order           = test_case->encode_parameter.filter_order;
   decoder_config.max_num_channels           = num_channels;
   decoder_config.max_filter_order           = test_case->encode_parameter.filter_order;
+  decoder_config.check_crc                  = 1;
 
   /* 一時領域の割り当て */
   input_double  = (double **)malloc(sizeof(double*) * num_channels);

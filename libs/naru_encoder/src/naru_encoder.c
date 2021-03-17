@@ -645,7 +645,7 @@ static NARUApiResult NARUEncoder_EncodeBlock(
   ByteArray_PutUint16BE(data_ptr, NARU_BLOCK_SYNC_CODE);
   /* ブロックサイズ: 仮値で埋めておく */
   ByteArray_PutUint32BE(data_ptr, 0);
-  /* ブロックCRC16: 仮値で埋めておく TODO: 処理追加 */
+  /* ブロックCRC16: 仮値で埋めておく */
   ByteArray_PutUint16BE(data_ptr, 0);
   /* ブロックデータタイプ */
   ByteArray_PutUint8(data_ptr, block_type);
@@ -675,6 +675,12 @@ static NARUApiResult NARUEncoder_EncodeBlock(
 
   /* ブロックサイズ書き込み: CRC16(2byte) + ブロックデータタイプ(1byte) */
   ByteArray_WriteUint32BE(&data[2], block_data_size + 3);
+
+  /* CRC16の領域以降のCRC16を計算し書き込み */
+  {
+    uint16_t crc16 = NARUUtility_CalculateCRC16(&data[8], block_data_size + 1);
+    ByteArray_WriteUint16BE(&data[6], crc16);
+  }
 
   /* 出力サイズ */
   (*output_size) = block_header_size + block_data_size;

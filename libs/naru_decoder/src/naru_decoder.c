@@ -260,6 +260,9 @@ struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config, v
   if (tmp_alloc_by_own == 1) {
     NARUDECODER_SET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_ALLOCED_BY_OWN);
   }
+  if (config->check_crc == 1) {
+    NARUDECODER_SET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_CRC16_CHECK);
+  }
 
   /* コーダーハンドルの作成 */
   {
@@ -519,7 +522,14 @@ static NARUApiResult NARUDecoder_DecodeBlock(
   }
   /* ブロックCRC16 */
   ByteArray_GetUint16BE(read_ptr, &buf16);
-  NARU_ASSERT(buf16 == 0); /* TODO: 将来的にはチェック */
+  /* チェックするならばCRC16計算を行い取得値との一致を確認 */
+  if (NARUDECODER_GET_STATUS_FLAG(decoder, NARUDECODER_STATUS_FLAG_CRC16_CHECK)) {
+    /* CRC16自体の領域は外すために-2 */
+    uint16_t crc16 = NARUUtility_CalculateCRC16(read_ptr, buf32 - 2);
+    if (crc16 != buf16) {
+      return NARU_APIRESULT_DETECT_DATA_CORRUPTION;
+    }
+  }
   /* ブロックデータタイプ */
   ByteArray_GetUint8(read_ptr, &buf8);
   block_type = (NARUBlockDataType)buf8;

@@ -58,6 +58,7 @@ extern "C" {
     struct NARUDecoderConfig *config__p = p_config;\
     config__p->max_num_channels = 8;\
     config__p->max_filter_order = 32;\
+    config__p->check_crc = 1;\
   } while (0);
 
 /* ヘッダデコードテスト */
@@ -562,10 +563,16 @@ TEST(NARUDecoderTest, DecodeBlockTest)
     EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT,
       NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
         output, tmp_header.num_samples_per_block, &decode_output_size, &out_num_samples));
-    /* ブロックデータタイプ不正 */
+    /* ブロックデータタイプ不正: データ破損検知 */
     EXPECT_EQ(NARU_APIRESULT_OK, NARUEncoder_EncodeWhole(encoder, input, header.num_samples_per_block, data, sufficient_size, &output_size));
     data[NARU_HEADER_SIZE + 8] = 0xC0;
-    EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT,
+    EXPECT_EQ(NARU_APIRESULT_DETECT_DATA_CORRUPTION,
+      NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
+        output, tmp_header.num_samples_per_block, &decode_output_size, &out_num_samples));
+    /* データの末尾1byteがビット反転: データ破損検知 */
+    EXPECT_EQ(NARU_APIRESULT_OK, NARUEncoder_EncodeWhole(encoder, input, header.num_samples_per_block, data, sufficient_size, &output_size));
+    data[output_size - 1] ^= 0xFF;
+    EXPECT_EQ(NARU_APIRESULT_DETECT_DATA_CORRUPTION,
       NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
         output, tmp_header.num_samples_per_block, &decode_output_size, &out_num_samples));
 
