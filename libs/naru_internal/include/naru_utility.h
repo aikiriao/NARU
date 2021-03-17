@@ -68,10 +68,13 @@ extern "C" {
 #endif
 
 /* 窓の適用 */
-void NARUUtility_ApplyWindow(const double* window, double* data, uint32_t num_samples);
+void NARUUtility_ApplyWindow(const double *window, double *data, uint32_t num_samples);
 
 /* サイン窓を作成 */
-void NARUUtility_MakeSinWindow(double* window, uint32_t window_size);
+void NARUUtility_MakeSinWindow(double *window, uint32_t window_size);
+
+/* CRC16(IBM)の計算 */
+uint16_t NARUUtility_CalculateCRC16(const uint8_t *data, uint64_t data_size);
 
 /* NLZ（最上位ビットから1に当たるまでのビット数）の計算 */
 uint32_t NARUUtility_NLZSoft(uint32_t val);

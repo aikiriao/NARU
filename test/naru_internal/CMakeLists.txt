@@ -30,3 +30,10 @@ set_property(
     TEST naru_internal
     PROPERTY LABELS lib naru_internal
     )
+
+# ビルド後にテストリソースを持ってくる
+add_custom_command(
+  TARGET ${TEST_NAME}
+  POST_BUILD
+  COMMAND
+  ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/PriChanIcon.png ${CMAKE_CURRENT_SOURCE_DIR}/a.wav $<TARGET_FILE_DIR:${TEST_NAME}>)
