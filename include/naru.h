@@ -13,7 +13,7 @@
 #define NARU_MAX_NUM_CHANNELS 8
 
 /* 最大フィルタ次数 */
-#define NARU_MAX_FILTER_ORDER 32
+#define NARU_MAX_FILTER_ORDER 64
 
 /* 最大AR次数 */
 #define NARU_MAX_AR_ORDER     ((NARU_MAX_FILTER_ORDER / 2) - 1)

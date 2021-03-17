@@ -1,14 +1,59 @@
-#include "wav.h"
 #include "naru_encoder.h"
 #include "naru_decoder.h"
+#include "wav.h"
+#include "command_line_parser.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
+/* コマンドライン仕様 */
+static struct CommandLineParserSpecification command_line_spec[] = {
+  { 'e', "encode", COMMAND_LINE_PARSER_FALSE, 
+    "Encode mode", 
+    NULL, COMMAND_LINE_PARSER_FALSE },
+  { 'd', "decode", COMMAND_LINE_PARSER_FALSE, 
+    "Decode mode", 
+    NULL, COMMAND_LINE_PARSER_FALSE },
+  { 'm', "mode", COMMAND_LINE_PARSER_TRUE, 
+    "Specify compress mode: 0(fast decode), ..., 4(high compression) default:2", 
+    NULL, COMMAND_LINE_PARSER_FALSE },
+  { 'c', "crc-check", COMMAND_LINE_PARSER_TRUE, 
+    "Whether to check CRC16 at decoding(yes or no) default:yes", 
+    NULL, COMMAND_LINE_PARSER_FALSE },
+  { 'h', "help", COMMAND_LINE_PARSER_FALSE, 
+    "Show command help message", 
+    NULL, COMMAND_LINE_PARSER_FALSE },
+  { 'v', "version", COMMAND_LINE_PARSER_FALSE, 
+    "Show version information", 
+    NULL, COMMAND_LINE_PARSER_FALSE },
+  { 0, }
+};
+
+/* エンコードプリセット */
+static const struct {
+  uint16_t num_samples_per_block; /* ブロックあたりサンプル数 */
+  uint8_t filter_order; /* フィルタ次数 */
+  uint8_t ar_order; /* AR次数 */
+  uint8_t second_filter_order; /* 2段目フィルタ次数 */
+  NARUChannelProcessMethod ch_process_method; /* マルチチャンネル処理法 */
+} encode_preset[] = {
+  {  8 * 1024,  4, 1, 4, NARU_CH_PROCESS_METHOD_MS }, /* プリセット0 */
+  { 16 * 1024,  8, 1, 8, NARU_CH_PROCESS_METHOD_MS }, /* プリセット1 */
+  { 16 * 1024, 16, 1, 8, NARU_CH_PROCESS_METHOD_MS }, /* プリセット2 */
+  { 32 * 1024, 32, 1, 8, NARU_CH_PROCESS_METHOD_MS }, /* プリセット3 */
+  { 32 * 1024, 64, 1, 8, NARU_CH_PROCESS_METHOD_MS }  /* プリセット4 */
+};
+
+/* エンコードプリセット数 */
+static const uint32_t num_encode_preset = sizeof(encode_preset) / sizeof(encode_preset[0]);
+
+/* デフォルトのプリセット番号 */
+static const uint32_t default_preset_no = 2;
+
 /* エンコード 成功時は0、失敗時は0以外を返す */
-static int do_encode(const char* in_filename, const char* out_filename)
+static int do_encode(const char* in_filename, const char* out_filename, uint32_t encode_preset_no)
 {  
   FILE *out_fp;
   struct WAVFile *in_wav;
@@ -43,12 +88,16 @@ static int do_encode(const char* in_filename, const char* out_filename)
   parameter.num_channels = (uint16_t)num_channels;
   parameter.bits_per_sample = (uint16_t)in_wav->format.bits_per_sample;
   parameter.sampling_rate = in_wav->format.sampling_rate;
-  parameter.num_samples_per_block = 16 * 1024;
-  parameter.filter_order = 8;
-  parameter.ar_order = 1;
-  parameter.second_filter_order = 8;
-  parameter.ch_process_method
-    = (num_channels >= 2) ? NARU_CH_PROCESS_METHOD_MS : NARU_CH_PROCESS_METHOD_NONE;
+  /* プリセットの反映 */
+  parameter.num_samples_per_block = encode_preset[encode_preset_no].num_samples_per_block;
+  parameter.filter_order = encode_preset[encode_preset_no].filter_order;
+  parameter.ar_order = encode_preset[encode_preset_no].ar_order;
+  parameter.second_filter_order = encode_preset[encode_preset_no].second_filter_order;
+  parameter.ch_process_method = encode_preset[encode_preset_no].ch_process_method;
+  /* 2ch未満の信号にはMS処理できないので無効に */
+  if (num_channels < 2) {
+    parameter.ch_process_method = NARU_CH_PROCESS_METHOD_NONE;
+  }
   if ((ret = NARUEncoder_SetEncodeParameter(encoder, &parameter)) != NARU_APIRESULT_OK) {
     fprintf(stderr, "Failed to set encode parameter: %d \n", ret);
     return 1;
@@ -86,8 +135,6 @@ static int do_encode(const char* in_filename, const char* out_filename)
     return 1;
   }
 
-  printf("size: %d -> %d \n", (uint32_t)fstat.st_size, encoded_data_size);
-
   /* リソース破棄 */
   fclose(out_fp);
   free(buffer);
@@ -101,7 +148,7 @@ static int do_encode(const char* in_filename, const char* out_filename)
 }
 
 /* デコード 成功時は0、失敗時は0以外を返す */
-static int do_decode(const char* in_filename, const char* out_filename)
+static int do_decode(const char* in_filename, const char* out_filename, uint8_t check_crc)
 {
   FILE* in_fp;
   struct WAVFile* out_wav;
@@ -117,7 +164,7 @@ static int do_decode(const char* in_filename, const char* out_filename)
   /* デコーダハンドルの作成 */
   config.max_num_channels = NARU_MAX_NUM_CHANNELS;
   config.max_filter_order = NARU_MAX_FILTER_ORDER;
-  config.check_crc        = 1;
+  config.check_crc        = check_crc;
   if ((decoder = NARUDecoder_Create(&config, NULL, 0)) == NULL) {
     fprintf(stderr, "Failed to create decoder handle. \n");
     return 1;
@@ -183,41 +230,99 @@ static int do_decode(const char* in_filename, const char* out_filename)
 /* 使用法の表示 */
 static void print_usage(char** argv)
 {
-  printf("NARU -- Natural-gradient AutoRegressive Unlossy Audio Compressor \n");
-  printf("Usage: %s -[ed] INPUT_FILE_NAME OUTPUT_FILE_NAME \n", argv[0]);
+  printf("Usage: %s [options] INPUT_FILE_NAME OUTPUT_FILE_NAME \n", argv[0]);
+}
+
+/* バージョン情報の表示 */
+static void print_version_info(void)
+{
+  printf("NARU -- Natural-gradient AutoRegressive Unlossy Audio Compressor Version.%d \n", NARU_CODEC_VERSION);
 }
 
 /* メインエントリ */
 int main(int argc, char** argv)
 {
-  const char* option;
+  const char* filename_ptr[2] = { NULL, NULL };
   const char* input_file;
   const char* output_file;
 
   /* 引数が足らない */
-  if (argc < 4) {
+  if (argc == 1) {
     print_usage(argv);
+    /* 初めて使った人が詰まらないようにヘルプの表示を促す */
+    printf("Type `%s -h` to display command helps. \n", argv[0]);
     return 1;
   }
 
-  /* 引数文字列の取得 */
-  option      = argv[1];
-  input_file  = argv[2];
-  output_file = argv[3];
+  /* コマンドライン解析 */
+  if (CommandLineParser_ParseArguments(command_line_spec,
+        argc, argv, filename_ptr, sizeof(filename_ptr) / sizeof(filename_ptr[0]))
+      != COMMAND_LINE_PARSER_RESULT_OK) {
+    return 1;
+  }
 
-  /* エンコード/デコード呼び分け */
-  if (strcmp(option, "-e") == 0) {
-    if (do_encode(input_file, output_file) != 0) {
-      fprintf(stderr, "Failed to encode. \n");
+  /* ヘルプやバージョン情報の表示判定 */
+  if (CommandLineParser_GetOptionAcquired(command_line_spec, "help") == COMMAND_LINE_PARSER_TRUE) {
+    print_usage(argv);
+    printf("options: \n");
+    CommandLineParser_PrintDescription(command_line_spec);
+    return 0;
+  } else if (CommandLineParser_GetOptionAcquired(command_line_spec, "version") == COMMAND_LINE_PARSER_TRUE) {
+    print_version_info();
+    return 0;
+  }
+
+  /* 入力ファイル名の取得 */
+  if ((input_file = filename_ptr[0]) == NULL) {
+    fprintf(stderr, "%s: input file must be specified. \n", argv[0]);
+    return 1;
+  }
+  
+  /* 出力ファイル名の取得 */
+  if ((output_file = filename_ptr[1]) == NULL) {
+    fprintf(stderr, "%s: output file must be specified. \n", argv[0]);
+    return 1;
+  }
+
+  /* エンコードとデコードは同時に指定できない */
+  if ((CommandLineParser_GetOptionAcquired(command_line_spec, "decode") == COMMAND_LINE_PARSER_TRUE)
+      && (CommandLineParser_GetOptionAcquired(command_line_spec, "encode") == COMMAND_LINE_PARSER_TRUE)) {
+      fprintf(stderr, "%s: encode and decode mode cannot specify simultaneously. \n", argv[0]);
+      return 1;
+  }
+
+  if (CommandLineParser_GetOptionAcquired(command_line_spec, "decode") == COMMAND_LINE_PARSER_TRUE) {
+    /* デコード */
+    uint8_t crc_check = 1;
+    /* CRC有効フラグを取得 */
+    if (CommandLineParser_GetOptionAcquired(command_line_spec, "crc-check") == COMMAND_LINE_PARSER_TRUE) {
+      const char* crc_check_arg
+        = CommandLineParser_GetArgumentString(command_line_spec, "crc-check");
+      crc_check = (strcmp(crc_check_arg, "yes") == 0) ? 1 : 0;
+    }
+    /* 一括デコード実行 */
+    if (do_decode(input_file, output_file, crc_check) != 0) {
+      fprintf(stderr, "%s: failed to decode %s. \n", argv[0], input_file);
       return 1;
     }
-  } else if (strcmp(option, "-d") == 0) {
-    if (do_decode(input_file, output_file) != 0) {
-      fprintf(stderr, "Failed to decode. \n");
+  } else if (CommandLineParser_GetOptionAcquired(command_line_spec, "encode") == COMMAND_LINE_PARSER_TRUE) {
+    /* エンコード */
+    uint32_t encode_preset_no = default_preset_no;
+    /* エンコードプリセット番号取得 */
+    if (CommandLineParser_GetOptionAcquired(command_line_spec, "mode") == COMMAND_LINE_PARSER_TRUE) {
+      encode_preset_no = (uint32_t)strtol(CommandLineParser_GetArgumentString(command_line_spec, "mode"), NULL, 10);
+      if (encode_preset_no >= num_encode_preset) {
+        fprintf(stderr, "%s: encode preset number is out of range. \n", argv[0]);
+        return 1;
+      }
+    }
+    /* 一括エンコード実行 */
+    if (do_encode(input_file, output_file, encode_preset_no) != 0) {
+      fprintf(stderr, "%s: failed to encode %s. \n", argv[0], input_file);
       return 1;
     }
   } else {
-    print_usage(argv);
+    fprintf(stderr, "%s: decode(-d) or encode(-e) option must be specified. \n", argv[0]);
     return 1;
   }
 
