@@ -17,7 +17,7 @@
 #define NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(sint32, rshift) ((((uint64_t)(sint32) + 0x80000000UL) >> (rshift)) - (0x80000000UL >> (rshift)))
 #endif
 /* 符号関数 ハッカーのたのしみより引用 補足）val==0の時は0を返す */
-#define NARUUTILITY_SIGN(val)  (int32_t)((-(((uint32_t)(val)) >> 31)) | (((uint32_t)-(val)) >> 31))
+#define NARUUTILITY_SIGN(val)  (((val) > 0) - ((val) < 0))
 /* nの倍数への切り上げ */
 #define NARUUTILITY_ROUNDUP(val, n) ((((val) + ((n) - 1)) / (n)) * (n))
 /* 最大値の取得 */
