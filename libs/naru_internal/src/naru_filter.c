@@ -59,7 +59,7 @@ void NARUNGSAFilter_SetFilterOrder(struct NARUNGSAFilter *filter, int32_t filter
 void NARUNGSAFilter_InitializeNaturalGradient(struct NARUNGSAFilter *filter)
 {
   const int32_t filter_order = filter->filter_order;
-  int32_t *ngrad, *history;
+  int32_t *ngrad, *history, stepsize_scale;
 
   NARU_ASSERT(filter != NULL);
 
@@ -100,10 +100,18 @@ void NARUNGSAFilter_InitializeNaturalGradient(struct NARUNGSAFilter *filter)
     /* 1.0f / (1.0f - ar_coef[0] ** 2) */
     scale_int = (1 << 15) - NARU_FIXEDPOINT_MUL(ar_coef, ar_coef, NARU_FIXEDPOINT_DIGITS);
     scale_int = (1 << 30) / scale_int;
-    filter->stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
+    stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
     /* 係数が大きくなりすぎないようにクリップ */
-    filter->stepsize_scale = NARUUTILITY_MIN(NARUNGSA_MAX_STEPSIZE_SCALE, filter->stepsize_scale);
+    stepsize_scale = NARUUTILITY_MIN(NARUNGSA_MAX_STEPSIZE_SCALE, stepsize_scale);
   } else {
-    filter->stepsize_scale = 1 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH;
+    stepsize_scale = 1 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH;
   }
+
+  /* 更新テーブルの値をセット */
+  filter->delta_table[0] = -stepsize_scale;
+  filter->delta_table[1] = 0;
+  filter->delta_table[2] = stepsize_scale;
+
+  /* 参照位置をずらした位置にポインタをセット(signの値で参照するため) */
+  filter->pdelta_table = &filter->delta_table[1];
 }

@@ -12,7 +12,8 @@ struct NARUNGSAFilter {
   int32_t weight[NARU_MAX_FILTER_ORDER];      /* フィルタ係数 */
   int32_t ar_coef[NARU_MAX_AR_ORDER];         /* AR係数 */
   int32_t ngrad[2 * NARU_MAX_FILTER_ORDER];   /* 自然勾配（高速化のために2倍確保） */
-  int32_t stepsize_scale;                     /* ステップサイズに乗じる係数 */
+  int32_t delta_table[3];                     /* フィルタ係数の変更量キャッシュ */
+  const int32_t *pdelta_table;                /* = &delta_table[1](signの値を使って更新するため, 参照位置をずらしたポインタを持つ */
   int32_t buffer_pos;                         /* バッファ参照位置 */
   int32_t buffer_pos_mask;                    /* バッファ参照位置補正のためのビットマスク */
 };

@@ -168,7 +168,7 @@ static int32_t NARUDecodeProcessor_DeEmphasis(struct NARUDecodeProcessor *proces
 /* NGSAフィルタの1サンプル合成処理 */
 static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t residual)
 {
-  int32_t ord, synth, predict, direction;
+  int32_t ord, synth, predict, delta;
   int32_t *ngrad, *history, *ar_coef, *weight;
   const int32_t scalar_shift = NARUNGSA_STEPSIZE_SCALE_BITWIDTH + NARUNGSA_STEPSIZE_SCALE_SHIFT;
   const int32_t filter_order = filter->filter_order;
@@ -213,10 +213,11 @@ static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t 
     filter->ngrad[pos + filter_order] = filter->ngrad[pos];
   }
 
-  /* フィルタ係数更新 TODO: directionの値は3種類しかないのでキャッシュできる */
-  direction = filter->stepsize_scale * NARUUTILITY_SIGN(residual);
+  /* フィルタ係数更新 */
+  NARU_ASSERT(filter->pdelta_table == &filter->delta_table[1]);
+  delta = filter->pdelta_table[NARUUTILITY_SIGN(residual)];
   for (ord = 0; ord < filter_order; ord++) {
-    weight[ord] += NARU_FIXEDPOINT_MUL(direction, ngrad[ord], scalar_shift);
+    weight[ord] += NARU_FIXEDPOINT_MUL(delta, ngrad[ord], scalar_shift);
   }
 
   /* 入力データ履歴更新 */
