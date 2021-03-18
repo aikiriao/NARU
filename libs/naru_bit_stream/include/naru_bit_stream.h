@@ -272,14 +272,10 @@ extern const uint32_t g_naru_bitstream_zerobit_runlength_table[0x100];
     NARU_ASSERT((void *)(stream) != NULL);\
     NARU_ASSERT((void *)(runlength) != NULL);\
 \
-    /* 上位ビットからの連続する0をNLZで計測 */\
-    /* (1 << (31 - (stream)->bit_count)) はラン長が
-     * 伸びすぎないようにするためのビット */\
-    __run = NARUUTILITY_NLZ(\
-        (uint32_t)(\
-          ((stream)->bit_buffer << (32 - (stream)->bit_count))\
-            | (1UL << (31 - (stream)->bit_count)))\
-          );\
+    /* 上位ビットからの連続する0を計測 */\
+    __run = g_naru_bitstream_zerobit_runlength_table[\
+      NARUBITSTREAM_GETLOWERBITS((stream)->bit_buffer, (stream)->bit_count)];\
+    __run += (stream)->bit_count - 8;\
 \
     /* 読み込んだ分カウントを減らす */\
     (stream)->bit_count -= __run;\

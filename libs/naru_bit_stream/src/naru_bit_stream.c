@@ -258,11 +258,13 @@ void NARUBitReader_GetZeroRunLength(struct NARUBitStream* stream, uint32_t* runl
   /* 引数チェック */
   NARU_ASSERT((stream != NULL) && (runlength != NULL));
 
-  /* 上位ビットからの連続する0をNLZで計測 */
-  /* (1 << (31 - stream->bit_count)) はラン長が伸びすぎないようにするためのビット */
-  run = NARUUTILITY_NLZ(
-      (uint32_t)((stream->bit_buffer << (32 - stream->bit_count)) | (1UL << (31 - stream->bit_count)))
-      );
+  /* 上位ビットからの連続する0を計測 */
+  run = g_naru_bitstream_zerobit_runlength_table[NARUBITSTREAM_GETLOWERBITS(stream->bit_buffer, stream->bit_count)];
+  run += stream->bit_count - 8;
+  /* TODO:32bitで入力するときはこちらを使う
+  run = NARUUTILITY_NLZ(NARUBITSTREAM_GETLOWERBITS(stream->bit_buffer, stream->bit_count));
+  run += stream->bit_count - 32;
+  */
 
   /* 読み込んだ分カウントを減らす */
   stream->bit_count -= run;
