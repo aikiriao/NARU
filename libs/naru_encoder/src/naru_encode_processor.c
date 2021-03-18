@@ -307,12 +307,12 @@ static int32_t NARUNGSAFilter_Predict(struct NARUNGSAFilter *filter, int32_t inp
     filter->ngrad[pos] += NARU_FIXEDPOINT_MUL(ar_coef[ord], ngrad[filter_order], NARU_FIXEDPOINT_DIGITS);
     filter->ngrad[pos + filter_order] = filter->ngrad[pos];
   }
-  ngrad[0] = NARU_FIXEDPOINT_0_5;
+  ngrad[0] = 0;
   for (ord = 0; ord < ar_order; ord++) {
-    ngrad[0] += ar_coef[ord] * history[ord + 1];
+    ngrad[0] -= ar_coef[ord] * history[ord + 1];
   }
   ngrad[0] >>= NARU_FIXEDPOINT_DIGITS;
-  ngrad[0] = history[0] - ngrad[0];
+  ngrad[0] += history[0];
   for (ord = 0; ord < ar_order; ord++) {
     const int32_t pos = (filter->buffer_pos + ord + 1) & filter->buffer_pos_mask;
     filter->ngrad[pos] -= NARU_FIXEDPOINT_MUL(ar_coef[ord], ngrad[0], NARU_FIXEDPOINT_DIGITS);
