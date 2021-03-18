@@ -198,7 +198,7 @@ static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t 
   ngrad = &filter->ngrad[filter->buffer_pos];
   for (ord = 0; ord < ar_order; ord++) {
     const int32_t pos = (filter->buffer_pos + filter_order - 1 - ord) & filter->buffer_pos_mask;
-    filter->ngrad[pos] += NARU_FIXEDPOINT_MUL(ar_coef[ord], ngrad[filter_order], NARU_FIXEDPOINT_DIGITS);
+    filter->ngrad[pos] += NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(ar_coef[ord] * ngrad[filter_order], NARU_FIXEDPOINT_DIGITS);
     filter->ngrad[pos + filter_order] = filter->ngrad[pos];
   }
   ngrad[0] = 0;
@@ -209,7 +209,7 @@ static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t 
   ngrad[0] += history[0];
   for (ord = 0; ord < ar_order; ord++) {
     const int32_t pos = (filter->buffer_pos + ord + 1) & filter->buffer_pos_mask;
-    filter->ngrad[pos] -= NARU_FIXEDPOINT_MUL(ar_coef[ord], ngrad[0], NARU_FIXEDPOINT_DIGITS);
+    filter->ngrad[pos] -= NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(ar_coef[ord] * ngrad[0], NARU_FIXEDPOINT_DIGITS);
     filter->ngrad[pos + filter_order] = filter->ngrad[pos];
   }
 
