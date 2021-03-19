@@ -98,8 +98,8 @@ void NARUNGSAFilter_InitializeNaturalGradient(struct NARUNGSAFilter *filter)
     ar_coef = NARUUTILITY_INNER_VALUE(filter->ar_coef[0],
         -(1 << NARU_FIXEDPOINT_DIGITS) + 1, (1 << NARU_FIXEDPOINT_DIGITS) - 1);
     /* 1.0f / (1.0f - ar_coef[0] ** 2) */
-    scale_int = (1 << 15) - NARU_FIXEDPOINT_MUL(ar_coef, ar_coef, NARU_FIXEDPOINT_DIGITS);
-    scale_int = (1 << 30) / scale_int;
+    scale_int = (1 << NARU_FIXEDPOINT_DIGITS) - NARU_FIXEDPOINT_MUL(ar_coef, ar_coef, NARU_FIXEDPOINT_DIGITS);
+    scale_int = (1 << (2 * NARU_FIXEDPOINT_DIGITS)) / scale_int;
     stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
     /* 係数が大きくなりすぎないようにクリップ */
     stepsize_scale = NARUUTILITY_MIN(NARUNGSA_MAX_STEPSIZE_SCALE, stepsize_scale);
