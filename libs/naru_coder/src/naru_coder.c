@@ -49,7 +49,6 @@ struct NARUCoder {
   void *work;
 };
 
-#if 0
 /* ゴロム符号化の出力 */
 static void NARUGolomb_PutCode(struct NARUBitStream *stream, uint32_t m, uint32_t val)
 {
@@ -90,7 +89,7 @@ static void NARUGolomb_PutCode(struct NARUBitStream *stream, uint32_t m, uint32_
   }
 }
 
-/* ゴロム符号化の取得 */
+/* ゴロム符号の取得 */
 static uint32_t NARUGolomb_GetCode(struct NARUBitStream *stream, uint32_t m) 
 {
   uint32_t quot;
@@ -103,15 +102,17 @@ static uint32_t NARUGolomb_GetCode(struct NARUBitStream *stream, uint32_t m)
   /* 前半のunary符号部分を読み取り */
   NARUBitReader_GetZeroRunLength(stream, &quot);
 
+  /* 剰余部の桁数 */
+  b = NARUUTILITY_LOG2CEIL(m);
+
   /* 剰余部分の読み取り */
   if (NARUUTILITY_IS_POWERED_OF_2(m)) {
     /* mが2の冪: ライス符号化 */
-    NARUBitReader_GetBits(stream, &rest, NARUUTILITY_LOG2CEIL(m));
-    return (uint32_t)(quot * m + rest);
+    NARUBitReader_GetBits(stream, &rest, b);
+    return (uint32_t)((quot << b) + rest);
   }
 
   /* ゴロム符号化 */
-  b = NARUUTILITY_LOG2CEIL(m);
   two_b = (uint32_t)(1UL << b);
   NARUBitReader_GetBits(stream, &rest, b - 1);
   if (rest < (two_b - m)) {
@@ -124,7 +125,6 @@ static uint32_t NARUGolomb_GetCode(struct NARUBitStream *stream, uint32_t m)
     return (uint32_t)(quot * m + rest - (two_b - m));
   }
 }
-#endif
 
 /* ガンマ符号の出力 */
 static void NARUGamma_PutCode(struct NARUBitStream *stream, uint32_t val)
@@ -427,6 +427,7 @@ void NARUCoder_CalculateInitialRecursiveRiceParameter(
     for (smpl = 0; smpl < num_samples; smpl++) {
       sum += NARUUTILITY_SINT32_TO_UINT32(data[ch][smpl]);
     }
+
     init_param = (uint32_t)NARUUTILITY_MAX(sum / num_samples, 1);
 
     /* 初期パラメータのセット */
@@ -496,19 +497,37 @@ void NARUCoder_PutDataArray(
     uint32_t num_parameters, const int32_t **data, uint32_t num_channels, uint32_t num_samples)
 {
   uint32_t smpl, ch;
+  uint32_t param_ch_avg;
 
   NARU_ASSERT((stream != NULL) && (data != NULL) && (coder != NULL));
   NARU_ASSERT((num_parameters != 0) && (num_parameters <= coder->max_num_parameters));
   NARU_ASSERT(num_samples != 0);
   NARU_ASSERT(num_channels != 0);
 
+  /* 全チャンネルでのパラメータ平均を算出 */
+  param_ch_avg = 0;
+  for (ch = 0; ch < num_channels; ch++) {
+    param_ch_avg += NARUCODER_PARAMETER_GET(coder->init_rice_parameter[ch], 0);
+  }
+  param_ch_avg /= num_channels;
+
   /* チャンネルインターリーブしつつ符号化 */
-  for (smpl = 0; smpl < num_samples; smpl++) {
-    for (ch = 0; ch < num_channels; ch++) {
-      NARURecursiveRice_PutCode(stream,
-          coder->rice_parameter[ch], num_parameters, NARUUTILITY_SINT32_TO_UINT32(data[ch][smpl]));
+  if (param_ch_avg > NARUCODER_LOW_THRESHOULD_PARAMETER) {
+    for (smpl = 0; smpl < num_samples; smpl++) {
+      for (ch = 0; ch < num_channels; ch++) {
+        NARURecursiveRice_PutCode(stream,
+            coder->rice_parameter[ch], num_parameters, NARUUTILITY_SINT32_TO_UINT32(data[ch][smpl]));
+      }
+    }
+  } else {
+    /* パラメータが小さい場合はパラメータ固定で符号 */
+    for (smpl = 0; smpl < num_samples; smpl++) {
+      for (ch = 0; ch < num_channels; ch++) {
+        NARUGolomb_PutCode(stream, NARUCODER_PARAMETER_GET(coder->init_rice_parameter[ch], 0), NARUUTILITY_SINT32_TO_UINT32(data[ch][smpl]));
+      }
     }
   }
+
 }
 
 /* 符号付き整数配列の復号 */
@@ -517,15 +536,34 @@ void NARUCoder_GetDataArray(
     uint32_t num_parameters, int32_t **data, uint32_t num_channels, uint32_t num_samples)
 {
   uint32_t ch, smpl, abs;
+  uint32_t param_ch_avg;
 
   NARU_ASSERT((stream != NULL) && (data != NULL) && (coder != NULL));
   NARU_ASSERT((num_parameters != 0) && (num_samples != 0));
 
+  /* 全チャンネルでのパラメータ平均を算出 */
+  param_ch_avg = 0;
+  for (ch = 0; ch < num_channels; ch++) {
+    param_ch_avg += NARUCODER_PARAMETER_GET(coder->init_rice_parameter[ch], 0);
+  }
+  param_ch_avg /= num_channels;
+
   /* パラメータを適応的に変更しつつ符号化 */
-  for (smpl = 0; smpl < num_samples; smpl++) {
-    for (ch = 0; ch < num_channels; ch++) {
-      abs = NARURecursiveRice_GetCode(stream, coder->rice_parameter[ch], num_parameters);
-      data[ch][smpl] = NARUUTILITY_UINT32_TO_SINT32(abs);
+
+  if (param_ch_avg > NARUCODER_LOW_THRESHOULD_PARAMETER) {
+    /* パラメータが小さい場合はパラメータ固定でゴロム符号化 */
+    for (smpl = 0; smpl < num_samples; smpl++) {
+      for (ch = 0; ch < num_channels; ch++) {
+        abs = NARURecursiveRice_GetCode(stream, coder->rice_parameter[ch], num_parameters);
+        data[ch][smpl] = NARUUTILITY_UINT32_TO_SINT32(abs);
+      }
+    }
+  } else {
+    for (smpl = 0; smpl < num_samples; smpl++) {
+      for (ch = 0; ch < num_channels; ch++) {
+        abs = NARUGolomb_GetCode(stream, NARUCODER_PARAMETER_GET(coder->init_rice_parameter[ch], 0));
+        data[ch][smpl] = NARUUTILITY_UINT32_TO_SINT32(abs);
+      }
     }
   }
 }

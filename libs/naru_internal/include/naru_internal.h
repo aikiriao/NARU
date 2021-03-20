@@ -13,6 +13,8 @@
 #define NARUCODER_NUM_RECURSIVERICE_PARAMETER 2
 /* 再帰的ライス符号の商部分の閾値 これ以上の大きさの商はガンマ符号化 */
 #define NARUCODER_QUOTPART_THRESHOULD         16
+/* 固定パラメータ符号を使うか否かの閾値 */
+#define NARUCODER_LOW_THRESHOULD_PARAMETER    6  
 /* 固定小数点の小数桁 */
 #define NARU_FIXEDPOINT_DIGITS                15
 /* 固定小数点の0.5 */
