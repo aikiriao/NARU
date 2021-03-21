@@ -184,8 +184,7 @@ static void NARUNGSAFilter_PutFilterState(
 
   /* フィルタ履歴 */
   for (ord = 0; ord < filter->filter_order; ord++) {
-    /* フィルタ次数の倍数サンプル入力ではないとき、バッファ参照位置がずれるため、
-       バッファ参照位置だけずらして記録 */
+    /* デコード時にbuffer_pos == 0で処理できるように、ずらして記録 */
     int32_t pos = (filter->buffer_pos + ord) & filter->buffer_pos_mask;
     NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->history[pos], shift);
     /* 履歴アクセス高速化のために、次数だけ離れた位置にも記録 */
@@ -223,8 +222,7 @@ static void NARUSAFilter_PutFilterState(
 
   /* フィルタ履歴 */
   for (ord = 0; ord < filter->filter_order; ord++) {
-    /* フィルタ次数の倍数サンプル入力ではないとき、バッファ参照位置がずれるため、
-       バッファ参照位置だけずらして記録 */
+    /* デコード時にbuffer_pos == 0で処理できるように、ずらして記録 */
     int32_t pos = (filter->buffer_pos + ord) & filter->buffer_pos_mask;
     NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->history[pos], shift);
     /* 履歴アクセス高速化のために、次数だけ離れた位置にも記録 */
