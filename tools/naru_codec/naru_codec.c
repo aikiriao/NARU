@@ -85,6 +85,12 @@ static int do_encode(const char* in_filename, const char* out_filename, uint32_t
   num_channels = in_wav->format.num_channels;
   num_samples = in_wav->format.num_samples;
 
+  /* 今のところは16bit/sampleのみ対応 */
+  if (in_wav->format.bits_per_sample != 16) {
+    fprintf(stderr, "This codec supports only 16-bit/sample wav. (input file:%d bit/sample) \n", in_wav->format.bits_per_sample);
+    return 1;
+  }
+
   /* エンコードパラメータセット */
   parameter.num_channels = (uint16_t)num_channels;
   parameter.bits_per_sample = (uint16_t)in_wav->format.bits_per_sample;
