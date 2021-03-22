@@ -38,12 +38,13 @@ static const struct {
   uint8_t ar_order; /* AR次数 */
   uint8_t second_filter_order; /* 2段目フィルタ次数 */
   NARUChannelProcessMethod ch_process_method; /* マルチチャンネル処理法 */
+  uint8_t num_encode_trials; /* エンコード繰り返し回数 */
 } encode_preset[] = {
-  {  8 * 1024,  4, 1, 4, NARU_CH_PROCESS_METHOD_MS }, /* プリセット0 */
-  { 16 * 1024,  8, 1, 8, NARU_CH_PROCESS_METHOD_MS }, /* プリセット1 */
-  { 16 * 1024, 16, 1, 8, NARU_CH_PROCESS_METHOD_MS }, /* プリセット2 */
-  { 32 * 1024, 32, 1, 8, NARU_CH_PROCESS_METHOD_MS }, /* プリセット3 */
-  { 48 * 1024, 64, 1, 8, NARU_CH_PROCESS_METHOD_MS }  /* プリセット4 */
+  {  8 * 1024,  4, 1, 4, NARU_CH_PROCESS_METHOD_MS, 1 }, /* プリセット0 */
+  { 16 * 1024,  8, 1, 8, NARU_CH_PROCESS_METHOD_MS, 2 }, /* プリセット1 */
+  { 16 * 1024, 16, 1, 8, NARU_CH_PROCESS_METHOD_MS, 2 }, /* プリセット2 */
+  { 32 * 1024, 32, 1, 8, NARU_CH_PROCESS_METHOD_MS, 3 }, /* プリセット3 */
+  { 48 * 1024, 64, 1, 8, NARU_CH_PROCESS_METHOD_MS, 4 }  /* プリセット4 */
 };
 
 /* エンコードプリセット数 */
@@ -94,6 +95,7 @@ static int do_encode(const char* in_filename, const char* out_filename, uint32_t
   parameter.ar_order = encode_preset[encode_preset_no].ar_order;
   parameter.second_filter_order = encode_preset[encode_preset_no].second_filter_order;
   parameter.ch_process_method = encode_preset[encode_preset_no].ch_process_method;
+  parameter.num_encode_trials = encode_preset[encode_preset_no].num_encode_trials;
   /* 2ch未満の信号にはMS処理できないので無効に */
   if (num_channels < 2) {
     parameter.ch_process_method = NARU_CH_PROCESS_METHOD_NONE;
