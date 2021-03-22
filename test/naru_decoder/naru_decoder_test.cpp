@@ -41,6 +41,7 @@ extern "C" {
     param__p->ar_order = header__p->ar_order;\
     param__p->second_filter_order = header__p->second_filter_order;\
     param__p->ch_process_method = header__p->ch_process_method;\
+    param__p->num_encode_trials = 1; /* 仮 */\
   } while (0);
 
 /* 有効なエンコーダコンフィグをセット */

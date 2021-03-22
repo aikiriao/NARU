@@ -22,6 +22,7 @@ struct NARUEncoder {
   struct NARUCoder *coder;                /* 符号化ハンドル */
   uint32_t max_num_channels;              /* バッファチャンネル数 */
   uint32_t max_num_samples_per_block;     /* バッファサンプル数 */
+  uint8_t num_encode_trials;              /* エンコード繰り返し回数 */
   uint8_t set_parameter;                  /* パラメータセット済み？ */
   double *window;                         /* 窓 */
   int32_t **buffer;                       /* 信号バッファ */
@@ -375,6 +376,11 @@ NARUApiResult NARUEncoder_SetEncodeParameter(
     return NARU_APIRESULT_INVALID_FORMAT;
   }
 
+  /* エンコード繰り返し回数は最低でも1回 */
+  if (parameter->num_encode_trials == 0) {
+    return NARU_APIRESULT_INVALID_FORMAT;
+  }
+
   /* エンコーダの容量を越えてないかチェック */
   if ((encoder->max_num_samples_per_block < parameter->num_samples_per_block)
       || (encoder->max_num_channels < parameter->num_channels)) {
@@ -383,6 +389,9 @@ NARUApiResult NARUEncoder_SetEncodeParameter(
 
   /* ヘッダ設定 */
   encoder->header = tmp_header;
+
+  /* エンコード繰り返し回数設定 */
+  encoder->num_encode_trials = parameter->num_encode_trials;
 
   /* フィルタパラメータ設定 */
   for (ch = 0; ch < tmp_header.num_channels; ch++) {
@@ -698,6 +707,7 @@ NARUApiResult NARUEncoder_EncodeWhole(
   NARUApiResult ret;
   uint32_t progress, ch, write_size, write_offset, num_encode_samples;
   uint8_t *data_pos;
+  uint8_t trial;
   const int32_t *input_ptr[NARU_MAX_NUM_CHANNELS];
   const struct NARUHeader *header;
 
@@ -739,10 +749,34 @@ NARUApiResult NARUEncoder_EncodeWhole(
     }
 
     /* ブロックエンコード */
-    if ((ret = NARUEncoder_EncodeBlock(encoder,
+    if (progress < header->num_samples_per_block) {
+      for (trial = 0; trial < encoder->num_encode_trials; trial++) {
+        if ((ret = NARUEncoder_EncodeBlock(encoder,
             input_ptr, num_encode_samples,
             data_pos, data_size - write_offset, &write_size)) != NARU_APIRESULT_OK) {
-      return ret;
+          return ret;
+        }
+      }
+    } else {
+      /* progress >= header->num_samples_per_block */
+      for (trial = 0; trial < encoder->num_encode_trials; trial++) {
+        for (ch = 0; ch < header->num_channels; ch++) {
+          input_ptr[ch] = &input[ch][progress - header->num_samples_per_block];
+        }
+        if ((ret = NARUEncoder_EncodeBlock(encoder,
+            input_ptr, header->num_samples_per_block,
+            data_pos, data_size - write_offset, &write_size)) != NARU_APIRESULT_OK) {
+          return ret;
+        }
+        for (ch = 0; ch < header->num_channels; ch++) {
+          input_ptr[ch] = &input[ch][progress];
+        }
+        if ((ret = NARUEncoder_EncodeBlock(encoder,
+            input_ptr, num_encode_samples,
+            data_pos, data_size - write_offset, &write_size)) != NARU_APIRESULT_OK) {
+          return ret;
+        }
+      }
     }
 
     /* 進捗更新 */

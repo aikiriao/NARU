@@ -37,6 +37,7 @@ extern "C" {
     param__p->ar_order              = 1;\
     param__p->second_filter_order   = 4;\
     param__p->ch_process_method     = NARU_CH_PROCESS_METHOD_NONE;\
+    param__p->num_encode_trials     = 1;\
   } while (0);
 
 /* 有効なコンフィグをセット */

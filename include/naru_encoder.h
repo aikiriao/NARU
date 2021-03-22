@@ -13,7 +13,8 @@ struct NARUEncodeParameter {
   uint8_t filter_order;    /* フィルタ次数 */
   uint8_t ar_order;        /* AR次数 */
   uint8_t second_filter_order; /* 2段目フィルタ次数 */
-  NARUChannelProcessMethod ch_process_method;  /* マルチチャンネル処理法     */
+  NARUChannelProcessMethod ch_process_method;  /* マルチチャンネル処理法 */
+  uint8_t num_encode_trials; /* エンコード繰り返し回数 */
 };
 
 /* エンコーダコンフィグ */
