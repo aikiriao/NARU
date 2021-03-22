@@ -705,10 +705,12 @@ NARUApiResult NARUEncoder_EncodeWhole(
     uint8_t *data, uint32_t data_size, uint32_t *output_size)
 {
   NARUApiResult ret;
-  uint32_t progress, ch, write_size, write_offset, num_encode_samples;
+  uint32_t progress, ch, write_size, write_offset;
+  uint32_t prev_num_encode_samples, num_encode_samples;
   uint8_t *data_pos;
   uint8_t trial;
   const int32_t *input_ptr[NARU_MAX_NUM_CHANNELS];
+  const int32_t *prev_input_ptr[NARU_MAX_NUM_CHANNELS];
   const struct NARUHeader *header;
 
   /* 引数チェック */
@@ -748,7 +750,7 @@ NARUApiResult NARUEncoder_EncodeWhole(
       input_ptr[ch] = &input[ch][progress];
     }
 
-    /* ブロックエンコード */
+    /* ブロックエンコード フィルタの収束を早めるため繰り返す */
     if (progress < header->num_samples_per_block) {
       for (trial = 0; trial < encoder->num_encode_trials; trial++) {
         if ((ret = NARUEncoder_EncodeBlock(encoder,
@@ -760,16 +762,10 @@ NARUApiResult NARUEncoder_EncodeWhole(
     } else {
       /* progress >= header->num_samples_per_block */
       for (trial = 0; trial < encoder->num_encode_trials; trial++) {
-        for (ch = 0; ch < header->num_channels; ch++) {
-          input_ptr[ch] = &input[ch][progress - header->num_samples_per_block];
-        }
         if ((ret = NARUEncoder_EncodeBlock(encoder,
-            input_ptr, header->num_samples_per_block,
+            prev_input_ptr, prev_num_encode_samples,
             data_pos, data_size - write_offset, &write_size)) != NARU_APIRESULT_OK) {
           return ret;
-        }
-        for (ch = 0; ch < header->num_channels; ch++) {
-          input_ptr[ch] = &input[ch][progress];
         }
         if ((ret = NARUEncoder_EncodeBlock(encoder,
             input_ptr, num_encode_samples,
@@ -784,6 +780,12 @@ NARUApiResult NARUEncoder_EncodeWhole(
     write_offset  += write_size;
     progress      += num_encode_samples;
     NARU_ASSERT(write_offset <= data_size);
+
+    /* 直前のエンコード情報を記録 */
+    for (ch = 0; ch < header->num_channels; ch++) {
+      prev_input_ptr[ch] = input_ptr[ch];
+    }
+    prev_num_encode_samples = num_encode_samples;
   }
 
   /* 成功終了 */
