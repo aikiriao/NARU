@@ -27,8 +27,6 @@
 #define NARUNGSA_MAX_STEPSIZE_SCALE           (50 << NARUNGSA_STEPSIZE_SCALE_BITWIDTH)
 /* NGSAのステップサイズに乗じる係数の右シフト量 */
 #define NARUNGSA_STEPSIZE_SCALE_SHIFT         6
-/* SAの右シフト量 */
-#define NARUSA_STEPSIZE_SHIFT                 2
 /* フィルタ係数のbit幅 */
 #define NARU_FILTER_WEIGHT_RANGE_BITWIDTH     18
 /* ブロックヘッダに記録するAR係数のビット幅 */

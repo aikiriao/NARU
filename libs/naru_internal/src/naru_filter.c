@@ -53,6 +53,8 @@ void NARUNGSAFilter_SetFilterOrder(struct NARUNGSAFilter *filter, int32_t filter
   filter->ar_order = ar_order;
   filter->filter_order = filter_order;
   filter->buffer_pos_mask = filter_order - 1;
+
+  filter->delta_rshift = NARUNGSA_STEPSIZE_SCALE_BITWIDTH + (int32_t)NARUUTILITY_LOG2CEIL((uint32_t)filter_order);
 }
 
 /* NGSAフィルタの自然勾配初期化 */

@@ -170,7 +170,6 @@ static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t 
 {
   int32_t ord, synth, predict, delta;
   int32_t *ngrad, *history, *ar_coef, *weight;
-  const int32_t scalar_shift = NARUNGSA_STEPSIZE_SCALE_BITWIDTH + NARUNGSA_STEPSIZE_SCALE_SHIFT;
   const int32_t filter_order = filter->filter_order;
   const int32_t ar_order = filter->ar_order;
 
@@ -217,7 +216,7 @@ static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t 
   NARU_ASSERT(filter->pdelta_table == &filter->delta_table[1]);
   delta = filter->pdelta_table[NARUUTILITY_SIGN(residual)];
   for (ord = 0; ord < filter_order; ord++) {
-    weight[ord] += NARU_FIXEDPOINT_MUL(delta, ngrad[ord], scalar_shift);
+    weight[ord] += NARU_FIXEDPOINT_MUL(delta, ngrad[ord], filter->delta_rshift);
   }
 
   /* 入力データ履歴更新 */
@@ -253,7 +252,7 @@ static int32_t NARUSAFilter_Synthesize(struct NARUSAFilter *filter, int32_t resi
   /* 係数更新 */
   sign = NARUUTILITY_SIGN(residual);
   for (ord = 0; ord < filter_order; ord++) {
-    weight[ord] += NARU_FIXEDPOINT_MUL(sign, history[ord], NARUSA_STEPSIZE_SHIFT);
+    weight[ord] += sign * history[ord];
   }
 
   /* 入力データ履歴更新 */

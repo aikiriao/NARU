@@ -43,7 +43,7 @@ static const struct {
   { 16 * 1024,  8, 1, 8, NARU_CH_PROCESS_METHOD_MS }, /* プリセット1 */
   { 16 * 1024, 16, 1, 8, NARU_CH_PROCESS_METHOD_MS }, /* プリセット2 */
   { 32 * 1024, 32, 1, 8, NARU_CH_PROCESS_METHOD_MS }, /* プリセット3 */
-  { 32 * 1024, 64, 1, 8, NARU_CH_PROCESS_METHOD_MS }  /* プリセット4 */
+  { 48 * 1024, 64, 1, 8, NARU_CH_PROCESS_METHOD_MS }  /* プリセット4 */
 };
 
 /* エンコードプリセット数 */
@@ -69,7 +69,7 @@ static int do_encode(const char* in_filename, const char* out_filename, uint32_t
 
   /* エンコーダ作成 */
   config.max_num_channels = NARU_MAX_NUM_CHANNELS;
-  config.max_num_samples_per_block = 32 * 1024;
+  config.max_num_samples_per_block = 60 * 1024;
   config.max_filter_order = NARU_MAX_FILTER_ORDER;
   if ((encoder = NARUEncoder_Create(&config, NULL, 0)) == NULL) {
     fprintf(stderr, "Failed to create encoder handle. \n");

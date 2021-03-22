@@ -16,6 +16,7 @@ struct NARUNGSAFilter {
   const int32_t *pdelta_table;                /* = &delta_table[1](signの値を使って更新するため, 参照位置をずらしたポインタを持つ */
   int32_t buffer_pos;                         /* バッファ参照位置 */
   int32_t buffer_pos_mask;                    /* バッファ参照位置補正のためのビットマスク */
+  int32_t delta_rshift;                       /* 係数更新時の右シフト量 */
 };
 
 /* SAフィルタ */
