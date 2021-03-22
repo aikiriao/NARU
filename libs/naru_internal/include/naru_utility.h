@@ -41,6 +41,13 @@
 #if defined(__GNUC__)
 /* ビルトイン関数を使用 */
 #define NARUUTILITY_NLZ(x) (((x) > 0) ? (uint32_t)__builtin_clz(x) : 32U)
+#elif defined(_MSC_VER)
+/* ビルトイン関数を使用 */
+__inline uint32_t NARUUTILITY_NLZ(uint32_t x)
+{
+	uint32_t result;
+    return (_BitScanReverse(&result, x) != 0) ? (31U - result) : 32U;
+}
 #else
 /* ソフトウェア実装を使用 */
 #define NARUUTILITY_NLZ(x) NARUUtility_NLZSoft(x)
@@ -52,7 +59,7 @@
 #define NARUUTILITY_LOG2FLOOR(x) (31U - NARUUTILITY_NLZ(x))
 
 /* 2の冪乗数(1,2,4,8,16,...)への切り上げ */
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(_MSC_VER)
 /* ビルトイン関数を使用 */
 #define NARUUTILITY_ROUNDUP2POWERED(x) (1U << NARUUTILITY_LOG2CEIL(x))
 #else 
