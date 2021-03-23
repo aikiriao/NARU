@@ -92,9 +92,7 @@ static void NARUGolomb_PutCode(struct NARUBitStream *stream, uint32_t m, uint32_
 /* ゴロム符号の取得 */
 static uint32_t NARUGolomb_GetCode(struct NARUBitStream *stream, uint32_t m) 
 {
-  uint32_t quot;
-  uint64_t rest;
-  uint32_t b, two_b;
+  uint32_t quot, rest, b, two_b;
 
   NARU_ASSERT(stream != NULL);
   NARU_ASSERT(m != 0);
@@ -176,11 +174,14 @@ static void NARURecursiveRice_PutQuotPart(
     struct NARUBitStream *stream, uint32_t quot)
 {
   NARU_ASSERT(stream != NULL);
-
-  while (quot > 0) {
-    NARUBitWriter_PutBits(stream, 0, 1);
-    quot--;
+  
+  if (quot == 0) {
+    NARUBitWriter_PutBits(stream, 1, 1);
+    return;
   }
+
+  NARU_ASSERT(quot < 32);
+  NARUBitWriter_PutBits(stream, 0, quot);
   NARUBitWriter_PutBits(stream, 1, 1);
 }
 
@@ -196,17 +197,15 @@ static uint32_t NARURecursiveRice_GetQuotPart(struct NARUBitStream *stream)
   return quot;
 }
 
-/* 剰余部分を出力 TODO:mはシフトパラメータでもいいはず */
+/* 剰余部分を出力 kは剰余部の桁数（logを取ったライス符号） */
 static void NARURecursiveRice_PutRestPart(
-    struct NARUBitStream *stream, uint32_t val, uint32_t m)
+    struct NARUBitStream *stream, uint32_t val, uint32_t k)
 {
   NARU_ASSERT(stream != NULL);
-  NARU_ASSERT(m != 0);
-  NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(m));
 
-  /* m == 1の時はスキップ（剰余は0で確定だから） */
-  if (m != 1) {
-    NARUBitWriter_PutBits(stream, val & (m - 1), NARUUTILITY_LOG2CEIL(m));
+  /* k == 0の時はスキップ（剰余は0で確定だから） */
+  if (k > 0) {
+    NARUBitWriter_PutBits(stream, val, k);
   }
 }
 
@@ -227,7 +226,7 @@ static uint32_t NARURecursiveRice_GetRestPart(struct NARUBitStream *stream, uint
 static void NARURecursiveRice_PutCode(
   struct NARUBitStream *stream, NARURecursiveRiceParameter* rice_parameters, uint32_t num_params, uint32_t val)
 {
-  uint32_t i, reduced_val, param;
+  uint32_t i, reduced_val, k, param;
 
   NARU_ASSERT(stream != NULL);
   NARU_ASSERT(rice_parameters != NULL);
@@ -236,16 +235,18 @@ static void NARURecursiveRice_PutCode(
 
   reduced_val = val;
   for (i = 0; i < (num_params - 1); i++) {
-    param = NARURICE_CALCULATE_RICE_PARAMETER(rice_parameters, i);
+    k = NARURICE_CALCULATE_LOG2_RICE_PARAMETER(rice_parameters, i);
+    param = (1U << k);
     /* 現在のパラメータ値よりも小さければ、符号化を行う */
     if (reduced_val < param) {
         /* 商部分としてはパラメータ段数 */
         NARURecursiveRice_PutQuotPart(stream, i);
         /* 剰余部分 */
-        NARURecursiveRice_PutRestPart(stream, reduced_val, param);
+        NARURecursiveRice_PutRestPart(stream, reduced_val, k);
         /* パラメータ更新 */
         NARURICE_PARAMETER_UPDATE(rice_parameters, i, reduced_val);
-        break;
+        /* これで終わり */
+        return;
     }
     /* パラメータ更新 */
     NARURICE_PARAMETER_UPDATE(rice_parameters, i, reduced_val);
@@ -254,18 +255,19 @@ static void NARURecursiveRice_PutCode(
   }
 
   /* 末尾のパラメータに達した */
-  if (i == (num_params - 1)) {
-    uint32_t tail_param = NARURICE_CALCULATE_RICE_PARAMETER(rice_parameters, i);
-    uint32_t tail_quot  = i + reduced_val / tail_param; /* TODO: tail_paramは2の冪数だから、シフトに置き換えられる */ 
-    NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(tail_param));
+  NARU_ASSERT(i == (num_params - 1));
+  {
+    uint32_t quot; 
+    k = NARURICE_CALCULATE_LOG2_RICE_PARAMETER(rice_parameters, i);
+    quot = i + (reduced_val >> k); 
     /* 商が大きい場合はガンマ符号を使用する */
-    if (tail_quot < NARUCODER_QUOTPART_THRESHOULD) {
-      NARURecursiveRice_PutQuotPart(stream, tail_quot);
+    if (quot < NARUCODER_QUOTPART_THRESHOULD) {
+      NARURecursiveRice_PutQuotPart(stream, quot);
     } else {
       NARURecursiveRice_PutQuotPart(stream, NARUCODER_QUOTPART_THRESHOULD);
-      NARUGamma_PutCode(stream, tail_quot - NARUCODER_QUOTPART_THRESHOULD);
+      NARUGamma_PutCode(stream, quot - NARUCODER_QUOTPART_THRESHOULD);
     }
-    NARURecursiveRice_PutRestPart(stream, reduced_val, tail_param);
+    NARURecursiveRice_PutRestPart(stream, reduced_val, k);
     /* パラメータ更新 */
     NARURICE_PARAMETER_UPDATE(rice_parameters, i, reduced_val);
   }
@@ -277,7 +279,7 @@ static uint32_t NARURecursiveRice_GetCode(
     struct NARUBitStream *stream, NARURecursiveRiceParameter* rice_parameters, uint32_t num_params)
 {
   uint32_t i, quot, val;
-  uint32_t param, tmp_val;
+  uint32_t k, param, tmp_val;
   uint32_t param_cache[NARUCODER_MAX_NUM_RECURSIVERICE_PARAMETER];
 
   NARU_ASSERT(stream != NULL);
@@ -298,8 +300,8 @@ static uint32_t NARURecursiveRice_GetCode(
   }
 
   /* ライス符号の剰余部を使うためlog2でパラメータ取得 */
-  param = NARURICE_CALCULATE_LOG2_RICE_PARAMETER(rice_parameters, i);
-  param_cache[i] = (1 << param);
+  k = NARURICE_CALCULATE_LOG2_RICE_PARAMETER(rice_parameters, i);
+  param_cache[i] = (1U << k);
 
   /* 剰余部を取得 */
   if (quot >= (num_params - 1)) {
@@ -307,9 +309,9 @@ static uint32_t NARURecursiveRice_GetCode(
     if (quot == NARUCODER_QUOTPART_THRESHOULD) {
       quot += NARUGamma_GetCode(stream);
     }
-    val += ((quot - (num_params - 1)) << param);
+    val += ((quot - (num_params - 1)) << k);
   }
-  val += NARURecursiveRice_GetRestPart(stream, param);
+  val += NARURecursiveRice_GetRestPart(stream, k);
 
   /* パラメータ更新 */
   /* 補足）符号語が分かってからでないと更新できない */
