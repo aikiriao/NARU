@@ -168,7 +168,7 @@ static int32_t NARUDecodeProcessor_DeEmphasis(struct NARUDecodeProcessor *proces
 /* NGSAフィルタの1サンプル合成処理 */
 static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t residual)
 {
-  int32_t ord, synth, predict, delta;
+  int32_t ord, synth, predict;
   int32_t *ngrad, *history, *ar_coef, *weight;
   const int32_t filter_order = filter->filter_order;
   const int32_t ar_order = filter->ar_order;
@@ -185,7 +185,7 @@ static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t 
   for (ord = 0; ord < filter_order; ord++) {
     predict += weight[ord] * history[ord];
   }
-  predict >>= NARU_FIXEDPOINT_DIGITS;
+  predict = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(predict, NARU_FIXEDPOINT_DIGITS);
 
   /* 合成復元 */
   synth = residual + predict;
@@ -204,7 +204,7 @@ static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t 
   for (ord = 0; ord < ar_order; ord++) {
     ngrad[0] -= ar_coef[ord] * history[ord + 1];
   }
-  ngrad[0] >>= NARU_FIXEDPOINT_DIGITS;
+  ngrad[0] = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(ngrad[0], NARU_FIXEDPOINT_DIGITS);
   ngrad[0] += history[0];
   for (ord = 0; ord < ar_order; ord++) {
     const int32_t pos = (filter->buffer_pos + ord + 1) & filter->buffer_pos_mask;
@@ -214,9 +214,15 @@ static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t 
 
   /* フィルタ係数更新 */
   NARU_ASSERT(filter->pdelta_table == &filter->delta_table[1]);
-  delta = filter->pdelta_table[NARUUTILITY_SIGN(residual)];
-  for (ord = 0; ord < filter_order; ord++) {
-    weight[ord] += NARU_FIXEDPOINT_MUL(delta, ngrad[ord], filter->delta_rshift);
+  {
+      const int32_t half = (1 << (filter->delta_rshift - 1));
+      const int32_t delta = filter->pdelta_table[NARUUTILITY_SIGN(residual)];
+      for (ord = 0; ord < filter_order; ord++) {
+            int32_t mul = delta * ngrad[ord];
+            mul += half;
+            mul = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(mul, filter->delta_rshift);
+            weight[ord] += mul;
+      }
   }
 
   /* 入力データ履歴更新 */
@@ -244,7 +250,7 @@ static int32_t NARUSAFilter_Synthesize(struct NARUSAFilter *filter, int32_t resi
   for (ord = 0; ord < filter_order; ord++) {
     predict += weight[ord] * history[ord];
   }
-  predict >>= NARU_FIXEDPOINT_DIGITS;
+  predict = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(predict, NARU_FIXEDPOINT_DIGITS);
 
   /* 合成復元 */
   synth = residual + predict;

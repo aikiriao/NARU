@@ -67,9 +67,6 @@ __inline uint32_t NARUUTILITY_NLZ(uint32_t x)
 #define NARUUTILITY_ROUNDUP2POWERED(x) NARUUtility_RoundUp2PoweredSoft(x)
 #endif
 
-/* 固定小数点数の乗算（丸め対策込み） */
-#define NARU_FIXEDPOINT_MUL(a, b, shift) NARUUTILITY_SHIFT_RIGHT_ARITHMETIC((a) * (b) + (1 << ((shift) - 1)), (shift))
-
 #ifdef __cplusplus
 extern "C" {
 #endif

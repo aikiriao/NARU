@@ -4,6 +4,9 @@
 
 #include <string.h>
 
+/* 固定小数点数の乗算（丸め対策込み） */
+#define NARUFILTER_FIXEDPOINT_MUL(a, b, shift) NARUUTILITY_SHIFT_RIGHT_ARITHMETIC((a) * (b) + (1 << ((shift) - 1)), (shift))
+
 /* SAフィルタのリセット */
 void NARUSAFilter_Reset(struct NARUSAFilter *filter)
 {
@@ -77,14 +80,14 @@ void NARUNGSAFilter_InitializeNaturalGradient(struct NARUNGSAFilter *filter)
 
     for (ord = 0; ord < filter_order - 1; ord++) {
       ngrad[ord]
-        = history[ord] - NARU_FIXEDPOINT_MUL(ar_coef[0], history[ord + 1], NARU_FIXEDPOINT_DIGITS);
+        = history[ord] - NARUFILTER_FIXEDPOINT_MUL(ar_coef[0], history[ord + 1], NARU_FIXEDPOINT_DIGITS);
     }
     for (ord = 1; ord < filter_order - 1; ord++) {
       ngrad[ord] 
-        -= NARU_FIXEDPOINT_MUL(ar_coef[0], ngrad[ord - 1], NARU_FIXEDPOINT_DIGITS);
+        -= NARUFILTER_FIXEDPOINT_MUL(ar_coef[0], ngrad[ord - 1], NARU_FIXEDPOINT_DIGITS);
     }
     ngrad[filter_order - 1]
-      = history[filter_order - 1] - NARU_FIXEDPOINT_MUL(ar_coef[0], history[filter_order - 2], NARU_FIXEDPOINT_DIGITS);
+      = history[filter_order - 1] - NARUFILTER_FIXEDPOINT_MUL(ar_coef[0], history[filter_order - 2], NARU_FIXEDPOINT_DIGITS);
   } else {
     /* 1より大きい場合は履歴を初期値とする */
     memcpy(ngrad, history, sizeof(int32_t) * (uint32_t)filter_order);
@@ -100,7 +103,7 @@ void NARUNGSAFilter_InitializeNaturalGradient(struct NARUNGSAFilter *filter)
     ar_coef = NARUUTILITY_INNER_VALUE(filter->ar_coef[0],
         -(1 << NARU_FIXEDPOINT_DIGITS) + 1, (1 << NARU_FIXEDPOINT_DIGITS) - 1);
     /* 1.0f / (1.0f - ar_coef[0] ** 2) */
-    scale_int = (1 << NARU_FIXEDPOINT_DIGITS) - NARU_FIXEDPOINT_MUL(ar_coef, ar_coef, NARU_FIXEDPOINT_DIGITS);
+    scale_int = (1 << NARU_FIXEDPOINT_DIGITS) - NARUFILTER_FIXEDPOINT_MUL(ar_coef, ar_coef, NARU_FIXEDPOINT_DIGITS);
     scale_int = (1 << (2 * NARU_FIXEDPOINT_DIGITS)) / scale_int;
     stepsize_scale = scale_int >> (NARU_FIXEDPOINT_DIGITS - NARUNGSA_STEPSIZE_SCALE_BITWIDTH);
     /* 係数が大きくなりすぎないようにクリップ */
