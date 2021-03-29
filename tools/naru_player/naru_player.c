@@ -31,7 +31,7 @@ int main(int argc, char **argv)
   struct NARUPlayerConfig player_config;
 
   /* 引数チェック 間違えたら使用方法を提示 */
-  if (argc == 1) {
+  if (argc != 2) {
     printf("Usage: %s NARUFILE \n", argv[0]);
     return 1;
   }
