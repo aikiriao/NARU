@@ -527,14 +527,14 @@ NARUApiResult NARUDecoder_DecodeBlock(
       return NARU_APIRESULT_DETECT_DATA_CORRUPTION;
     }
   }
+  /* ブロックデータタイプ */
+  ByteArray_GetUint8(read_ptr, &buf8);
+  block_type = (NARUBlockDataType)buf8;
   /* ブロックチャンネルあたりサンプル数 */
   ByteArray_GetUint16BE(read_ptr, &num_block_samples);
   if (num_block_samples > buffer_num_samples) {
     return NARU_APIRESULT_INSUFFICIENT_BUFFER;
   }
-  /* ブロックデータタイプ */
-  ByteArray_GetUint8(read_ptr, &buf8);
-  block_type = (NARUBlockDataType)buf8;
   /* ブロックヘッダサイズ */
   block_header_size = (uint32_t)(read_ptr - data);
 

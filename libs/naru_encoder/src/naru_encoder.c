@@ -656,10 +656,10 @@ static NARUApiResult NARUEncoder_EncodeBlock(
   ByteArray_PutUint32BE(data_ptr, 0);
   /* ブロックCRC16: 仮値で埋めておく */
   ByteArray_PutUint16BE(data_ptr, 0);
-  /* ブロックチャンネルあたりサンプル数 */
-  ByteArray_PutUint16BE(data_ptr, num_samples);
   /* ブロックデータタイプ */
   ByteArray_PutUint8(data_ptr, block_type);
+  /* ブロックチャンネルあたりサンプル数 */
+  ByteArray_PutUint16BE(data_ptr, num_samples);
   /* ブロックヘッダサイズ */
   block_header_size = (uint32_t)(data_ptr - data);
 

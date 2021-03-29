@@ -564,15 +564,15 @@ TEST(NARUDecoderTest, DecodeBlockTest)
     EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT,
       NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
         output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
-    /* ブロックチャンネルあたりサンプル数不正: データ破損検知 */
+    /* ブロックデータタイプ不正: データ破損検知 */
     EXPECT_EQ(NARU_APIRESULT_OK, NARUEncoder_EncodeWhole(encoder, input, header.max_num_samples_per_block, data, sufficient_size, &output_size));
-    data[NARU_HEADER_SIZE + 8] ^= 0xFF;
+    data[NARU_HEADER_SIZE + 8] = 0xC0;
     EXPECT_EQ(NARU_APIRESULT_DETECT_DATA_CORRUPTION,
       NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
         output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
-    /* ブロックデータタイプ不正: データ破損検知 */
+    /* ブロックチャンネルあたりサンプル数不正: データ破損検知 */
     EXPECT_EQ(NARU_APIRESULT_OK, NARUEncoder_EncodeWhole(encoder, input, header.max_num_samples_per_block, data, sufficient_size, &output_size));
-    data[NARU_HEADER_SIZE + 10] = 0xC0;
+    data[NARU_HEADER_SIZE + 9] ^= 0xFF;
     EXPECT_EQ(NARU_APIRESULT_DETECT_DATA_CORRUPTION,
       NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
         output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));

@@ -4,10 +4,10 @@
 #include "naru_stdint.h"
 
 /* フォーマットバージョン */
-#define NARU_FORMAT_VERSION   2
+#define NARU_FORMAT_VERSION   3
 
 /* コーデックバージョン */
-#define NARU_CODEC_VERSION    2
+#define NARU_CODEC_VERSION    3
 
 /* 処理可能な最大チャンネル数 */
 #define NARU_MAX_NUM_CHANNELS 8
