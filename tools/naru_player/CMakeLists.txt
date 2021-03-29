@@ -22,7 +22,7 @@ if (APPLE)
   set(CMAKE_C_FLAGS "-framework Audiotoolbox -framework CoreAudio -framework CoreServices")
   target_sources(${APP_NAME} PRIVATE naru_player_coreaudio.c)
 elseif (MSVC)
-  # TODO: WASAPI
+  target_sources(${APP_NAME} PRIVATE naru_player_wasapi.c)
 elseif (UNIX)
   # TODO: PulseAudio
 endif()
