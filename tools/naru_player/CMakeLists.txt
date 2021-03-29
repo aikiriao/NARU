@@ -24,7 +24,7 @@ if (APPLE)
 elseif (MSVC)
   target_sources(${APP_NAME} PRIVATE naru_player_wasapi.c)
 elseif (UNIX)
-  # TODO: PulseAudio
+  target_sources(${APP_NAME} PRIVATE naru_player_pulseaudio.c)
 endif()
 
 # インクルードパス
@@ -34,7 +34,11 @@ target_include_directories(${APP_NAME}
 )
 
 # リンクするライブラリ
-target_link_libraries(${APP_NAME} narudec)
+if (UNIX)
+  target_link_libraries(${APP_NAME} narudec pulse-simple pulse)
+else()
+  target_link_libraries(${APP_NAME} narudec)
+endif()
 
 # コンパイルオプション
 if(MSVC)
