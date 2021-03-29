@@ -1,5 +1,5 @@
-#include "naru_encoder.h"
-#include "naru_decoder.h"
+#include <naru_encoder.h>
+#include <naru_decoder.h>
 #include "wav.h"
 #include "command_line_parser.h"
 
