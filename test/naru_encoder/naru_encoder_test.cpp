@@ -11,18 +11,18 @@ extern "C" {
 /* 有効なヘッダをセット */
 #define NARU_SetValidHeader(p_header)\
   do {\
-    struct NARUHeader *header__p     = p_header;\
-    header__p->format_version        = NARU_FORMAT_VERSION;\
-    header__p->codec_version         = NARU_CODEC_VERSION;\
-    header__p->num_channels          = 1;\
-    header__p->sampling_rate         = 44100;\
-    header__p->bits_per_sample       = 16;\
-    header__p->num_samples           = 1024;\
-    header__p->num_samples_per_block = 32;\
-    header__p->filter_order          = 8;\
-    header__p->ar_order              = 1;\
-    header__p->second_filter_order   = 4;\
-    header__p->ch_process_method     = NARU_CH_PROCESS_METHOD_NONE;\
+    struct NARUHeader *header__p          = p_header;\
+    header__p->format_version             = NARU_FORMAT_VERSION;\
+    header__p->codec_version              = NARU_CODEC_VERSION;\
+    header__p->num_channels               = 1;\
+    header__p->sampling_rate              = 44100;\
+    header__p->bits_per_sample            = 16;\
+    header__p->num_samples                = 1024;\
+    header__p->max_num_samples_per_block  = 32;\
+    header__p->filter_order               = 8;\
+    header__p->ar_order                   = 1;\
+    header__p->second_filter_order        = 4;\
+    header__p->ch_process_method          = NARU_CH_PROCESS_METHOD_NONE;\
   } while (0);
 
 /* 有効なエンコードパラメータをセット */
@@ -102,9 +102,9 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
     header.bits_per_sample = 0;
     EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT, NARUEncoder_EncodeHeader(&header, data, sizeof(data)));
 
-    /* 異常なブロックあたりサンプル数 */
+    /* 異常な最大ブロックあたりサンプル数 */
     NARU_SetValidHeader(&header);
-    header.num_samples_per_block = 0;
+    header.max_num_samples_per_block = 0;
     EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT, NARUEncoder_EncodeHeader(&header, data, sizeof(data)));
 
     /* 異常なフィルタ次数 */

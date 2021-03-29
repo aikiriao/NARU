@@ -84,7 +84,7 @@ NARUApiResult NARUEncoder_EncodeHeader(
     return NARU_APIRESULT_INVALID_FORMAT;
   }
   /* ブロックあたりサンプル数 */
-  if (header->num_samples_per_block == 0) {
+  if (header->max_num_samples_per_block == 0) {
     return NARU_APIRESULT_INVALID_FORMAT;
   }
   /* フィルタ次数: 2の冪数限定 */
@@ -128,8 +128,8 @@ NARUApiResult NARUEncoder_EncodeHeader(
   ByteArray_PutUint32BE(data_pos, header->sampling_rate);
   /* サンプルあたりビット数 */
   ByteArray_PutUint16BE(data_pos, header->bits_per_sample);
-  /* ブロックあたりサンプル数 */
-  ByteArray_PutUint32BE(data_pos, header->num_samples_per_block);
+  /* 最大ブロックあたりサンプル数 */
+  ByteArray_PutUint32BE(data_pos, header->max_num_samples_per_block);
   /* フィルタ次数 */
   ByteArray_PutUint8(data_pos, header->filter_order);
   /* AR次数 */
@@ -193,7 +193,7 @@ static NARUError NARUEncoder_ConvertParameterToHeader(
   tmp_header.num_channels = parameter->num_channels;
   tmp_header.sampling_rate = parameter->sampling_rate;
   tmp_header.bits_per_sample = parameter->bits_per_sample;
-  tmp_header.num_samples_per_block = parameter->num_samples_per_block;
+  tmp_header.max_num_samples_per_block = parameter->num_samples_per_block;
   tmp_header.filter_order = parameter->filter_order;
   tmp_header.ar_order = parameter->ar_order;
   tmp_header.second_filter_order = parameter->second_filter_order;
@@ -640,7 +640,7 @@ static NARUApiResult NARUEncoder_EncodeBlock(
   }
 
   /* エンコードサンプル数チェック */
-  if (num_samples > header->num_samples_per_block) {
+  if (num_samples > header->max_num_samples_per_block) {
     return NARU_APIRESULT_INSUFFICIENT_BUFFER;
   }
 
@@ -656,6 +656,8 @@ static NARUApiResult NARUEncoder_EncodeBlock(
   ByteArray_PutUint32BE(data_ptr, 0);
   /* ブロックCRC16: 仮値で埋めておく */
   ByteArray_PutUint16BE(data_ptr, 0);
+  /* ブロックチャンネルあたりサンプル数 */
+  ByteArray_PutUint16BE(data_ptr, num_samples);
   /* ブロックデータタイプ */
   ByteArray_PutUint8(data_ptr, block_type);
   /* ブロックヘッダサイズ */
@@ -682,12 +684,14 @@ static NARUApiResult NARUEncoder_EncodeBlock(
     return ret;
   }
 
-  /* ブロックサイズ書き込み: CRC16(2byte) + ブロックデータタイプ(1byte) */
-  ByteArray_WriteUint32BE(&data[2], block_data_size + 3);
+  /* ブロックサイズ書き込み: 
+   * CRC16(2byte) + ブロックチャンネルあたりサンプル数(2byte) + ブロックデータタイプ(1byte) */
+  ByteArray_WriteUint32BE(&data[2], block_data_size + 5);
 
   /* CRC16の領域以降のCRC16を計算し書き込み */
   {
-    uint16_t crc16 = NARUUtility_CalculateCRC16(&data[8], block_data_size + 1);
+    /* ブロックチャンネルあたりサンプル数(2byte) + ブロックデータタイプ(1byte) を加算 */
+    const uint16_t crc16 = NARUUtility_CalculateCRC16(&data[8], block_data_size + 3);
     ByteArray_WriteUint16BE(&data[6], crc16);
   }
 
@@ -744,14 +748,14 @@ NARUApiResult NARUEncoder_EncodeWhole(
   while (progress < num_samples) {
     /* エンコードサンプル数の確定 */
     num_encode_samples
-      = NARUUTILITY_MIN(header->num_samples_per_block, num_samples - progress);
+      = NARUUTILITY_MIN(header->max_num_samples_per_block, num_samples - progress);
     /* サンプル参照位置のセット */
     for (ch = 0; ch < header->num_channels; ch++) {
       input_ptr[ch] = &input[ch][progress];
     }
 
     /* ブロックエンコード フィルタの収束を早めるため繰り返す */
-    if (progress < header->num_samples_per_block) {
+    if (progress < header->max_num_samples_per_block) {
       for (trial = 0; trial < encoder->num_encode_trials; trial++) {
         if ((ret = NARUEncoder_EncodeBlock(encoder,
             input_ptr, num_encode_samples,

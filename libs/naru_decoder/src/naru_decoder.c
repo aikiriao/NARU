@@ -95,9 +95,9 @@ NARUApiResult NARUDecoder_DecodeHeader(
   /* サンプルあたりビット数 */
   ByteArray_GetUint16BE(data_pos, &u16buf);
   tmp_header.bits_per_sample = u16buf;
-  /* ブロックあたりサンプル数 */
+  /* 最大ブロックあたりサンプル数 */
   ByteArray_GetUint32BE(data_pos, &u32buf);
-  tmp_header.num_samples_per_block = u32buf;
+  tmp_header.max_num_samples_per_block = u32buf;
   /* フィルタ次数 */
   ByteArray_GetUint8(data_pos, &u8buf);
   tmp_header.filter_order = u8buf;
@@ -152,7 +152,7 @@ static NARUError NARUDecoder_CheckHeaderFormat(const struct NARUHeader *header)
     return NARU_ERROR_INVALID_FORMAT;
   }
   /* ブロックあたりサンプル数 */
-  if (header->num_samples_per_block == 0) {
+  if (header->max_num_samples_per_block == 0) {
     return NARU_ERROR_INVALID_FORMAT;
   }
   /* フィルタ次数: 2の冪数限定 */
@@ -470,7 +470,7 @@ static NARUApiResult NARUDecoder_DecodeCompressData(
 }
 
 /* 単一データブロックデコード */
-static NARUApiResult NARUDecoder_DecodeBlock(
+NARUApiResult NARUDecoder_DecodeBlock(
     struct NARUDecoder *decoder,
     const uint8_t *data, uint32_t data_size, 
     int32_t **buffer, uint32_t buffer_num_samples, 
@@ -479,7 +479,8 @@ static NARUApiResult NARUDecoder_DecodeBlock(
   uint8_t buf8;
   uint16_t buf16;
   uint32_t buf32;
-  uint32_t tmp_num_decode_samples, block_header_size, block_data_size;
+  uint16_t num_block_samples;
+  uint32_t block_header_size, block_data_size;
   NARUApiResult ret;
   NARUBlockDataType block_type;
   const struct NARUHeader *header;
@@ -499,10 +500,6 @@ static NARUApiResult NARUDecoder_DecodeBlock(
 
   /* ヘッダ取得 */
   header = &(decoder->header);
-
-  /* デコードするサンプル数の確定 */
-  tmp_num_decode_samples
-    = NARUUTILITY_MIN(header->num_samples_per_block, buffer_num_samples);
 
   /* ブロックヘッダデコード */
   read_ptr = data;
@@ -530,6 +527,11 @@ static NARUApiResult NARUDecoder_DecodeBlock(
       return NARU_APIRESULT_DETECT_DATA_CORRUPTION;
     }
   }
+  /* ブロックチャンネルあたりサンプル数 */
+  ByteArray_GetUint16BE(read_ptr, &num_block_samples);
+  if (num_block_samples > buffer_num_samples) {
+    return NARU_APIRESULT_INSUFFICIENT_BUFFER;
+  }
   /* ブロックデータタイプ */
   ByteArray_GetUint8(read_ptr, &buf8);
   block_type = (NARUBlockDataType)buf8;
@@ -540,11 +542,11 @@ static NARUApiResult NARUDecoder_DecodeBlock(
   switch (block_type) {
     case NARU_BLOCK_DATA_TYPE_RAWDATA:
       ret = NARUDecoder_DecodeRawData(decoder,
-          read_ptr, data_size - block_header_size, buffer, tmp_num_decode_samples, &block_data_size);
+          read_ptr, data_size - block_header_size, buffer, num_block_samples, &block_data_size);
       break;
     case NARU_BLOCK_DATA_TYPE_COMPRESSDATA:
       ret = NARUDecoder_DecodeCompressData(decoder,
-          read_ptr, data_size - block_header_size, buffer, tmp_num_decode_samples, &block_data_size);
+          read_ptr, data_size - block_header_size, buffer, num_block_samples, &block_data_size);
       break;
     default:
       return NARU_APIRESULT_INVALID_FORMAT;
@@ -559,7 +561,7 @@ static NARUApiResult NARUDecoder_DecodeBlock(
   (*decode_size) = block_header_size + block_data_size;
 
   /* デコードサンプル数 */
-  (*num_decode_samples) = tmp_num_decode_samples;
+  (*num_decode_samples) = num_block_samples;
 
   /* デコード成功 */
   return NARU_APIRESULT_OK;

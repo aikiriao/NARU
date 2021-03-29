@@ -4,10 +4,10 @@
 #include "naru_stdint.h"
 
 /* フォーマットバージョン */
-#define NARU_FORMAT_VERSION   1
+#define NARU_FORMAT_VERSION   2
 
 /* コーデックバージョン */
-#define NARU_CODEC_VERSION    1
+#define NARU_CODEC_VERSION    2
 
 /* 処理可能な最大チャンネル数 */
 #define NARU_MAX_NUM_CHANNELS 8
@@ -48,7 +48,7 @@ struct NARUHeader {
   uint32_t num_samples;                       /* 1チャンネルあたり総サンプル数  */
   uint32_t sampling_rate;                     /* サンプリングレート             */
   uint16_t bits_per_sample;                   /* サンプルあたりビット数         */
-  uint32_t num_samples_per_block;             /* ブロックあたりサンプル数       */
+  uint32_t max_num_samples_per_block;         /* 最大ブロックあたりサンプル数   */
   uint8_t filter_order;                       /* フィルタ次数                   */
   uint8_t ar_order;                           /* AR次数                         */
   uint8_t second_filter_order;                /* 2段目フィルタ次数              */
