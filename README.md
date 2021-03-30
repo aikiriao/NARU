@@ -1,4 +1,4 @@
-![C/C++ CI](https://github.com/aikiriao/NARU/workflows/C/C++%20CI/badge.svg?branch=master)
+![C/C++ CI](https://github.com/aikiriao/NARU/workflows/C/C++%20CI/badge.svg?branch=main)
 
 # NARU
 
@@ -21,6 +21,27 @@ mkdir build
 cd build
 cmake ..
 make
+```
+
+## Usage
+
+### Encode
+
+```bash
+./naru -e INPUT.wav OUTPUT.nar
+```
+
+you can change compression mode by `-m` option. 
+Following example encoding in maximum compression (but slow) option.
+
+```bash
+./naru -e -m 4 INPUT.wav OUTPUT.nar
+```
+
+### Decode
+
+```bash
+./naru -d INPUT.nar OUTPUT.wav
 ```
 
 # License
