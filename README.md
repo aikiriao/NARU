@@ -1,3 +1,5 @@
+![C/C++ CI](https://github.com/aikiriao/NARU/workflows/C/C++%20CI/badge.svg?branch=master)
+
 # NARU
 
 Natural-gradient AutoRegressive Unlossy audio compressor
