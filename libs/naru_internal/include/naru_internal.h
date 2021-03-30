@@ -61,6 +61,9 @@
 /* 静的アサートマクロ */
 #define NARU_STATIC_ASSERT(expr) extern void assertion_failed(char dummy[(expr) ? 1 : -1])
 
+/* 引数のフィルタ次数に対応する最大AR次数の計算 */
+#define NARU_MAX_ARORDER_FOR_FILTERORDER(filter_order) ((((filter_order) + 1) / 2) - 1)
+
 /* ブロックデータタイプ */
 typedef enum NARUBlockDataTypeTag {
   NARU_BLOCK_DATA_TYPE_COMPRESSDATA  = 0,     /* 圧縮済みデータ */

@@ -7,18 +7,20 @@
 #include "naru_bit_stream.h"
 
 /* 1chあたりの信号処理を担うプロセッサハンドル */
-struct NARUDecodeProcessor {
-  /* SA Filter */
-  struct NARUSAFilter sa;
-  /* NGSA Filter */
-  struct NARUNGSAFilter ngsa;
-  /* De Emphasis */
-  int32_t deemphasis_prev;
-};
+struct NARUDecodeProcessor;
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
+
+/* プロセッサ作成に必要なワークサイズ計算 */
+int32_t NARUDecodeProcessor_CalculateWorkSize(uint8_t max_filter_order);
+
+/* プロセッサ作成 */
+struct NARUDecodeProcessor* NARUDecodeProcessor_Create(uint8_t max_filter_order, void *work, int32_t work_size);
+
+/* プロセッサ破棄 */
+void NARUDecodeProcessor_Destroy(struct NARUDecodeProcessor *processor);
 
 /* プロセッサのリセット */
 void NARUDecodeProcessor_Reset(struct NARUDecodeProcessor *processor);

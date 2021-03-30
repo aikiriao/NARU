@@ -7,12 +7,77 @@
 /* 固定小数点数の乗算（丸め対策込み） */
 #define NARUFILTER_FIXEDPOINT_MUL(a, b, shift) NARUUTILITY_SHIFT_RIGHT_ARITHMETIC((a) * (b) + (1 << ((shift) - 1)), (shift))
 
+/* SAフィルタの作成に必要なワークサイズ計算 */
+int32_t NARUSAFilter_CalculateWorkSize(uint8_t max_filter_order)
+{
+  int32_t work_size;
+
+  /* 無効な次数 */
+  if ((max_filter_order == 0)
+      || !(NARUUTILITY_IS_POWERED_OF_2(max_filter_order))) {
+    return -1;
+  }
+
+  /* 構造体本体分のサイズ（+アラインメント） */
+  work_size = sizeof(struct NARUSAFilter) + NARU_MEMORY_ALIGNMENT;
+  /* 入力データ履歴分のサイズ */
+  work_size += sizeof(int32_t) * 2 * max_filter_order;
+  /* フィルタ係数サイズ */
+  work_size += sizeof(int32_t) * max_filter_order;
+
+  return work_size;
+}
+
+/* SAフィルタの作成（自己割当不可） */
+struct NARUSAFilter* NARUSAFilter_Create(uint8_t max_filter_order, void *work, int32_t work_size)
+{
+  uint8_t *work_ptr;
+  struct NARUSAFilter *filter;
+
+  /* 引数チェック */
+  if ((work == NULL)
+      || (work_size < NARUSAFilter_CalculateWorkSize(max_filter_order))) {
+    return NULL;
+  }
+
+  /* 無効なフィルタ次数 */
+  if ((max_filter_order == 0)
+      || !(NARUUTILITY_IS_POWERED_OF_2(max_filter_order))) {
+    return NULL;
+  }
+
+  /* 構造体配置 */
+  work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work, NARU_MEMORY_ALIGNMENT);
+  filter = (struct NARUSAFilter *)work_ptr;
+  work_ptr += sizeof(struct NARUSAFilter);
+
+  /* 最大フィルタ次数設定 */
+  filter->max_filter_order = max_filter_order;
+
+  /* 入力データ履歴配置 */
+  filter->history = (int32_t *)work_ptr;
+  work_ptr += sizeof(int32_t) * 2 * max_filter_order;
+
+  /* フィルタ係数配置 */
+  filter->weight = (int32_t *)work_ptr;
+  work_ptr += sizeof(int32_t) * max_filter_order;
+
+  /* オーバーフローチェック */
+  NARU_ASSERT((work_ptr - (uint8_t *)work) <= work_size);
+
+  return filter;
+}
+
 /* SAフィルタのリセット */
 void NARUSAFilter_Reset(struct NARUSAFilter *filter)
 {
   NARU_ASSERT(filter != NULL);
 
-  memset(filter, 0, sizeof(struct NARUSAFilter));
+  memset(filter->history, 0, sizeof(int32_t) * 2 * (size_t)filter->max_filter_order);
+  memset(filter->weight, 0, sizeof(int32_t) * (size_t)filter->max_filter_order);
+
+  filter->buffer_pos = 0;
+  filter->buffer_pos_mask = 0;
 }
 
 /* SAフィルタの次数をセット */
@@ -22,7 +87,7 @@ void NARUSAFilter_SetFilterOrder(struct NARUSAFilter *filter, int32_t order)
 
   /* 範囲チェック */
   NARU_ASSERT(order > 0);
-  NARU_ASSERT(order <= NARU_MAX_FILTER_ORDER);
+  NARU_ASSERT(order <= filter->max_filter_order);
 
   /* フィルタ次数は2の冪数を要求（高速化目的） */
   NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(order));
@@ -31,12 +96,94 @@ void NARUSAFilter_SetFilterOrder(struct NARUSAFilter *filter, int32_t order)
   filter->buffer_pos_mask = order - 1;
 }
 
+/* NGSAフィルタの作成に必要なワークサイズ計算 */
+int32_t NARUNGSAFilter_CalculateWorkSize(uint8_t max_filter_order)
+{
+  int32_t work_size;
+
+  /* 無効な次数 */
+  if ((max_filter_order == 0)
+      || !(NARUUTILITY_IS_POWERED_OF_2(max_filter_order))) {
+    return -1;
+  }
+
+  /* 構造体本体分のサイズ（+アラインメント） */
+  work_size = sizeof(struct NARUNGSAFilter) + NARU_MEMORY_ALIGNMENT;
+  /* 入力データ履歴分のサイズ */
+  work_size += sizeof(int32_t) * 2 * max_filter_order;
+  /* フィルタ係数サイズ */
+  work_size += sizeof(int32_t) * max_filter_order;
+  /* AR係数サイズ */
+  work_size += sizeof(int32_t) * NARU_MAX_ARORDER_FOR_FILTERORDER(max_filter_order);
+  /* 自然勾配サイズ */
+  work_size += sizeof(int32_t) * 2 * max_filter_order;
+
+  return work_size;
+}
+
+/* NGSAフィルタの作成（自己割当不可） */
+struct NARUNGSAFilter* NARUNGSAFilter_Create(uint8_t max_filter_order, void *work, int32_t work_size)
+{
+  uint8_t *work_ptr;
+  struct NARUNGSAFilter *filter;
+
+  /* 引数チェック */
+  if ((work == NULL)
+      || (work_size < NARUNGSAFilter_CalculateWorkSize(max_filter_order))) {
+    return NULL;
+  }
+
+  /* 無効なフィルタ次数 */
+  if ((max_filter_order == 0)
+      || !(NARUUTILITY_IS_POWERED_OF_2(max_filter_order))) {
+    return NULL;
+  }
+
+  /* 構造体配置 */
+  work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work, NARU_MEMORY_ALIGNMENT);
+  filter = (struct NARUNGSAFilter *)work_ptr;
+  work_ptr += sizeof(struct NARUNGSAFilter);
+
+  /* 最大フィルタ次数設定 */
+  filter->max_filter_order = max_filter_order;
+
+  /* 入力データ履歴配置 */
+  filter->history = (int32_t *)work_ptr;
+  work_ptr += sizeof(int32_t) * 2 * max_filter_order;
+
+  /* フィルタ係数配置 */
+  filter->weight = (int32_t *)work_ptr;
+  work_ptr += sizeof(int32_t) * max_filter_order;
+
+  /* AR係数配置 */
+  filter->ar_coef = (int32_t *)work_ptr;
+  work_ptr += sizeof(int32_t) * NARU_MAX_ARORDER_FOR_FILTERORDER(max_filter_order);
+
+  /* 自然勾配配置 */
+  filter->ngrad = (int32_t *)work_ptr;
+  work_ptr += sizeof(int32_t) * 2 * max_filter_order;
+
+  /* オーバーフローチェック */
+  NARU_ASSERT((work_ptr - (uint8_t *)work) <= work_size);
+
+  return filter;
+}
+
 /* NGSAフィルタのリセット */
 void NARUNGSAFilter_Reset(struct NARUNGSAFilter *filter)
 {
   NARU_ASSERT(filter != NULL);
 
-  memset(filter, 0, sizeof(struct NARUNGSAFilter));
+  memset(filter->history, 0, sizeof(int32_t) * 2 * (size_t)filter->max_filter_order);
+  memset(filter->weight, 0, sizeof(int32_t) * (size_t)filter->max_filter_order);
+  memset(filter->ar_coef, 0, sizeof(int32_t) * (size_t)NARU_MAX_ARORDER_FOR_FILTERORDER(filter->max_filter_order));
+  memset(filter->ngrad, 0, sizeof(int32_t) * 2 * (size_t)filter->max_filter_order);
+  memset(filter->delta_table, 0, sizeof(int32_t) * 3);
+
+  filter->pdelta_table = NULL; /* 不定領域を差すよりはNULLでクラッシュさせたい */
+
+  filter->buffer_pos = 0;
+  filter->buffer_pos_mask = 0;
 }
 
 /* NGSAフィルタの次数をセット */
@@ -47,8 +194,8 @@ void NARUNGSAFilter_SetFilterOrder(struct NARUNGSAFilter *filter, int32_t filter
   /* 範囲チェック */
   NARU_ASSERT(filter_order > 0);
   NARU_ASSERT(ar_order > 0);
-  NARU_ASSERT(filter_order <= NARU_MAX_FILTER_ORDER);
-  NARU_ASSERT(ar_order <= NARU_MAX_AR_ORDER);
+  NARU_ASSERT(filter_order <= filter->max_filter_order);
+  NARU_ASSERT(ar_order <= NARU_MAX_ARORDER_FOR_FILTERORDER(filter->max_filter_order));
 
   /* フィルタ次数は2の冪数を要求（高速化目的） */
   NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(filter_order));

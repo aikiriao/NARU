@@ -28,6 +28,16 @@
     (*pval) = tmpbuf;\
   } while (0);
 
+/* プロセッサハンドル */
+struct NARUDecodeProcessor {
+  /* SA Filter */
+  struct NARUSAFilter *sa;
+  /* NGSA Filter */
+  struct NARUNGSAFilter *ngsa;
+  /* De Emphasis */
+  int32_t deemphasis_prev;
+};
+
 /* NGSAフィルタの1サンプル合成処理 */
 static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t residual);
 /* NGSAフィルタの状態取得 */
@@ -39,6 +49,83 @@ static void NARUSAFilter_GetFilterState(struct NARUSAFilter *filter, struct NARU
 /* 1サンプルをデエンファシス */
 static int32_t NARUDecodeProcessor_DeEmphasis(struct NARUDecodeProcessor *processor, int32_t residual); 
 
+/* プロセッサ作成に必要なワークサイズ計算 */
+int32_t NARUDecodeProcessor_CalculateWorkSize(uint8_t max_filter_order)
+{
+  int32_t work_size, tmp;
+
+  /* 構造体本体のサイズ */
+  work_size = sizeof(struct NARUDecodeProcessor) + NARU_MEMORY_ALIGNMENT;
+
+  /* SAフィルタのサイズ */
+  if ((tmp = NARUSAFilter_CalculateWorkSize(max_filter_order)) < 0) {
+    return -1;
+  }
+  work_size += tmp;
+
+  /* NGSAフィルタのサイズ */
+  if ((tmp = NARUNGSAFilter_CalculateWorkSize(max_filter_order)) < 0) {
+    return -1;
+  }
+  work_size += tmp;
+
+  return work_size;
+}
+
+/* プロセッサ作成 */
+struct NARUDecodeProcessor* NARUDecodeProcessor_Create(uint8_t max_filter_order, void *work, int32_t work_size)
+{
+  uint8_t *work_ptr;
+  struct NARUDecodeProcessor *processor;
+
+  /* 引数チェック */
+  if ((work == NULL)
+      || (work_size < NARUDecodeProcessor_CalculateWorkSize(max_filter_order))) {
+    return NULL;
+  }
+
+  /* 無効なフィルタ次数 */
+  if ((max_filter_order == 0)
+      || !(NARUUTILITY_IS_POWERED_OF_2(max_filter_order))) {
+    return NULL;
+  }
+
+  /* 構造体配置 */
+  work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work, NARU_MEMORY_ALIGNMENT);
+  processor = (struct NARUDecodeProcessor *)work_ptr;
+  work_ptr += sizeof(struct NARUDecodeProcessor);
+
+  /* SAフィルタ作成 */
+  {
+    int32_t tmp_work_size = NARUSAFilter_CalculateWorkSize(max_filter_order);
+    if ((processor->sa = NARUSAFilter_Create(max_filter_order, work_ptr, tmp_work_size)) == NULL) {
+      return NULL;
+    }
+    work_ptr += tmp_work_size;
+  }
+
+  /* NGSAフィルタ作成 */
+  {
+    int32_t tmp_work_size = NARUNGSAFilter_CalculateWorkSize(max_filter_order);
+    if ((processor->ngsa = NARUNGSAFilter_Create(max_filter_order, work_ptr, tmp_work_size)) == NULL) {
+      return NULL;
+    }
+    work_ptr += tmp_work_size;
+  }
+
+  /* オーバーフローチェック */
+  NARU_ASSERT((work_ptr - (uint8_t *)work) <= work_size);
+
+  return processor;
+}
+
+/* プロセッサ破棄 */
+void NARUDecodeProcessor_Destroy(struct NARUDecodeProcessor *processor)
+{
+  /* 特に何もしない */
+  NARU_ASSERT(processor != NULL);
+}
+
 /* プロセッサのリセット */
 void NARUDecodeProcessor_Reset(struct NARUDecodeProcessor *processor)
 {
@@ -46,8 +133,8 @@ void NARUDecodeProcessor_Reset(struct NARUDecodeProcessor *processor)
   NARU_ASSERT(processor != NULL);
 
   /* 各フィルタのリセット */
-  NARUNGSAFilter_Reset(&processor->ngsa);
-  NARUSAFilter_Reset(&processor->sa);
+  NARUNGSAFilter_Reset(processor->ngsa);
+  NARUSAFilter_Reset(processor->sa);
 
   processor->deemphasis_prev = 0;
 }
@@ -60,8 +147,8 @@ void NARUDecodeProcessor_SetFilterOrder(
   /* 引数チェック */
   NARU_ASSERT(processor != NULL);
 
-  NARUNGSAFilter_SetFilterOrder(&processor->ngsa, filter_order, ar_order);
-  NARUSAFilter_SetFilterOrder(&processor->sa, second_filter_order);
+  NARUNGSAFilter_SetFilterOrder(processor->ngsa, filter_order, ar_order);
+  NARUSAFilter_SetFilterOrder(processor->sa, second_filter_order);
 }
 
 /* NGSAフィルタの状態取得 */
@@ -143,10 +230,10 @@ void NARUDecodeProcessor_GetFilterState(
   NARU_GETSINT32(stream, &processor->deemphasis_prev, 17);
 
   /* NGSAフィルタの状態 */
-  NARUNGSAFilter_GetFilterState(&processor->ngsa, stream);
+  NARUNGSAFilter_GetFilterState(processor->ngsa, stream);
 
   /* SAフィルタの状態 */
-  NARUSAFilter_GetFilterState(&processor->sa, stream);
+  NARUSAFilter_GetFilterState(processor->sa, stream);
 }
 
 /* 1サンプルをデエンファシス */
@@ -215,14 +302,14 @@ static int32_t NARUNGSAFilter_Synthesize(struct NARUNGSAFilter *filter, int32_t 
   /* フィルタ係数更新 */
   NARU_ASSERT(filter->pdelta_table == &filter->delta_table[1]);
   {
-      const int32_t half = (1 << (filter->delta_rshift - 1));
-      const int32_t delta = filter->pdelta_table[NARUUTILITY_SIGN(residual)];
-      for (ord = 0; ord < filter_order; ord++) {
-            int32_t mul = delta * ngrad[ord];
-            mul += half;
-            mul = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(mul, filter->delta_rshift);
-            weight[ord] += mul;
-      }
+    const int32_t half = (1 << (filter->delta_rshift - 1));
+    const int32_t delta = filter->pdelta_table[NARUUTILITY_SIGN(residual)];
+    for (ord = 0; ord < filter_order; ord++) {
+      int32_t mul = delta * ngrad[ord];
+      mul += half;
+      mul = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(mul, filter->delta_rshift);
+      weight[ord] += mul;
+    }
   }
 
   /* 入力データ履歴更新 */
@@ -281,21 +368,21 @@ void NARUDecodeProcessor_Synthesize(
   NARU_ASSERT(num_samples > 0);
 
   /* フィルタ次数チェック */
-  NARU_ASSERT(processor->ngsa.filter_order <= NARU_MAX_FILTER_ORDER);
-  NARU_ASSERT(processor->ngsa.ar_order <= NARU_MAX_AR_ORDER);
-  NARU_ASSERT(processor->ngsa.filter_order > (2 * processor->ngsa.ar_order));
-  NARU_ASSERT(processor->sa.filter_order <= NARU_MAX_FILTER_ORDER);
+  NARU_ASSERT(processor->ngsa->filter_order <= processor->ngsa->max_filter_order);
+  NARU_ASSERT(processor->ngsa->ar_order <= processor->ngsa->max_filter_order);
+  NARU_ASSERT(processor->ngsa->filter_order > (2 * processor->ngsa->ar_order));
+  NARU_ASSERT(processor->sa->filter_order <= processor->sa->max_filter_order);
 
   /* 自然勾配の初期化 */
-  NARUNGSAFilter_InitializeNaturalGradient(&processor->ngsa);
+  NARUNGSAFilter_InitializeNaturalGradient(processor->ngsa);
 
   /* 1サンプル毎に合成 
    * 補足）static関数なので、最適化時に展開されることを期待 */
   for (smpl = 0; smpl < num_samples; smpl++) {
     /* SA */
-    buffer[smpl] = NARUSAFilter_Synthesize(&processor->sa, buffer[smpl]);
+    buffer[smpl] = NARUSAFilter_Synthesize(processor->sa, buffer[smpl]);
     /* NGSA */
-    buffer[smpl] = NARUNGSAFilter_Synthesize(&processor->ngsa, buffer[smpl]);
+    buffer[smpl] = NARUNGSAFilter_Synthesize(processor->ngsa, buffer[smpl]);
     /* デエンファシス */
     buffer[smpl] = NARUDecodeProcessor_DeEmphasis(processor, buffer[smpl]);
   }

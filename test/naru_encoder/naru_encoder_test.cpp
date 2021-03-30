@@ -267,6 +267,8 @@ TEST(NARUEncoderTest, CreateDestroyHandleTest)
     config.max_filter_order = 3;
     encoder = NARUEncoder_Create(&config, work, work_size);
     EXPECT_TRUE(encoder == NULL);
+
+    free(work);
   }
 
   /* 自前確保によるハンドル作成（失敗ケース） */

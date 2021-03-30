@@ -21,7 +21,7 @@
 /* デコーダハンドル */
 struct NARUDecoder {
   struct NARUHeader header;               /* ヘッダ */
-  struct NARUDecodeProcessor *processor;  /* 信号処理ハンドル */
+  struct NARUDecodeProcessor *processor[NARU_MAX_NUM_CHANNELS];  /* 信号処理ハンドル */
   struct NARUCoder *coder;                /* 符号化ハンドル */
   uint32_t max_num_channels;              /* デコード可能な最大チャンネル数 */
   uint8_t status_flags;                   /* 内部状態フラグ */
@@ -210,7 +210,10 @@ int32_t NARUDecoder_CalculateWorkSize(const struct NARUDecoderConfig *config)
   work_size += tmp_work_size;
 
   /* 信号処理ハンドル */
-  work_size += sizeof(struct NARUDecodeProcessor) * config->max_num_channels;
+  if ((tmp_work_size = NARUDecodeProcessor_CalculateWorkSize(config->max_filter_order)) < 0) {
+    return -1;
+  }
+  work_size += tmp_work_size * (int32_t)config->max_num_channels;
 
   return work_size;
 }
@@ -275,9 +278,17 @@ struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config, v
     work_ptr += coder_size;
   }
 
-  /* 信号処理ハンドルの領域確保 */
-  decoder->processor = (struct NARUDecodeProcessor *)work_ptr;
-  work_ptr += sizeof(struct NARUDecodeProcessor) * config->max_num_channels;
+  /* 信号処理ハンドルの作成 */
+  {
+    int32_t processor_size = NARUDecodeProcessor_CalculateWorkSize(config->max_filter_order);
+    for (ch = 0; ch < config->max_num_channels; ch++) {
+      if ((decoder->processor[ch]
+            = NARUDecodeProcessor_Create(config->max_filter_order, work_ptr, processor_size)) == NULL) {
+        return NULL;
+      }
+      work_ptr += processor_size;
+    }
+  }
 
   /* バッファオーバーランチェック */
   /* 補足）既にメモリを破壊している可能性があるので、チェックに失敗したら落とす */
@@ -285,7 +296,7 @@ struct NARUDecoder *NARUDecoder_Create(const struct NARUDecoderConfig *config, v
 
   /* 信号処理ハンドルのリセット */
   for (ch = 0; ch < config->max_num_channels; ch++) {
-    NARUDecodeProcessor_Reset(&decoder->processor[ch]);
+    NARUDecodeProcessor_Reset(decoder->processor[ch]);
   }
   
   return decoder;
@@ -325,7 +336,7 @@ NARUApiResult NARUDecoder_SetHeader(
 
   /* フィルタパラメータ設定 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    NARUDecodeProcessor_SetFilterOrder(&decoder->processor[ch],
+    NARUDecodeProcessor_SetFilterOrder(decoder->processor[ch],
       header->filter_order, header->ar_order, header->second_filter_order);
   }
 
@@ -428,7 +439,7 @@ static NARUApiResult NARUDecoder_DecodeCompressData(
 
   /* 信号処理ハンドルの状態取得 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    NARUDecodeProcessor_GetFilterState(&decoder->processor[ch], &stream);
+    NARUDecodeProcessor_GetFilterState(decoder->processor[ch], &stream);
   }
   
   /* 符号化初期パラメータ取得 */
@@ -453,7 +464,7 @@ static NARUApiResult NARUDecoder_DecodeCompressData(
 
   /* チャンネル毎に合成処理 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    NARUDecodeProcessor_Synthesize(&decoder->processor[ch], buffer[ch], num_decode_samples);
+    NARUDecodeProcessor_Synthesize(decoder->processor[ch], buffer[ch], num_decode_samples);
   }
 
   /* MS -> LR */

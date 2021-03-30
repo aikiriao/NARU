@@ -11,14 +11,11 @@
 #include <string.h>
 #include <math.h>
 
-/* 引数のフィルタ次数に対応する最大AR次数の計算 */
-#define NARUENCODER_MAX_ARORDER(filter_order) ((((filter_order) + 1) / 2) - 1)
-
 /* エンコーダハンドル */
 struct NARUEncoder {
   struct NARUHeader header;               /* ヘッダ */
   struct LPCCalculator *lpcc;             /* LPC計算ハンドル */
-  struct NARUEncodeProcessor *processor;  /* 信号処理ハンドル */
+  struct NARUEncodeProcessor *processor[NARU_MAX_NUM_CHANNELS];  /* 信号処理ハンドル */
   struct NARUCoder *coder;                /* 符号化ハンドル */
   uint32_t max_num_channels;              /* バッファチャンネル数 */
   uint32_t max_num_samples_per_block;     /* バッファサンプル数 */
@@ -226,7 +223,7 @@ int32_t NARUEncoder_CalculateWorkSize(const struct NARUEncoderConfig *config)
   work_size = sizeof(struct NARUEncoder) + NARU_MEMORY_ALIGNMENT;
 
   /* LPC計算ハンドルのサイズ */
-  if ((tmp_work_size = LPCCalculator_CalculateWorkSize(NARUENCODER_MAX_ARORDER(config->max_filter_order))) < 0) {
+  if ((tmp_work_size = LPCCalculator_CalculateWorkSize(NARU_MAX_ARORDER_FOR_FILTERORDER(config->max_filter_order))) < 0) {
     return -1;
   }
   work_size += tmp_work_size;
@@ -239,7 +236,10 @@ int32_t NARUEncoder_CalculateWorkSize(const struct NARUEncoderConfig *config)
   work_size += tmp_work_size;
 
   /* 信号処理ハンドルのサイズ */
-  work_size += sizeof(struct NARUEncodeProcessor) * config->max_num_channels;
+  if ((tmp_work_size = NARUEncodeProcessor_CalculateWorkSize(config->max_filter_order)) < 0) {
+    return -1;
+  }
+  work_size += tmp_work_size * config->max_num_channels;
 
   /* 窓と信号処理バッファのサイズ */
   work_size += 2 * sizeof(double) * config->max_num_samples_per_block;
@@ -299,7 +299,7 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config, v
 
   /* LPC計算ハンドルの作成 */
   {
-    const uint32_t max_ar_order = NARUENCODER_MAX_ARORDER(config->max_filter_order);
+    const uint32_t max_ar_order = NARU_MAX_ARORDER_FOR_FILTERORDER(config->max_filter_order);
     int32_t lpcc_size = LPCCalculator_CalculateWorkSize(max_ar_order);
     if ((encoder->lpcc = LPCCalculator_Create(max_ar_order, work_ptr, lpcc_size)) == NULL) {
       return NULL;
@@ -319,8 +319,16 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config, v
   }
 
   /* 信号処理ハンドルの作成 */
-  encoder->processor = (struct NARUEncodeProcessor *)work_ptr;
-  work_ptr += sizeof(struct NARUEncodeProcessor) * config->max_num_channels;
+  {
+    int32_t processor_size = NARUEncodeProcessor_CalculateWorkSize(config->max_filter_order);
+    for (ch = 0; ch < config->max_num_channels; ch++) {
+      if ((encoder->processor[ch]
+            = NARUEncodeProcessor_Create(config->max_filter_order, work_ptr, processor_size)) == NULL) {
+        return NULL;
+      }
+      work_ptr += processor_size;
+    }
+  }
 
   /* バッファ領域の確保 */
   encoder->window = (double *)work_ptr;
@@ -340,7 +348,7 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config, v
 
   /* 信号処理ハンドルのリセット */
   for (ch = 0; ch < config->max_num_channels; ch++) {
-    NARUEncodeProcessor_Reset(&encoder->processor[ch]);
+    NARUEncodeProcessor_Reset(encoder->processor[ch]);
   }
 
   return encoder;
@@ -395,7 +403,7 @@ NARUApiResult NARUEncoder_SetEncodeParameter(
 
   /* フィルタパラメータ設定 */
   for (ch = 0; ch < tmp_header.num_channels; ch++) {
-    NARUEncodeProcessor_SetFilterOrder(&encoder->processor[ch],
+    NARUEncodeProcessor_SetFilterOrder(encoder->processor[ch],
       tmp_header.filter_order, tmp_header.ar_order, tmp_header.second_filter_order);
   }
 
@@ -570,7 +578,7 @@ static NARUApiResult NARUEncoder_EncodeCompressData(
     NARUEncoder_MakeAnalyzingSignal(encoder->window, 
         buffer[ch], num_samples, header->bits_per_sample, encoder->buffer_double);
     /* AR係数計算 */
-    NARUEncodeProcessor_CalculateARCoef(&encoder->processor[ch],
+    NARUEncodeProcessor_CalculateARCoef(encoder->processor[ch],
         encoder->lpcc, encoder->buffer_double, num_samples);
   }
 
@@ -579,12 +587,12 @@ static NARUApiResult NARUEncoder_EncodeCompressData(
 
   /* 信号処理ハンドルの状態出力 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    NARUEncodeProcessor_PutFilterState(&encoder->processor[ch], &stream);
+    NARUEncodeProcessor_PutFilterState(encoder->processor[ch], &stream);
   }
 
   /* チャンネル毎に予測 */
   for (ch = 0; ch < header->num_channels; ch++) {
-    NARUEncodeProcessor_Predict(&encoder->processor[ch], buffer[ch], num_samples);
+    NARUEncodeProcessor_Predict(encoder->processor[ch], buffer[ch], num_samples);
   }
 
   /* 符号化初期パラメータ計算 */

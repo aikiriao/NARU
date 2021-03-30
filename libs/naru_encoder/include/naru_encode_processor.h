@@ -9,18 +9,20 @@
 #include "lpc_calculator.h"
 
 /* 1chあたりの信号処理を担うプロセッサハンドル */
-struct NARUEncodeProcessor {
-  /* Pre Emphasis */
-  int32_t preemphasis_prev;
-  /* NGSA Filter */
-  struct NARUNGSAFilter ngsa;
-  /* SA Filter */
-  struct NARUSAFilter sa;
-};
+struct NARUEncodeProcessor;
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
+
+/* プロセッサ作成に必要なワークサイズ計算 */
+int32_t NARUEncodeProcessor_CalculateWorkSize(uint8_t max_filter_order);
+
+/* プロセッサ作成 */
+struct NARUEncodeProcessor* NARUEncodeProcessor_Create(uint8_t max_filter_order, void *work, int32_t work_size);
+
+/* プロセッサ破棄 */
+void NARUEncodeProcessor_Destroy(struct NARUEncodeProcessor *processor);
 
 /* プロセッサのリセット */
 void NARUEncodeProcessor_Reset(struct NARUEncodeProcessor *processor);

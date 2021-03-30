@@ -7,7 +7,7 @@
 #define NARU_FORMAT_VERSION   3
 
 /* コーデックバージョン */
-#define NARU_CODEC_VERSION    3
+#define NARU_CODEC_VERSION    4
 
 /* 処理可能な最大チャンネル数 */
 #define NARU_MAX_NUM_CHANNELS 8
