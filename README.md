@@ -23,7 +23,9 @@ cmake ..
 make
 ```
 
-## Usage
+# Usage
+
+## NARU Codec
 
 ### Encode
 
