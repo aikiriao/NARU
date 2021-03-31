@@ -17,6 +17,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: ECLint
+      uses: snow-actions/eclint@v1.0.1
     - name: build and test
       run: mkdir build; cd build; cmake ..; make; ctest
     - name: build narucodec
