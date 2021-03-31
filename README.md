@@ -33,7 +33,7 @@ make
 ./naru -e INPUT.wav OUTPUT.nar
 ```
 
-you can change compression mode by `-m` option. 
+you can change compression mode by `-m` option.
 Following example encoding in maximum compression (but slow) option.
 
 ```bash

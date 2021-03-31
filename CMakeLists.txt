@@ -7,7 +7,7 @@ set(CODEC_LIB_NAME narucodec)
 # ライブラリ
 add_library(${CODEC_LIB_NAME} INTERFACE)
 # リンクするライブラリ
-target_link_libraries(${CODEC_LIB_NAME} 
+target_link_libraries(${CODEC_LIB_NAME}
     INTERFACE naru_encoder naru_decoder naru_coder naru_bit_stream naru_internal lpc_calculator byte_array
     )
 if(NOT MSVC)
@@ -25,7 +25,7 @@ set(DECODER_LIB_NAME narudec)
 # ライブラリ
 add_library(${DECODER_LIB_NAME} INTERFACE)
 # リンクするライブラリ
-target_link_libraries(${DECODER_LIB_NAME} 
+target_link_libraries(${DECODER_LIB_NAME}
     INTERFACE naru_decoder naru_coder naru_bit_stream naru_internal byte_array
     )
 if(NOT MSVC)
