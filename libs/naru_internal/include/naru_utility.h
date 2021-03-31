@@ -45,7 +45,7 @@
 /* ビルトイン関数を使用 */
 __inline uint32_t NARUUTILITY_NLZ(uint32_t x)
 {
-	uint32_t result;
+    uint32_t result;
     return (_BitScanReverse(&result, x) != 0) ? (31U - result) : 32U;
 }
 #else
@@ -62,7 +62,7 @@ __inline uint32_t NARUUTILITY_NLZ(uint32_t x)
 #if defined(__GNUC__) || defined(_MSC_VER)
 /* ビルトイン関数を使用 */
 #define NARUUTILITY_ROUNDUP2POWERED(x) (1U << NARUUTILITY_LOG2CEIL(x))
-#else 
+#else
 /* ソフトウェア実装を使用 */
 #define NARUUTILITY_ROUNDUP2POWERED(x) NARUUtility_RoundUp2PoweredSoft(x)
 #endif

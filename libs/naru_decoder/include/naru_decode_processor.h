@@ -27,16 +27,16 @@ void NARUDecodeProcessor_Reset(struct NARUDecodeProcessor *processor);
 
 /* フィルタ次数の設定 */
 void NARUDecodeProcessor_SetFilterOrder(
-  struct NARUDecodeProcessor *processor, int32_t filter_order,
-  int32_t ar_order, int32_t second_filter_order);
+        struct NARUDecodeProcessor *processor, int32_t filter_order,
+        int32_t ar_order, int32_t second_filter_order);
 
 /* プロセッサの状態を取得 */
 void NARUDecodeProcessor_GetFilterState(
-    struct NARUDecodeProcessor *processor, struct NARUBitStream *stream);
+        struct NARUDecodeProcessor *processor, struct NARUBitStream *stream);
 
 /* 合成 */
 void NARUDecodeProcessor_Synthesize(
-    struct NARUDecodeProcessor *processor, int32_t *buffer, uint32_t num_samples);
+        struct NARUDecodeProcessor *processor, int32_t *buffer, uint32_t num_samples);
 
 #ifdef __cplusplus
 }

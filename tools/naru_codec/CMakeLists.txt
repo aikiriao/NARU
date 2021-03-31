@@ -19,9 +19,9 @@ add_subdirectory(${PROJECT_ROOT_PATH} ${CMAKE_CURRENT_BINARY_DIR}/libnarucodec)
 
 # インクルードパス
 target_include_directories(${APP_NAME}
-  PRIVATE
+    PRIVATE
     ${PROJECT_ROOT_PATH}/include
-)
+    )
 
 # リンクするライブラリ
 target_link_libraries(${APP_NAME} command_line_parser)
@@ -30,10 +30,10 @@ target_link_libraries(${APP_NAME} narucodec)
 
 # コンパイルオプション
 if(MSVC)
-  target_compile_options(${APP_NAME} PRIVATE /W4)
+    target_compile_options(${APP_NAME} PRIVATE /W4)
 else()
-  target_compile_options(${APP_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wformat=2 -Wstrict-aliasing=2 -Wconversion -Wmissing-prototypes -Wstrict-prototypes -Wold-style-definition)
-  set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
-  set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
+    target_compile_options(${APP_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wformat=2 -Wstrict-aliasing=2 -Wconversion -Wmissing-prototypes -Wstrict-prototypes -Wold-style-definition)
+    set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
+    set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 endif()
 set_target_properties(${APP_NAME} PROPERTIES C_STANDARD 90 C_EXTENSIONS OFF)

@@ -12,12 +12,12 @@ NARU_STATIC_ASSERT(NARU_MAX_FILTER_ORDER > (2 * NARU_MAX_AR_ORDER));
 
 /* プロセッサハンドル */
 struct NARUEncodeProcessor {
-  /* Pre Emphasis */
-  int32_t preemphasis_prev;
-  /* NGSA Filter */
-  struct NARUNGSAFilter *ngsa;
-  /* SA Filter */
-  struct NARUSAFilter *sa;
+    /* Pre Emphasis */
+    int32_t preemphasis_prev;
+    /* NGSA Filter */
+    struct NARUNGSAFilter *ngsa;
+    /* SA Filter */
+    struct NARUSAFilter *sa;
 };
 
 /* NGSAフィルタの1サンプル予測処理 */
@@ -38,456 +38,456 @@ static void NARUEncodeProcessor_RoundAndPutSint(struct NARUBitStream *stream, ui
 /* dataをmaxbit内に収めるために必要な右シフト数計算 */
 static uint32_t NARUEncodeProcessor_CalculateBitShift(const int32_t *data, int32_t num_data, int32_t maxbit)
 {
-  int32_t bitwidth;
+    int32_t bitwidth;
 
-  NARU_ASSERT(data != NULL);
-  NARU_ASSERT(num_data > 0);
-  NARU_ASSERT(maxbit > 0);
+    NARU_ASSERT(data != NULL);
+    NARU_ASSERT(num_data > 0);
+    NARU_ASSERT(maxbit > 0);
 
-  bitwidth = (int32_t)NARUUtility_GetDataBitWidth(data, (uint32_t)num_data);
+    bitwidth = (int32_t)NARUUtility_GetDataBitWidth(data, (uint32_t)num_data);
 
-  return (bitwidth > maxbit) ? (uint32_t)(bitwidth - maxbit) : 0;
+    return (bitwidth > maxbit) ? (uint32_t)(bitwidth - maxbit) : 0;
 }
 
 /* フィルタ係数を引数のビット幅に丸め込む */
 static void NARUEncodeProcessor_ClippingFilterWeight(
-    int32_t *weight, int32_t filter_order, int32_t bitwidth)
+        int32_t *weight, int32_t filter_order, int32_t bitwidth)
 {
-  int32_t ord;
-  double maxabs, inv_scale;
+    int32_t ord;
+    double maxabs, inv_scale;
 
-  NARU_ASSERT(weight != NULL);
-  NARU_ASSERT(filter_order > 0);
-  NARU_ASSERT((bitwidth > 0) && (bitwidth < 32));
-  
-  /* [-1,1]に丸めた中で、最大絶対値を計測 */
-  maxabs = 0.0f;
-  for (ord = 0; ord < filter_order; ord++) {
-    double abs = NARUUTILITY_ABS(weight[ord]) * pow(2.0f, -(bitwidth - 1));
-    if (maxabs < abs) {
-      maxabs = abs;
+    NARU_ASSERT(weight != NULL);
+    NARU_ASSERT(filter_order > 0);
+    NARU_ASSERT((bitwidth > 0) && (bitwidth < 32));
+
+    /* [-1,1]に丸めた中で、最大絶対値を計測 */
+    maxabs = 0.0f;
+    for (ord = 0; ord < filter_order; ord++) {
+        double abs = NARUUTILITY_ABS(weight[ord]) * pow(2.0f, -(bitwidth - 1));
+        if (maxabs < abs) {
+            maxabs = abs;
+        }
     }
-  }
 
-  /* ビット幅に収まっている: 丸め不要 */
-  if (maxabs <= 1.0f) {
-    return;
-  }
+    /* ビット幅に収まっている: 丸め不要 */
+    if (maxabs <= 1.0f) {
+        return;
+    }
 
-  /* 最大絶対値がビット幅いっぱいに収まるようにクリッピング */
-  inv_scale = 1.0f / maxabs;
-  for (ord = 0; ord < filter_order; ord++) {
-    weight[ord] = (int32_t)(inv_scale * weight[ord]);
-  }
+    /* 最大絶対値がビット幅いっぱいに収まるようにクリッピング */
+    inv_scale = 1.0f / maxabs;
+    for (ord = 0; ord < filter_order; ord++) {
+        weight[ord] = (int32_t)(inv_scale * weight[ord]);
+    }
 }
 
 /* 符号付き整数pvalをrshiftした値を出力 その後シフトしたビット数だけpvalの下位bitをクリア */
 static void NARUEncodeProcessor_RoundAndPutSint(
-    struct NARUBitStream *stream, uint32_t bitwidth, int32_t *pval, uint32_t rshift)
+        struct NARUBitStream *stream, uint32_t bitwidth, int32_t *pval, uint32_t rshift)
 {
-  uint32_t putval;
-  int32_t roundval;
+    uint32_t putval;
+    int32_t roundval;
 
-  NARU_ASSERT(stream != NULL);
-  NARU_ASSERT(pval != NULL);
+    NARU_ASSERT(stream != NULL);
+    NARU_ASSERT(pval != NULL);
 
-  /* 右シフト値を取得 */
-  roundval = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC((*pval), rshift);
+    /* 右シフト値を取得 */
+    roundval = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC((*pval), rshift);
 
-  /* 符号なし整数に変換 */
-  putval = NARUUTILITY_SINT32_TO_UINT32(roundval);
+    /* 符号なし整数に変換 */
+    putval = NARUUTILITY_SINT32_TO_UINT32(roundval);
 
-  /* 出力 */
-  NARU_ASSERT(putval < (1 << bitwidth));
-  NARUBitWriter_PutBits(stream, putval, bitwidth);
+    /* 出力 */
+    NARU_ASSERT(putval < (1 << bitwidth));
+    NARUBitWriter_PutBits(stream, putval, bitwidth);
 
-  /* 左シフトして戻す（シフトしたビットをクリア） */
-  (*pval) = roundval << rshift;
+    /* 左シフトして戻す（シフトしたビットをクリア） */
+    (*pval) = roundval << rshift;
 }
 
 /* プロセッサ作成に必要なワークサイズ計算 */
 int32_t NARUEncodeProcessor_CalculateWorkSize(uint8_t max_filter_order)
 {
-  int32_t work_size, tmp;
+    int32_t work_size, tmp;
 
-  /* 構造体本体のサイズ */
-  work_size = sizeof(struct NARUEncodeProcessor) + NARU_MEMORY_ALIGNMENT;
+    /* 構造体本体のサイズ */
+    work_size = sizeof(struct NARUEncodeProcessor) + NARU_MEMORY_ALIGNMENT;
 
-  /* SAフィルタのサイズ */
-  if ((tmp = NARUSAFilter_CalculateWorkSize(max_filter_order)) < 0) {
-    return -1;
-  }
-  work_size += tmp;
+    /* SAフィルタのサイズ */
+    if ((tmp = NARUSAFilter_CalculateWorkSize(max_filter_order)) < 0) {
+        return -1;
+    }
+    work_size += tmp;
 
-  /* NGSAフィルタのサイズ */
-  if ((tmp = NARUNGSAFilter_CalculateWorkSize(max_filter_order)) < 0) {
-    return -1;
-  }
-  work_size += tmp;
+    /* NGSAフィルタのサイズ */
+    if ((tmp = NARUNGSAFilter_CalculateWorkSize(max_filter_order)) < 0) {
+        return -1;
+    }
+    work_size += tmp;
 
-  return work_size;
+    return work_size;
 }
 
 /* プロセッサ作成 */
 struct NARUEncodeProcessor* NARUEncodeProcessor_Create(uint8_t max_filter_order, void *work, int32_t work_size)
 {
-  uint8_t *work_ptr;
-  struct NARUEncodeProcessor *processor;
+    uint8_t *work_ptr;
+    struct NARUEncodeProcessor *processor;
 
-  /* 引数チェック */
-  if ((work == NULL)
-      || (work_size < NARUEncodeProcessor_CalculateWorkSize(max_filter_order))) {
-    return NULL;
-  }
-
-  /* 無効なフィルタ次数 */
-  if ((max_filter_order == 0)
-      || !(NARUUTILITY_IS_POWERED_OF_2(max_filter_order))) {
-    return NULL;
-  }
-
-  /* 構造体配置 */
-  work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work, NARU_MEMORY_ALIGNMENT);
-  processor = (struct NARUEncodeProcessor *)work_ptr;
-  work_ptr += sizeof(struct NARUEncodeProcessor);
-
-  /* SAフィルタ作成 */
-  {
-    int32_t tmp_work_size = NARUSAFilter_CalculateWorkSize(max_filter_order);
-    if ((processor->sa = NARUSAFilter_Create(max_filter_order, work_ptr, tmp_work_size)) == NULL) {
-      return NULL;
+    /* 引数チェック */
+    if ((work == NULL)
+            || (work_size < NARUEncodeProcessor_CalculateWorkSize(max_filter_order))) {
+        return NULL;
     }
-    work_ptr += tmp_work_size;
-  }
 
-  /* NGSAフィルタ作成 */
-  {
-    int32_t tmp_work_size = NARUNGSAFilter_CalculateWorkSize(max_filter_order);
-    if ((processor->ngsa = NARUNGSAFilter_Create(max_filter_order, work_ptr, tmp_work_size)) == NULL) {
-      return NULL;
+    /* 無効なフィルタ次数 */
+    if ((max_filter_order == 0)
+            || !(NARUUTILITY_IS_POWERED_OF_2(max_filter_order))) {
+        return NULL;
     }
-    work_ptr += tmp_work_size;
-  }
 
-  /* オーバーフローチェック */
-  NARU_ASSERT((work_ptr - (uint8_t *)work) <= work_size);
+    /* 構造体配置 */
+    work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work, NARU_MEMORY_ALIGNMENT);
+    processor = (struct NARUEncodeProcessor *)work_ptr;
+    work_ptr += sizeof(struct NARUEncodeProcessor);
 
-  return processor;
+    /* SAフィルタ作成 */
+    {
+        int32_t tmp_work_size = NARUSAFilter_CalculateWorkSize(max_filter_order);
+        if ((processor->sa = NARUSAFilter_Create(max_filter_order, work_ptr, tmp_work_size)) == NULL) {
+            return NULL;
+        }
+        work_ptr += tmp_work_size;
+    }
+
+    /* NGSAフィルタ作成 */
+    {
+        int32_t tmp_work_size = NARUNGSAFilter_CalculateWorkSize(max_filter_order);
+        if ((processor->ngsa = NARUNGSAFilter_Create(max_filter_order, work_ptr, tmp_work_size)) == NULL) {
+            return NULL;
+        }
+        work_ptr += tmp_work_size;
+    }
+
+    /* オーバーフローチェック */
+    NARU_ASSERT((work_ptr - (uint8_t *)work) <= work_size);
+
+    return processor;
 }
 
 /* プロセッサ破棄 */
 void NARUEncodeProcessor_Destroy(struct NARUEncodeProcessor *processor)
 {
-  /* 特に何もしない */
-  NARU_ASSERT(processor != NULL);
+    /* 特に何もしない */
+    NARU_ASSERT(processor != NULL);
 }
 
 /* プロセッサのリセット */
 void NARUEncodeProcessor_Reset(struct NARUEncodeProcessor *processor)
 {
-  NARU_ASSERT(processor != NULL);
+    NARU_ASSERT(processor != NULL);
 
-  /* フィルタをリセット */
-  NARUSAFilter_Reset(processor->sa);
-  NARUNGSAFilter_Reset(processor->ngsa);
+    /* フィルタをリセット */
+    NARUSAFilter_Reset(processor->sa);
+    NARUNGSAFilter_Reset(processor->ngsa);
 
-  processor->preemphasis_prev = 0;
+    processor->preemphasis_prev = 0;
 }
 
 /* フィルタ次数の設定 */
 void NARUEncodeProcessor_SetFilterOrder(
-  struct NARUEncodeProcessor *processor, int32_t filter_order,
-  int32_t ar_order, int32_t second_filter_order)
+        struct NARUEncodeProcessor *processor, int32_t filter_order,
+        int32_t ar_order, int32_t second_filter_order)
 {
-  NARU_ASSERT(processor != NULL);
+    NARU_ASSERT(processor != NULL);
 
-  NARUNGSAFilter_SetFilterOrder(processor->ngsa, filter_order, ar_order);
-  NARUSAFilter_SetFilterOrder(processor->sa, second_filter_order);
+    NARUNGSAFilter_SetFilterOrder(processor->ngsa, filter_order, ar_order);
+    NARUSAFilter_SetFilterOrder(processor->sa, second_filter_order);
 }
 
 /* AR係数の計算 */
 void NARUEncodeProcessor_CalculateARCoef(
-    struct NARUEncodeProcessor *processor, struct LPCCalculator *lpcc,
-    const double *input, uint32_t num_samples)
+        struct NARUEncodeProcessor *processor, struct LPCCalculator *lpcc,
+        const double *input, uint32_t num_samples)
 {
-  int32_t ord;
-  double coef_double[NARU_MAX_FILTER_ORDER + 1];
-  LPCCalculatorApiResult ret;
-  int32_t ar_order;
+    int32_t ord;
+    double coef_double[NARU_MAX_FILTER_ORDER + 1];
+    LPCCalculatorApiResult ret;
+    int32_t ar_order;
 
-  NARU_ASSERT(processor != NULL);
-  NARU_ASSERT(lpcc != NULL);
-  NARU_ASSERT(input != NULL);
-  NARU_ASSERT(num_samples > 0);
+    NARU_ASSERT(processor != NULL);
+    NARU_ASSERT(lpcc != NULL);
+    NARU_ASSERT(input != NULL);
+    NARU_ASSERT(num_samples > 0);
 
-  ar_order = processor->ngsa->ar_order;
-  NARU_ASSERT(ar_order <= NARU_MAX_AR_ORDER);
+    ar_order = processor->ngsa->ar_order;
+    NARU_ASSERT(ar_order <= NARU_MAX_AR_ORDER);
 
-  /* AR係数の計算 */
-  ret = LPCCalculator_CalculateLPCCoef(lpcc, input, num_samples, coef_double, (uint32_t)ar_order);
-  NARU_ASSERT(ret == LPCCALCULATOR_APIRESULT_OK);
-  /* 整数量子化: ar_coef_doubleのインデックスは1.0確定なのでスルー */
-  for (ord = 0; ord < ar_order; ord++) {
-    double tmp_coef = NARUUtility_Round(coef_double[ord + 1] * pow(2.0f, NARU_FIXEDPOINT_DIGITS));
-    processor->ngsa->ar_coef[ord] = (int32_t)tmp_coef;
-  }
+    /* AR係数の計算 */
+    ret = LPCCalculator_CalculateLPCCoef(lpcc, input, num_samples, coef_double, (uint32_t)ar_order);
+    NARU_ASSERT(ret == LPCCALCULATOR_APIRESULT_OK);
+    /* 整数量子化: ar_coef_doubleのインデックスは1.0確定なのでスルー */
+    for (ord = 0; ord < ar_order; ord++) {
+        double tmp_coef = NARUUtility_Round(coef_double[ord + 1] * pow(2.0f, NARU_FIXEDPOINT_DIGITS));
+        processor->ngsa->ar_coef[ord] = (int32_t)tmp_coef;
+    }
 }
 
 /* NGSAフィルタの状態出力 */
 static void NARUNGSAFilter_PutFilterState(
-    struct NARUNGSAFilter *filter, struct NARUBitStream *stream)
+        struct NARUNGSAFilter *filter, struct NARUBitStream *stream)
 {
-  int32_t ord;
-  uint32_t shift;
+    int32_t ord;
+    uint32_t shift;
 
-  NARU_ASSERT(filter != NULL);
-  NARU_ASSERT(stream != NULL);
+    NARU_ASSERT(filter != NULL);
+    NARU_ASSERT(stream != NULL);
 
-  /* AR係数 */
-  shift = NARUEncodeProcessor_CalculateBitShift(filter->ar_coef, filter->ar_order, NARU_BLOCKHEADER_ARCOEF_BITWIDTH);
-  NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_ARCOEFSHIFT_BITWIDTH));
-  NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_ARCOEFSHIFT_BITWIDTH);
-  for (ord = 0; ord < filter->ar_order; ord++) {
-    NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_ARCOEF_BITWIDTH, &filter->ar_coef[ord], shift);
-  }
+    /* AR係数 */
+    shift = NARUEncodeProcessor_CalculateBitShift(filter->ar_coef, filter->ar_order, NARU_BLOCKHEADER_ARCOEF_BITWIDTH);
+    NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_ARCOEFSHIFT_BITWIDTH));
+    NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_ARCOEFSHIFT_BITWIDTH);
+    for (ord = 0; ord < filter->ar_order; ord++) {
+        NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_ARCOEF_BITWIDTH, &filter->ar_coef[ord], shift);
+    }
 
-  /* フィルタ係数値を固定bit幅に制限 */
-  NARUEncodeProcessor_ClippingFilterWeight(filter->weight, filter->filter_order, NARU_FILTER_WEIGHT_RANGE_BITWIDTH);
+    /* フィルタ係数値を固定bit幅に制限 */
+    NARUEncodeProcessor_ClippingFilterWeight(filter->weight, filter->filter_order, NARU_FILTER_WEIGHT_RANGE_BITWIDTH);
 
-  /* フィルタ係数シフト量 */
-  shift = NARUEncodeProcessor_CalculateBitShift(filter->weight, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
-  NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
-  NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
+    /* フィルタ係数シフト量 */
+    shift = NARUEncodeProcessor_CalculateBitShift(filter->weight, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
+    NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
+    NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
 
-  /* フィルタ係数 */
-  for (ord = 0; ord < filter->filter_order; ord++) {
-    NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->weight[ord], shift);
-  }
+    /* フィルタ係数 */
+    for (ord = 0; ord < filter->filter_order; ord++) {
+        NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->weight[ord], shift);
+    }
 
-  /* フィルタ履歴シフト量 */
-  shift = NARUEncodeProcessor_CalculateBitShift(filter->history, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
-  NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
-  NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
+    /* フィルタ履歴シフト量 */
+    shift = NARUEncodeProcessor_CalculateBitShift(filter->history, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
+    NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
+    NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
 
-  /* フィルタ履歴 */
-  for (ord = 0; ord < filter->filter_order; ord++) {
-    /* デコード時にbuffer_pos == 0で処理できるように、ずらして記録 */
-    int32_t pos = (filter->buffer_pos + ord) & filter->buffer_pos_mask;
-    NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->history[pos], shift);
-    /* 履歴アクセス高速化のために、次数だけ離れた位置にも記録 */
-    filter->history[pos + filter->filter_order] = filter->history[pos];
-  }
+    /* フィルタ履歴 */
+    for (ord = 0; ord < filter->filter_order; ord++) {
+        /* デコード時にbuffer_pos == 0で処理できるように、ずらして記録 */
+        int32_t pos = (filter->buffer_pos + ord) & filter->buffer_pos_mask;
+        NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->history[pos], shift);
+        /* 履歴アクセス高速化のために、次数だけ離れた位置にも記録 */
+        filter->history[pos + filter->filter_order] = filter->history[pos];
+    }
 }
 
 /* SAフィルタの状態出力 */
 static void NARUSAFilter_PutFilterState(
-    struct NARUSAFilter *filter, struct NARUBitStream *stream)
+        struct NARUSAFilter *filter, struct NARUBitStream *stream)
 {
-  int32_t ord;
-  uint32_t shift;
+    int32_t ord;
+    uint32_t shift;
 
-  NARU_ASSERT(filter != NULL);
-  NARU_ASSERT(stream != NULL);
+    NARU_ASSERT(filter != NULL);
+    NARU_ASSERT(stream != NULL);
 
-  /* フィルタ係数値を固定bit幅に制限 */
-  NARUEncodeProcessor_ClippingFilterWeight(filter->weight, filter->filter_order, NARU_FILTER_WEIGHT_RANGE_BITWIDTH);
+    /* フィルタ係数値を固定bit幅に制限 */
+    NARUEncodeProcessor_ClippingFilterWeight(filter->weight, filter->filter_order, NARU_FILTER_WEIGHT_RANGE_BITWIDTH);
 
-  /* フィルタ係数シフト量 */
-  shift = NARUEncodeProcessor_CalculateBitShift(filter->weight, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
-  NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
-  NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
+    /* フィルタ係数シフト量 */
+    shift = NARUEncodeProcessor_CalculateBitShift(filter->weight, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
+    NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
+    NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
 
-  /* フィルタ係数 */
-  for (ord = 0; ord < filter->filter_order; ord++) {
-    NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->weight[ord], shift);
-  }
+    /* フィルタ係数 */
+    for (ord = 0; ord < filter->filter_order; ord++) {
+        NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->weight[ord], shift);
+    }
 
-  /* フィルタ履歴シフト量 */
-  shift = NARUEncodeProcessor_CalculateBitShift(filter->history, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
-  NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
-  NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
+    /* フィルタ履歴シフト量 */
+    shift = NARUEncodeProcessor_CalculateBitShift(filter->history, filter->filter_order, NARU_BLOCKHEADER_DATA_BITWIDTH);
+    NARU_ASSERT(shift < (1 << NARU_BLOCKHEADER_SHIFT_BITWIDTH));
+    NARUBitWriter_PutBits(stream, shift, NARU_BLOCKHEADER_SHIFT_BITWIDTH);
 
-  /* フィルタ履歴 */
-  for (ord = 0; ord < filter->filter_order; ord++) {
-    /* デコード時にbuffer_pos == 0で処理できるように、ずらして記録 */
-    int32_t pos = (filter->buffer_pos + ord) & filter->buffer_pos_mask;
-    NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->history[pos], shift);
-    /* 履歴アクセス高速化のために、次数だけ離れた位置にも記録 */
-    filter->history[pos + filter->filter_order] = filter->history[pos];
-  }
+    /* フィルタ履歴 */
+    for (ord = 0; ord < filter->filter_order; ord++) {
+        /* デコード時にbuffer_pos == 0で処理できるように、ずらして記録 */
+        int32_t pos = (filter->buffer_pos + ord) & filter->buffer_pos_mask;
+        NARUEncodeProcessor_RoundAndPutSint(stream, NARU_BLOCKHEADER_DATA_BITWIDTH, &filter->history[pos], shift);
+        /* 履歴アクセス高速化のために、次数だけ離れた位置にも記録 */
+        filter->history[pos + filter->filter_order] = filter->history[pos];
+    }
 }
 
 /* プロセッサの状態出力 */
 void NARUEncodeProcessor_PutFilterState(
-    struct NARUEncodeProcessor *processor, struct NARUBitStream *stream)
+        struct NARUEncodeProcessor *processor, struct NARUBitStream *stream)
 {
-  NARU_ASSERT(processor != NULL);
-  NARU_ASSERT(stream != NULL);
+    NARU_ASSERT(processor != NULL);
+    NARU_ASSERT(stream != NULL);
 
-  /* プリエンファシスのバッファ MS処理によりbit幅は+1される */
-  {
-    const uint32_t putval = NARUUTILITY_SINT32_TO_UINT32(processor->preemphasis_prev);
-    NARU_ASSERT(putval < (1 << 17));
-    NARUBitWriter_PutBits(stream, putval, 17);
-  }
+    /* プリエンファシスのバッファ MS処理によりbit幅は+1される */
+    {
+        const uint32_t putval = NARUUTILITY_SINT32_TO_UINT32(processor->preemphasis_prev);
+        NARU_ASSERT(putval < (1 << 17));
+        NARUBitWriter_PutBits(stream, putval, 17);
+    }
 
-  /* NGSAフィルタの状態 */
-  NARUNGSAFilter_PutFilterState(processor->ngsa, stream);
+    /* NGSAフィルタの状態 */
+    NARUNGSAFilter_PutFilterState(processor->ngsa, stream);
 
-  /* SAフィルタの状態 */
-  NARUSAFilter_PutFilterState(processor->sa, stream);
+    /* SAフィルタの状態 */
+    NARUSAFilter_PutFilterState(processor->sa, stream);
 }
 
 /* プリエンファシス */
 static int32_t NARUEncodeProcessor_PreEmphasis(struct NARUEncodeProcessor *processor, int32_t input)
 {
-  int32_t tmp;
-  const int32_t coef_numer = ((1 << NARU_EMPHASIS_FILTER_SHIFT) - 1);
+    int32_t tmp;
+    const int32_t coef_numer = ((1 << NARU_EMPHASIS_FILTER_SHIFT) - 1);
 
-  NARU_STATIC_ASSERT(NARU_FIXEDPOINT_DIGITS >= NARU_EMPHASIS_FILTER_SHIFT);
+    NARU_STATIC_ASSERT(NARU_FIXEDPOINT_DIGITS >= NARU_EMPHASIS_FILTER_SHIFT);
 
-  NARU_ASSERT(processor != NULL);
+    NARU_ASSERT(processor != NULL);
 
-  /* フィルタ適用 */
-  tmp = input;
-  input -= (int32_t)NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(processor->preemphasis_prev * coef_numer, NARU_EMPHASIS_FILTER_SHIFT);
-  processor->preemphasis_prev = tmp;
+    /* フィルタ適用 */
+    tmp = input;
+    input -= (int32_t)NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(processor->preemphasis_prev * coef_numer, NARU_EMPHASIS_FILTER_SHIFT);
+    processor->preemphasis_prev = tmp;
 
-  return input;
+    return input;
 }
 
 /* NGSAフィルタの1サンプル予測処理 */
 static int32_t NARUNGSAFilter_Predict(struct NARUNGSAFilter *filter, int32_t input)
 {
-  int32_t ord, residual, predict;
-  int32_t *ngrad, *history, *ar_coef, *weight;
-  const int32_t filter_order = filter->filter_order;
-  const int32_t ar_order = filter->ar_order;
+    int32_t ord, residual, predict;
+    int32_t *ngrad, *history, *ar_coef, *weight;
+    const int32_t filter_order = filter->filter_order;
+    const int32_t ar_order = filter->ar_order;
 
-  NARU_ASSERT(filter != NULL);
+    NARU_ASSERT(filter != NULL);
 
-  /* ローカル変数に受けとく */
-  history = &filter->history[filter->buffer_pos];
-  ar_coef = &filter->ar_coef[0];
-  weight = &filter->weight[0];
+    /* ローカル変数に受けとく */
+    history = &filter->history[filter->buffer_pos];
+    ar_coef = &filter->ar_coef[0];
+    weight = &filter->weight[0];
 
-  /* フィルタ予測 */
-  predict = NARU_FIXEDPOINT_0_5;
-  for (ord = 0; ord < filter_order; ord++) {
-    predict += weight[ord] * history[ord];
-  }
-  predict = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(predict, NARU_FIXEDPOINT_DIGITS);
-
-  /* 差分 */
-  residual = input - predict;
-
-  /* バッファ参照位置更新 */
-  filter->buffer_pos = (filter->buffer_pos - 1) & filter->buffer_pos_mask;
-
-  /* 自然勾配更新 */
-  ngrad = &filter->ngrad[filter->buffer_pos];
-  for (ord = 0; ord < ar_order; ord++) {
-    const int32_t pos = (filter->buffer_pos + filter_order - 1 - ord) & filter->buffer_pos_mask;
-    filter->ngrad[pos] += NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(ar_coef[ord] * ngrad[filter_order], NARU_FIXEDPOINT_DIGITS);
-    filter->ngrad[pos + filter_order] = filter->ngrad[pos];
-  }
-  ngrad[0] = 0;
-  for (ord = 0; ord < ar_order; ord++) {
-    ngrad[0] -= ar_coef[ord] * history[ord + 1];
-  }
-  ngrad[0] = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(ngrad[0], NARU_FIXEDPOINT_DIGITS);
-  ngrad[0] += history[0];
-  for (ord = 0; ord < ar_order; ord++) {
-    const int32_t pos = (filter->buffer_pos + ord + 1) & filter->buffer_pos_mask;
-    filter->ngrad[pos] -= NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(ar_coef[ord] * ngrad[0], NARU_FIXEDPOINT_DIGITS);
-    filter->ngrad[pos + filter_order] = filter->ngrad[pos];
-  }
-
-  /* フィルタ係数更新 */
-  NARU_ASSERT(filter->pdelta_table == &filter->delta_table[1]);
-  {
-    const int32_t half = (1 << (filter->delta_rshift - 1));
-    const int32_t delta = filter->pdelta_table[NARUUTILITY_SIGN(residual)];
+    /* フィルタ予測 */
+    predict = NARU_FIXEDPOINT_0_5;
     for (ord = 0; ord < filter_order; ord++) {
-      int32_t mul = delta * ngrad[ord];
-      mul += half;
-      mul = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(mul, filter->delta_rshift);
-      weight[ord] += mul;
+        predict += weight[ord] * history[ord];
     }
-  }
+    predict = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(predict, NARU_FIXEDPOINT_DIGITS);
 
-  /* 入力データ履歴更新 */
-  filter->history[filter->buffer_pos]
-    = filter->history[filter->buffer_pos + filter_order] = input;
+    /* 差分 */
+    residual = input - predict;
 
-  return residual;
+    /* バッファ参照位置更新 */
+    filter->buffer_pos = (filter->buffer_pos - 1) & filter->buffer_pos_mask;
+
+    /* 自然勾配更新 */
+    ngrad = &filter->ngrad[filter->buffer_pos];
+    for (ord = 0; ord < ar_order; ord++) {
+        const int32_t pos = (filter->buffer_pos + filter_order - 1 - ord) & filter->buffer_pos_mask;
+        filter->ngrad[pos] += NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(ar_coef[ord] * ngrad[filter_order], NARU_FIXEDPOINT_DIGITS);
+        filter->ngrad[pos + filter_order] = filter->ngrad[pos];
+    }
+    ngrad[0] = 0;
+    for (ord = 0; ord < ar_order; ord++) {
+        ngrad[0] -= ar_coef[ord] * history[ord + 1];
+    }
+    ngrad[0] = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(ngrad[0], NARU_FIXEDPOINT_DIGITS);
+    ngrad[0] += history[0];
+    for (ord = 0; ord < ar_order; ord++) {
+        const int32_t pos = (filter->buffer_pos + ord + 1) & filter->buffer_pos_mask;
+        filter->ngrad[pos] -= NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(ar_coef[ord] * ngrad[0], NARU_FIXEDPOINT_DIGITS);
+        filter->ngrad[pos + filter_order] = filter->ngrad[pos];
+    }
+
+    /* フィルタ係数更新 */
+    NARU_ASSERT(filter->pdelta_table == &filter->delta_table[1]);
+    {
+        const int32_t half = (1 << (filter->delta_rshift - 1));
+        const int32_t delta = filter->pdelta_table[NARUUTILITY_SIGN(residual)];
+        for (ord = 0; ord < filter_order; ord++) {
+            int32_t mul = delta * ngrad[ord];
+            mul += half;
+            mul = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(mul, filter->delta_rshift);
+            weight[ord] += mul;
+        }
+    }
+
+    /* 入力データ履歴更新 */
+    filter->history[filter->buffer_pos]
+        = filter->history[filter->buffer_pos + filter_order] = input;
+
+    return residual;
 }
 
 /* SAフィルタの1サンプル予測処理 */
 static int32_t NARUSAFilter_Predict(struct NARUSAFilter *filter, int32_t input)
 {
-  int32_t ord, residual, predict, sign;
-  int32_t *history, *weight;
-  const int32_t filter_order = filter->filter_order;
+    int32_t ord, residual, predict, sign;
+    int32_t *history, *weight;
+    const int32_t filter_order = filter->filter_order;
 
-  NARU_ASSERT(filter != NULL);
-  
-  /* ローカル変数に受けとく */
-  history = &filter->history[filter->buffer_pos];
-  weight = &filter->weight[0];
+    NARU_ASSERT(filter != NULL);
 
-  /* フィルタ予測 */
-  predict = NARU_FIXEDPOINT_0_5;
-  for (ord = 0; ord < filter_order; ord++) {
-    predict += weight[ord] * history[ord];
-  }
-  predict = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(predict, NARU_FIXEDPOINT_DIGITS);
+    /* ローカル変数に受けとく */
+    history = &filter->history[filter->buffer_pos];
+    weight = &filter->weight[0];
 
-  /* 差分 */
-  residual = input - predict;
+    /* フィルタ予測 */
+    predict = NARU_FIXEDPOINT_0_5;
+    for (ord = 0; ord < filter_order; ord++) {
+        predict += weight[ord] * history[ord];
+    }
+    predict = NARUUTILITY_SHIFT_RIGHT_ARITHMETIC(predict, NARU_FIXEDPOINT_DIGITS);
 
-  /* 係数更新 */
-  sign = NARUUTILITY_SIGN(residual);
-  for (ord = 0; ord < filter_order; ord++) {
-    weight[ord] += sign * history[ord];
-  }
+    /* 差分 */
+    residual = input - predict;
 
-  /* 入力データ履歴更新 */
-  filter->buffer_pos = (filter->buffer_pos - 1) & filter->buffer_pos_mask;
-  filter->history[filter->buffer_pos]
-    = filter->history[filter->buffer_pos + filter_order] = input;
+    /* 係数更新 */
+    sign = NARUUTILITY_SIGN(residual);
+    for (ord = 0; ord < filter_order; ord++) {
+        weight[ord] += sign * history[ord];
+    }
 
-  return residual;
+    /* 入力データ履歴更新 */
+    filter->buffer_pos = (filter->buffer_pos - 1) & filter->buffer_pos_mask;
+    filter->history[filter->buffer_pos]
+        = filter->history[filter->buffer_pos + filter_order] = input;
+
+    return residual;
 }
 
 /* 予測 */
 void NARUEncodeProcessor_Predict(
-  struct NARUEncodeProcessor *processor, int32_t *buffer, uint32_t num_samples)
+        struct NARUEncodeProcessor *processor, int32_t *buffer, uint32_t num_samples)
 {
-  uint32_t smpl;
+    uint32_t smpl;
 
-  /* 引数チェック */
-  NARU_ASSERT(processor != NULL);
-  NARU_ASSERT(buffer != NULL);
-  NARU_ASSERT(num_samples > 0);
+    /* 引数チェック */
+    NARU_ASSERT(processor != NULL);
+    NARU_ASSERT(buffer != NULL);
+    NARU_ASSERT(num_samples > 0);
 
-  /* フィルタ次数チェック */
-  NARU_ASSERT(processor->ngsa->filter_order <= processor->ngsa->max_filter_order);
-  NARU_ASSERT(processor->ngsa->ar_order <= processor->ngsa->max_filter_order);
-  NARU_ASSERT(processor->ngsa->filter_order > (2 * processor->ngsa->ar_order));
-  NARU_ASSERT(processor->sa->filter_order <= processor->sa->max_filter_order);
+    /* フィルタ次数チェック */
+    NARU_ASSERT(processor->ngsa->filter_order <= processor->ngsa->max_filter_order);
+    NARU_ASSERT(processor->ngsa->ar_order <= processor->ngsa->max_filter_order);
+    NARU_ASSERT(processor->ngsa->filter_order > (2 * processor->ngsa->ar_order));
+    NARU_ASSERT(processor->sa->filter_order <= processor->sa->max_filter_order);
 
-  /* 自然勾配の初期化 */
-  NARUNGSAFilter_InitializeNaturalGradient(processor->ngsa);
+    /* 自然勾配の初期化 */
+    NARUNGSAFilter_InitializeNaturalGradient(processor->ngsa);
 
-  /* 1サンプル毎に予測 
-   * 補足）static関数なので、最適化時に展開されることを期待 */
-  for (smpl = 0; smpl < num_samples; smpl++) {
-    /* プリエンファシス */
-    buffer[smpl] = NARUEncodeProcessor_PreEmphasis(processor, buffer[smpl]);
-    /* NGSA */
-    buffer[smpl] = NARUNGSAFilter_Predict(processor->ngsa, buffer[smpl]);
-    /* SA */
-    buffer[smpl] = NARUSAFilter_Predict(processor->sa, buffer[smpl]);
-  }
+    /* 1サンプル毎に予測
+    * 補足）static関数なので、最適化時に展開されることを期待 */
+    for (smpl = 0; smpl < num_samples; smpl++) {
+        /* プリエンファシス */
+        buffer[smpl] = NARUEncodeProcessor_PreEmphasis(processor, buffer[smpl]);
+        /* NGSA */
+        buffer[smpl] = NARUNGSAFilter_Predict(processor->ngsa, buffer[smpl]);
+        /* SA */
+        buffer[smpl] = NARUSAFilter_Predict(processor->sa, buffer[smpl]);
+    }
 }

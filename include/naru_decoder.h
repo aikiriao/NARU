@@ -6,9 +6,9 @@
 
 /* デコーダコンフィグ */
 struct NARUDecoderConfig {
-  uint32_t max_num_channels;  /* エンコード可能な最大チャンネル数 */
-  uint8_t max_filter_order;   /* 最大フィルタ次数 */
-  uint8_t check_crc;          /* CRCによるデータ破損検査を行うか？ 1:ON それ意外:OFF */
+    uint32_t max_num_channels;  /* エンコード可能な最大チャンネル数 */
+    uint8_t max_filter_order;   /* 最大フィルタ次数 */
+    uint8_t check_crc;          /* CRCによるデータ破損検査を行うか？ 1:ON それ意外:OFF */
 };
 
 /* デコーダハンドル */
@@ -20,7 +20,7 @@ extern "C" {
 
 /* ヘッダデコード */
 NARUApiResult NARUDecoder_DecodeHeader(
-    const uint8_t *data, uint32_t data_size, struct NARUHeader *header);
+        const uint8_t *data, uint32_t data_size, struct NARUHeader *header);
 
 /* デコーダハンドルの作成に必要なワークサイズの計算 */
 int32_t NARUDecoder_CalculateWorkSize(const struct NARUDecoderConfig *condig);
@@ -33,20 +33,20 @@ void NARUDecoder_Destroy(struct NARUDecoder *decoder);
 
 /* デコーダにヘッダをセット */
 NARUApiResult NARUDecoder_SetHeader(
-    struct NARUDecoder *decoder, const struct NARUHeader *header);
+        struct NARUDecoder *decoder, const struct NARUHeader *header);
 
 /* 単一データブロックデコード */
 NARUApiResult NARUDecoder_DecodeBlock(
-    struct NARUDecoder *decoder,
-    const uint8_t *data, uint32_t data_size, 
-    int32_t **buffer, uint32_t buffer_num_samples, 
-    uint32_t *decode_size, uint32_t *num_decode_samples);
+        struct NARUDecoder *decoder,
+        const uint8_t *data, uint32_t data_size,
+        int32_t **buffer, uint32_t buffer_num_samples,
+        uint32_t *decode_size, uint32_t *num_decode_samples);
 
 /* ヘッダを含めて全ブロックデコード */
 NARUApiResult NARUDecoder_DecodeWhole(
-    struct NARUDecoder *decoder,
-    const uint8_t *data, uint32_t data_size,
-    int32_t **buffer, uint32_t buffer_num_channels, uint32_t buffer_num_samples);
+        struct NARUDecoder *decoder,
+        const uint8_t *data, uint32_t data_size,
+        int32_t **buffer, uint32_t buffer_num_channels, uint32_t buffer_num_samples);
 
 #ifdef __cplusplus
 }

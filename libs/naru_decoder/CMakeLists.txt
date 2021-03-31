@@ -16,22 +16,22 @@ add_subdirectory(src)
 
 # インクルードパス
 target_include_directories(${LIB_NAME}
-  PRIVATE
+    PRIVATE
     ${PROJECT_ROOT_PATH}/libs/byte_array/include
     ${PROJECT_ROOT_PATH}/libs/naru_internal/include
     ${PROJECT_ROOT_PATH}/libs/naru_bit_stream/include
     ${PROJECT_ROOT_PATH}/libs/naru_coder/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-  PUBLIC
+    PUBLIC
     ${PROJECT_ROOT_PATH}/include
-)
+    )
 
 # コンパイルオプション
 if(MSVC)
-  target_compile_options(${LIB_NAME} PRIVATE /W4)
+    target_compile_options(${LIB_NAME} PRIVATE /W4)
 else()
-  target_compile_options(${LIB_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wformat=2 -Wstrict-aliasing=2 -Wconversion -Wmissing-prototypes -Wstrict-prototypes -Wold-style-definition)
-  set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
-  set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
+    target_compile_options(${LIB_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wformat=2 -Wstrict-aliasing=2 -Wconversion -Wmissing-prototypes -Wstrict-prototypes -Wold-style-definition)
+    set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
+    set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 endif()
 set_target_properties(${LIB_NAME} PROPERTIES C_STANDARD 90 C_EXTENSIONS OFF)

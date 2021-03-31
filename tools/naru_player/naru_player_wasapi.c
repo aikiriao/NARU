@@ -35,145 +35,145 @@ static const IID st_IID_IAudioRenderClient = { 0xF294ACFC, 0x3146, 0x4483, {0xA7
 /* 初期化 この関数内でデバイスドライバの初期化を行い、再生開始 */
 void NARUPlayer_Initialize(const struct NARUPlayerConfig* config)
 {
-	uint32_t i, buffer_frame_size;
-	HRESULT hr;
-	IMMDeviceEnumerator* device_enumerator;
-	IMMDevice* audio_device;
-	WAVEFORMATEX format;
+    uint32_t i, buffer_frame_size;
+    HRESULT hr;
+    IMMDeviceEnumerator* device_enumerator;
+    IMMDevice* audio_device;
+    WAVEFORMATEX format;
 
-	assert(config != NULL);
+    assert(config != NULL);
 
-	/* 多重初期化は不可 */
-	if (st_initialize_count > 0) {
-		return;
-	}
+    /* 多重初期化は不可 */
+    if (st_initialize_count > 0) {
+        return;
+    }
 
-	/* コンフィグ取得 */
-	st_config = (*config);
+    /* コンフィグ取得 */
+    st_config = (*config);
 
-	/* デコード領域のバッファ確保 */
-	st_decode_buffer = (int32_t**)malloc(sizeof(int32_t*) * st_config.num_channels);
-	for (i = 0; i < st_config.num_channels; i++) {
-		st_decode_buffer[i] = (int32_t*)malloc(sizeof(int32_t) * DECODE_BUFFER_NUM_SAMPLES);
-		memset(st_decode_buffer[i], 0, sizeof(int32_t) * DECODE_BUFFER_NUM_SAMPLES);
-	}
+    /* デコード領域のバッファ確保 */
+    st_decode_buffer = (int32_t**)malloc(sizeof(int32_t*) * st_config.num_channels);
+    for (i = 0; i < st_config.num_channels; i++) {
+        st_decode_buffer[i] = (int32_t*)malloc(sizeof(int32_t) * DECODE_BUFFER_NUM_SAMPLES);
+        memset(st_decode_buffer[i], 0, sizeof(int32_t) * DECODE_BUFFER_NUM_SAMPLES);
+    }
 
-	/* COMの初期化 */
-	hr = CoInitializeEx(NULL, COINIT_SPEED_OVER_MEMORY);
-	assert(SUCCEEDED(hr));
+    /* COMの初期化 */
+    hr = CoInitializeEx(NULL, COINIT_SPEED_OVER_MEMORY);
+    assert(SUCCEEDED(hr));
 
-	/* マルチメディアデバイス列挙子取得 */
-	hr = CoCreateInstance(&st_CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, &st_IID_IMMDeviceEnumerator, &device_enumerator);
-	assert(SUCCEEDED(hr));
+    /* マルチメディアデバイス列挙子取得 */
+    hr = CoCreateInstance(&st_CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, &st_IID_IMMDeviceEnumerator, &device_enumerator);
+    assert(SUCCEEDED(hr));
 
-	/* デフォルトのデバイス取得 */
-	hr = IMMDeviceEnumerator_GetDefaultAudioEndpoint(device_enumerator, eRender, eConsole, &audio_device);
-	assert(SUCCEEDED(hr));
-	IMMDeviceEnumerator_Release(device_enumerator);
+    /* デフォルトのデバイス取得 */
+    hr = IMMDeviceEnumerator_GetDefaultAudioEndpoint(device_enumerator, eRender, eConsole, &audio_device);
+    assert(SUCCEEDED(hr));
+    IMMDeviceEnumerator_Release(device_enumerator);
 
-	/* クライアント取得 */
-	hr = IMMDevice_Activate(audio_device, &st_IID_IAudioClient, CLSCTX_ALL, NULL, &audio_client);
-	assert(SUCCEEDED(hr));
-	IMMDevice_Release(audio_device);
+    /* クライアント取得 */
+    hr = IMMDevice_Activate(audio_device, &st_IID_IAudioClient, CLSCTX_ALL, NULL, &audio_client);
+    assert(SUCCEEDED(hr));
+    IMMDevice_Release(audio_device);
 
-	/* 出力フォーマット指定 */
-	ZeroMemory(&format, sizeof(WAVEFORMATEX));
-	format.wFormatTag = WAVE_FORMAT_PCM;
-	format.nChannels = st_config.num_channels;
-	format.nSamplesPerSec = st_config.sampling_rate;
-	format.wBitsPerSample = st_config.bits_per_sample;
-	format.nBlockAlign = (format.nChannels * format.wBitsPerSample) / 8;
-	format.nAvgBytesPerSec = format.nSamplesPerSec * format.nBlockAlign;
+    /* 出力フォーマット指定 */
+    ZeroMemory(&format, sizeof(WAVEFORMATEX));
+    format.wFormatTag = WAVE_FORMAT_PCM;
+    format.nChannels = st_config.num_channels;
+    format.nSamplesPerSec = st_config.sampling_rate;
+    format.wBitsPerSample = st_config.bits_per_sample;
+    format.nBlockAlign = (format.nChannels * format.wBitsPerSample) / 8;
+    format.nAvgBytesPerSec = format.nSamplesPerSec * format.nBlockAlign;
 
-	/* 出力フォーマットが対応しているかチェック */
-	{
-		WAVEFORMATEX closest_format, * pformat;
-		pformat = &closest_format;
-		hr = IAudioClient_IsFormatSupported(audio_client, AUDCLNT_SHAREMODE_SHARED, &format, &pformat);
-		assert(SUCCEEDED(hr));
-	}
+    /* 出力フォーマットが対応しているかチェック */
+    {
+        WAVEFORMATEX closest_format, * pformat;
+        pformat = &closest_format;
+        hr = IAudioClient_IsFormatSupported(audio_client, AUDCLNT_SHAREMODE_SHARED, &format, &pformat);
+        assert(SUCCEEDED(hr));
+    }
 
-	/* クライアント初期化 */
-	hr = IAudioClient_Initialize(audio_client,
-		AUDCLNT_SHAREMODE_SHARED, /* 共有モード */
-		AUDCLNT_STREAMFLAGS_RATEADJUST /* レート変換を使う（入力波形に合わせたレートで再生する） */
-		| AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM /* レート変換の自動挿入を有効にする */
-		| AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY, /* 良い品質のレート変換を使う */
-		REQUESTED_SOUND_BUFFER_DURATION, 0, &format, NULL);
-	assert(SUCCEEDED(hr));
+    /* クライアント初期化 */
+    hr = IAudioClient_Initialize(audio_client,
+            AUDCLNT_SHAREMODE_SHARED, /* 共有モード */
+            AUDCLNT_STREAMFLAGS_RATEADJUST /* レート変換を使う（入力波形に合わせたレートで再生する） */
+            | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM /* レート変換の自動挿入を有効にする */
+            | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY, /* 良い品質のレート変換を使う */
+            REQUESTED_SOUND_BUFFER_DURATION, 0, &format, NULL);
+    assert(SUCCEEDED(hr));
 
-	/* サンプリングレート変換設定 */
-	{
-		IAudioClockAdjustment* clock_adj;
-		hr = IAudioClient_GetService(audio_client, &st_IID_IAudioClockAdjustment, &clock_adj);
-		assert(SUCCEEDED(hr));
+    /* サンプリングレート変換設定 */
+    {
+        IAudioClockAdjustment* clock_adj;
+        hr = IAudioClient_GetService(audio_client, &st_IID_IAudioClockAdjustment, &clock_adj);
+        assert(SUCCEEDED(hr));
 
-		hr = IAudioClockAdjustment_SetSampleRate(clock_adj, st_config.sampling_rate);
-		assert(SUCCEEDED(hr));
-		IAudioClockAdjustment_Release(clock_adj);
-	}
+        hr = IAudioClockAdjustment_SetSampleRate(clock_adj, st_config.sampling_rate);
+        assert(SUCCEEDED(hr));
+        IAudioClockAdjustment_Release(clock_adj);
+    }
 
-	/* バッファを書き込む為のレンダラーを取得 */
-	hr = IAudioClient_GetService(audio_client, &st_IID_IAudioRenderClient, &audio_render_client);
-	assert(SUCCEEDED(hr));
+    /* バッファを書き込む為のレンダラーを取得 */
+    hr = IAudioClient_GetService(audio_client, &st_IID_IAudioRenderClient, &audio_render_client);
+    assert(SUCCEEDED(hr));
 
-	/* 書き込み用のバッファサイズ取得 */
-	hr = IAudioClient_GetBufferSize(audio_client, &buffer_frame_size);
-	assert(SUCCEEDED(hr));
+    /* 書き込み用のバッファサイズ取得 */
+    hr = IAudioClient_GetBufferSize(audio_client, &buffer_frame_size);
+    assert(SUCCEEDED(hr));
 
-	/* 再生開始 */
-	hr = IAudioClient_Start(audio_client);
-	assert(SUCCEEDED(hr));
+    /* 再生開始 */
+    hr = IAudioClient_Start(audio_client);
+    assert(SUCCEEDED(hr));
 
-	st_initialize_count++;
+    st_initialize_count++;
 
-	while (1) {
-		int16_t* buffer;
-		/* レイテンシ: 小さすぎると途切れる, 大きすぎると遅延が大きくなる */
-		const uint32_t buffer_latency = buffer_frame_size / 50;
-		uint32_t padding_size, available_buffer_frame_size;
+    while (1) {
+        int16_t* buffer;
+        /* レイテンシ: 小さすぎると途切れる, 大きすぎると遅延が大きくなる */
+        const uint32_t buffer_latency = buffer_frame_size / 50;
+        uint32_t padding_size, available_buffer_frame_size;
 
-		/* パディングフレームサイズ（サウンドバッファ内に入っていてまだ出力されてないデータ量）の取得 */
-		hr = IAudioClient_GetCurrentPadding(audio_client, &padding_size);
-		assert(SUCCEEDED(hr));
+        /* パディングフレームサイズ（サウンドバッファ内に入っていてまだ出力されてないデータ量）の取得 */
+        hr = IAudioClient_GetCurrentPadding(audio_client, &padding_size);
+        assert(SUCCEEDED(hr));
 
-		/* 書き込み可能なフレームサイズの取得 */
-		available_buffer_frame_size = buffer_latency - padding_size;
+        /* 書き込み可能なフレームサイズの取得 */
+        available_buffer_frame_size = buffer_latency - padding_size;
 
-		/* 書き込み用バッファ取得 */
-		hr = IAudioRenderClient_GetBuffer(audio_render_client, available_buffer_frame_size, &buffer);
-		assert(SUCCEEDED(hr));
+        /* 書き込み用バッファ取得 */
+        hr = IAudioRenderClient_GetBuffer(audio_render_client, available_buffer_frame_size, &buffer);
+        assert(SUCCEEDED(hr));
 
-		/* インターリーブしつつ書き込み チャンネル数分のサンプルのまとまりが1フレーム */
-		for (i = 0; i < available_buffer_frame_size; i++) {
-			uint32_t ch;
-			/* バッファを使い切っていたらその場で次のデータを要求 */
-			if (st_buffer_pos >= DECODE_BUFFER_NUM_SAMPLES) {
-				st_config.sample_request_callback(st_decode_buffer, st_config.num_channels, DECODE_BUFFER_NUM_SAMPLES);
-				st_buffer_pos = 0;
-			}
+        /* インターリーブしつつ書き込み チャンネル数分のサンプルのまとまりが1フレーム */
+        for (i = 0; i < available_buffer_frame_size; i++) {
+            uint32_t ch;
+            /* バッファを使い切っていたらその場で次のデータを要求 */
+            if (st_buffer_pos >= DECODE_BUFFER_NUM_SAMPLES) {
+                st_config.sample_request_callback(st_decode_buffer, st_config.num_channels, DECODE_BUFFER_NUM_SAMPLES);
+                st_buffer_pos = 0;
+            }
 
-			/* インターリーブしたバッファにデータを詰める */
-			for (ch = 0; ch < st_config.num_channels; ch++) {
-				*buffer++ = (int16_t)st_decode_buffer[ch][st_buffer_pos];
-			}
-			st_buffer_pos++;
-		}
+            /* インターリーブしたバッファにデータを詰める */
+            for (ch = 0; ch < st_config.num_channels; ch++) {
+                *buffer++ = (int16_t)st_decode_buffer[ch][st_buffer_pos];
+            }
+            st_buffer_pos++;
+        }
 
-		/* バッファの解放 */
-		hr = IAudioRenderClient_ReleaseBuffer(audio_render_client, available_buffer_frame_size, 0);
-		assert(SUCCEEDED(hr));
-	}
+        /* バッファの解放 */
+        hr = IAudioRenderClient_ReleaseBuffer(audio_render_client, available_buffer_frame_size, 0);
+        assert(SUCCEEDED(hr));
+    }
 }
 
 /* 終了 初期化したときのリソースの開放はここで */
 void NARUPlayer_Finalize(void)
 {
-	if (st_initialize_count == 1) {
-		IAudioClient_Stop(audio_client);
-		IAudioClient_Release(audio_client);
-		IAudioRenderClient_Release(audio_render_client);
-	}
+    if (st_initialize_count == 1) {
+        IAudioClient_Stop(audio_client);
+        IAudioClient_Release(audio_client);
+        IAudioRenderClient_Release(audio_render_client);
+    }
 
-	st_initialize_count--;
+    st_initialize_count--;
 }

@@ -14,7 +14,7 @@
 /* 再帰的ライス符号の商部分の閾値 これ以上の大きさの商はガンマ符号化 */
 #define NARUCODER_QUOTPART_THRESHOULD         16
 /* 固定パラメータ符号を使うか否かの閾値 */
-#define NARUCODER_LOW_THRESHOULD_PARAMETER    6  
+#define NARUCODER_LOW_THRESHOULD_PARAMETER    6
 /* 固定小数点の小数桁 */
 #define NARU_FIXEDPOINT_DIGITS                15
 /* 固定小数点の0.5 */
@@ -42,12 +42,12 @@
 
 /* NULLチェックと領域解放 */
 #define NARU_NULLCHECK_AND_FREE(ptr)\
-  do {\
-    if ((ptr) != NULL) {\
-      free(ptr);\
-      (ptr) = NULL;\
-    }\
-  } while (0);
+    do {\
+        if ((ptr) != NULL) {\
+            free(ptr);\
+            (ptr) = NULL;\
+        }\
+    } while (0);
 
 /* アサートマクロ */
 #ifdef NDEBUG
@@ -66,20 +66,20 @@
 
 /* ブロックデータタイプ */
 typedef enum NARUBlockDataTypeTag {
-  NARU_BLOCK_DATA_TYPE_COMPRESSDATA  = 0,     /* 圧縮済みデータ */
-  NARU_BLOCK_DATA_TYPE_SILENT        = 1,     /* 無音データ     */
-  NARU_BLOCK_DATA_TYPE_RAWDATA       = 2,     /* 生データ       */
-  NARU_BLOCK_DATA_TYPE_INVALID       = 3      /* 無効           */
+    NARU_BLOCK_DATA_TYPE_COMPRESSDATA  = 0,     /* 圧縮済みデータ */
+    NARU_BLOCK_DATA_TYPE_SILENT        = 1,     /* 無音データ     */
+    NARU_BLOCK_DATA_TYPE_RAWDATA       = 2,     /* 生データ       */
+    NARU_BLOCK_DATA_TYPE_INVALID       = 3      /* 無効           */
 } NARUBlockDataType;
 
 /* 内部エラー型 */
 typedef enum NARUErrorTag {
-  NARU_ERROR_OK = 0,              /* OK */
-  NARU_ERROR_NG,                  /* 分類不能な失敗 */
-  NARU_ERROR_INVALID_ARGUMENT,    /* 不正な引数 */
-  NARU_ERROR_INVALID_FORMAT,      /* 不正なフォーマット       */
-  NARU_ERROR_INSUFFICIENT_BUFFER, /* バッファサイズが足りない */
-  NARU_ERROR_INSUFFICIENT_DATA    /* データサイズが足りない   */
+    NARU_ERROR_OK = 0,              /* OK */
+    NARU_ERROR_NG,                  /* 分類不能な失敗 */
+    NARU_ERROR_INVALID_ARGUMENT,    /* 不正な引数 */
+    NARU_ERROR_INVALID_FORMAT,      /* 不正なフォーマット       */
+    NARU_ERROR_INSUFFICIENT_BUFFER, /* バッファサイズが足りない */
+    NARU_ERROR_INSUFFICIENT_DATA    /* データサイズが足りない   */
 } NARUError;
 
 #endif /* NARU_INTERNAL_H_INCLUDED */

@@ -29,21 +29,21 @@ void NARUEncodeProcessor_Reset(struct NARUEncodeProcessor *processor);
 
 /* フィルタ次数の設定 */
 void NARUEncodeProcessor_SetFilterOrder(
-  struct NARUEncodeProcessor *processor, int32_t filter_order,
-  int32_t ar_order, int32_t second_filter_order);
+        struct NARUEncodeProcessor *processor, int32_t filter_order,
+        int32_t ar_order, int32_t second_filter_order);
 
 /* AR係数の計算とプロセッサへの設定 */
 void NARUEncodeProcessor_CalculateARCoef(
-  struct NARUEncodeProcessor *processor, struct LPCCalculator *lpcc,
-  const double *input, uint32_t num_samples);
+        struct NARUEncodeProcessor *processor, struct LPCCalculator *lpcc,
+        const double *input, uint32_t num_samples);
 
 /* 現在のプロセッサの状態を出力（注意: 係数は丸め等の副作用を受ける） */
 void NARUEncodeProcessor_PutFilterState(
-  struct NARUEncodeProcessor *processor, struct NARUBitStream *stream);
+        struct NARUEncodeProcessor *processor, struct NARUBitStream *stream);
 
 /* 予測 */
 void NARUEncodeProcessor_Predict(
-  struct NARUEncodeProcessor *processor, int32_t *buffer, uint32_t num_samples);
+        struct NARUEncodeProcessor *processor, int32_t *buffer, uint32_t num_samples);
 
 #ifdef __cplusplus
 }

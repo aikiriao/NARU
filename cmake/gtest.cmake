@@ -9,7 +9,7 @@ ExternalProject_Add(GoogleTest
     GIT_TAG         release-1.7.0
     INSTALL_COMMAND   ""
     LOG_DOWNLOAD ON
-)
+    )
 
 # インクルードパス追加
 ExternalProject_Get_Property(GoogleTest source_dir)

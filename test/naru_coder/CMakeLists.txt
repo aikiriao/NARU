@@ -12,11 +12,11 @@ add_executable(${TEST_NAME} main.cpp)
 include_directories(${PROJECT_ROOT_PATH}/libs/naru_coder/include)
 
 # リンクするライブラリ
-target_link_libraries(${TEST_NAME} naru_bit_stream) 
-target_link_libraries(${TEST_NAME} naru_internal) 
-target_link_libraries(${TEST_NAME} gtest) 
-target_link_libraries(${TEST_NAME} gtest_main) 
-target_link_libraries(${TEST_NAME} pthread) 
+target_link_libraries(${TEST_NAME} naru_bit_stream)
+target_link_libraries(${TEST_NAME} naru_internal)
+target_link_libraries(${TEST_NAME} gtest)
+target_link_libraries(${TEST_NAME} gtest_main)
+target_link_libraries(${TEST_NAME} pthread)
 
 add_test(
     NAME naru_coder
@@ -31,7 +31,7 @@ set_property(
 
 # ビルド後にテストリソースを持ってくる
 add_custom_command(
-  TARGET ${TEST_NAME}
-  POST_BUILD
-  COMMAND
-  ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/PriChanIcon.png $<TARGET_FILE_DIR:${TEST_NAME}>)
+    TARGET ${TEST_NAME}
+    POST_BUILD
+    COMMAND
+    ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/PriChanIcon.png $<TARGET_FILE_DIR:${TEST_NAME}>)

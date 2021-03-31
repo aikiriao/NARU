@@ -12,9 +12,9 @@ add_executable(${TEST_NAME} main.cpp)
 include_directories(${PROJECT_ROOT_PATH}/libs/command_line_parser/include)
 
 # リンクするライブラリ
-target_link_libraries(${TEST_NAME} gtest) 
-target_link_libraries(${TEST_NAME} gtest_main) 
-target_link_libraries(${TEST_NAME} pthread) 
+target_link_libraries(${TEST_NAME} gtest)
+target_link_libraries(${TEST_NAME} gtest_main)
+target_link_libraries(${TEST_NAME} pthread)
 
 add_test(
     NAME command_line_parser

@@ -5,14 +5,14 @@
 
 /* 出力要求コールバック */
 typedef void (*NARUSampleRequestCallback)(
-    int32_t **buffer, uint32_t num_channels, uint32_t num_samples);
+        int32_t **buffer, uint32_t num_channels, uint32_t num_samples);
 
 /* プレイヤー初期化コンフィグ */
 struct NARUPlayerConfig {
-  uint32_t sampling_rate;
-  uint16_t num_channels;
-  uint16_t bits_per_sample;
-  NARUSampleRequestCallback sample_request_callback;
+    uint32_t sampling_rate;
+    uint16_t num_channels;
+    uint16_t bits_per_sample;
+    NARUSampleRequestCallback sample_request_callback;
 };
 
 #ifdef __cplusplus
