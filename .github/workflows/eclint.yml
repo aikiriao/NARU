@@ -1,4 +1,4 @@
-name: Editorconfig Check by eclint
+name: eclint
 
 on:
   push:
