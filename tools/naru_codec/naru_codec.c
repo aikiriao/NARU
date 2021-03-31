@@ -10,23 +10,23 @@
 
 /* コマンドライン仕様 */
 static struct CommandLineParserSpecification command_line_spec[] = {
-    { 'e', "encode", COMMAND_LINE_PARSER_FALSE, 
-        "Encode mode", 
+    { 'e', "encode", COMMAND_LINE_PARSER_FALSE,
+        "Encode mode",
         NULL, COMMAND_LINE_PARSER_FALSE },
-    { 'd', "decode", COMMAND_LINE_PARSER_FALSE, 
-        "Decode mode", 
+    { 'd', "decode", COMMAND_LINE_PARSER_FALSE,
+        "Decode mode",
         NULL, COMMAND_LINE_PARSER_FALSE },
-    { 'm', "mode", COMMAND_LINE_PARSER_TRUE, 
-        "Specify compress mode: 0(fast decode), ..., 4(high compression) default:2", 
+    { 'm', "mode", COMMAND_LINE_PARSER_TRUE,
+        "Specify compress mode: 0(fast decode), ..., 4(high compression) default:2",
         NULL, COMMAND_LINE_PARSER_FALSE },
-    { 'c', "crc-check", COMMAND_LINE_PARSER_TRUE, 
-        "Whether to check CRC16 at decoding(yes or no) default:yes", 
+    { 'c', "crc-check", COMMAND_LINE_PARSER_TRUE,
+        "Whether to check CRC16 at decoding(yes or no) default:yes",
         NULL, COMMAND_LINE_PARSER_FALSE },
-    { 'h', "help", COMMAND_LINE_PARSER_FALSE, 
-        "Show command help message", 
+    { 'h', "help", COMMAND_LINE_PARSER_FALSE,
+        "Show command help message",
         NULL, COMMAND_LINE_PARSER_FALSE },
-    { 'v', "version", COMMAND_LINE_PARSER_FALSE, 
-        "Show version information", 
+    { 'v', "version", COMMAND_LINE_PARSER_FALSE,
+        "Show version information",
         NULL, COMMAND_LINE_PARSER_FALSE },
     { 0, }
 };
@@ -55,7 +55,7 @@ static const uint32_t default_preset_no = 2;
 
 /* エンコード 成功時は0、失敗時は0以外を返す */
 static int do_encode(const char* in_filename, const char* out_filename, uint32_t encode_preset_no)
-{  
+{ 
     FILE *out_fp;
     struct WAVFile *in_wav;
     struct NARUEncoder *encoder;
@@ -130,7 +130,7 @@ static int do_encode(const char* in_filename, const char* out_filename, uint32_t
     }
 
     /* 一括エンコード */
-    if ((ret = NARUEncoder_EncodeWhole(encoder, 
+    if ((ret = NARUEncoder_EncodeWhole(encoder,
                     (const int32_t* const *)input, num_samples, buffer, buffer_size, &encoded_data_size)) != NARU_APIRESULT_OK) {
         fprintf(stderr, "Encoding error! %d \n", ret);
         return 1;
@@ -207,7 +207,7 @@ static int do_decode(const char* in_filename, const char* out_filename, uint8_t 
     }
 
     /* 一括デコード */
-    if ((ret = NARUDecoder_DecodeWhole(decoder, 
+    if ((ret = NARUDecoder_DecodeWhole(decoder,
                     buffer, buffer_size,
                     (int32_t **)out_wav->data, out_wav->format.num_channels, out_wav->format.num_samples)
                 != NARU_APIRESULT_OK)) {

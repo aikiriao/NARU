@@ -74,7 +74,7 @@ void NARUPlayer_Initialize(const struct NARUPlayerConfig *config)
     /* キューの再生開始 */
     AudioQueueStart(queue, NULL);
 
-    /* スレッドのループ処理開始 
+    /* スレッドのループ処理開始
     * この関数が終わってもスレッド処理が回る（監視ループというらしい） */
     CFRunLoopRun();
 
