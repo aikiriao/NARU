@@ -55,7 +55,7 @@ static const uint32_t default_preset_no = 2;
 
 /* エンコード 成功時は0、失敗時は0以外を返す */
 static int do_encode(const char* in_filename, const char* out_filename, uint32_t encode_preset_no)
-{ 
+{
     FILE *out_fp;
     struct WAVFile *in_wav;
     struct NARUEncoder *encoder;
