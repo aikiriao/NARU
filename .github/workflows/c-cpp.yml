@@ -76,18 +76,20 @@ jobs:
 
     - name: Upload artifacts on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
+      run: |
+        tar -cvzf artifact_${{ matrix.os }} ./tools/naru_codec/build/naru ./tools/naru_player/build/naruplayer
       uses: actions/upload-artifact@v2
       with:
         name: tools
         path: |
-          ./tools/naru_codec/build/naru
-          ./tools/naru_player/build/naruplayer
+          artifact_${{ matrix.os }}
 
     - name: Upload artifacts on Windows platform
       if: runner.os == 'Windows'
+      run: |
+        tar -cvzf artifact_${{ matrix.os }} ./tools/build/Release/naru.exe ./tools/naru_player/build/Release/naruplayer.exe
       uses: actions/upload-artifact@v2
       with:
         name: tools
         path: |
-          ./tools/naru_codec/build/Release/naru.exe
-          ./tools/naru_player/build/Release/naruplayer.exe
+          artifact_${{ matrix.os }}
