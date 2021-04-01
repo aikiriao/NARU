@@ -20,14 +20,28 @@ ExternalProject_Get_Property(GoogleTest binary_dir)
 
 # ライブラリ追加
 add_library(gtest STATIC IMPORTED)
-set_property(
-    TARGET gtest
-    PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/libgtest.a
-    )
+if(MSVC)
+    set_property(
+        TARGET gtest
+        PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/Debug/gtestd.lib
+        )
+else()
+    set_property(
+        TARGET gtest
+        PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/libgtest.a
+        )
+endif()
 
 # メインエントリ追加
 add_library(gtest_main STATIC IMPORTED)
-set_property(
-    TARGET gtest_main
-    PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/libgtest_main.a
-    )
+if(MSVC)
+    set_property(
+        TARGET gtest_main
+        PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/Debug/gtest_maind.lib
+        )
+else()
+    set_property(
+        TARGET gtest_main
+        PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/libgtest_main.a
+        )
+endif()
