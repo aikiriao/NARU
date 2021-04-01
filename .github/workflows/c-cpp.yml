@@ -58,6 +58,7 @@ jobs:
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
         make
+        tar -cvzf artifact_${{ matrix.os }} ./tools/naru_codec/build/naru ./tools/naru_player/build/naruplayer
 
     - name: Build tools on Windows platform
       if: runner.os == 'Windows'
@@ -73,11 +74,10 @@ jobs:
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
         cmake --build . --config Release
+        tar -cvzf artifact_${{ matrix.os }} ./tools/build/Release/naru.exe ./tools/naru_player/build/Release/naruplayer.exe
 
     - name: Upload artifacts on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
-      run: |
-        tar -cvzf artifact_${{ matrix.os }} ./tools/naru_codec/build/naru ./tools/naru_player/build/naruplayer
       uses: actions/upload-artifact@v2
       with:
         name: tools
@@ -86,8 +86,6 @@ jobs:
 
     - name: Upload artifacts on Windows platform
       if: runner.os == 'Windows'
-      run: |
-        tar -cvzf artifact_${{ matrix.os }} ./tools/build/Release/naru.exe ./tools/naru_player/build/Release/naruplayer.exe
       uses: actions/upload-artifact@v2
       with:
         name: tools
