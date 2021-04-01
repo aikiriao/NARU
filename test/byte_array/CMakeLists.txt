@@ -12,9 +12,11 @@ add_executable(${TEST_NAME} main.cpp)
 include_directories(${PROJECT_ROOT_PATH}/libs/byte_array/include)
 
 # リンクするライブラリ
-target_link_libraries(${TEST_NAME} gtest)
-target_link_libraries(${TEST_NAME} gtest_main)
-target_link_libraries(${TEST_NAME} pthread)
+if (MSVC)
+target_link_libraries(${TEST_NAME} gtest gtest_main)
+else()
+target_link_libraries(${TEST_NAME} gtest gtest_main pthread)
+endif()
 
 add_test(
     NAME byte_array

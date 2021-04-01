@@ -16,14 +16,12 @@ add_executable(${TEST_NAME}
 include_directories(${PROJECT_ROOT_PATH}/libs/naru_encoder/include)
 
 # リンクするライブラリ
-target_link_libraries(${TEST_NAME} byte_array)
-target_link_libraries(${TEST_NAME} lpc_calculator)
-target_link_libraries(${TEST_NAME} naru_internal)
-target_link_libraries(${TEST_NAME} naru_bit_stream)
-target_link_libraries(${TEST_NAME} naru_coder)
-target_link_libraries(${TEST_NAME} gtest)
-target_link_libraries(${TEST_NAME} gtest_main)
-target_link_libraries(${TEST_NAME} pthread)
+target_link_libraries(${TEST_NAME} byte_array lpc_calculator  naru_internal naru_bit_stream naru_coder)
+if (MSVC)
+target_link_libraries(${TEST_NAME} gtest gtest_main)
+else()
+target_link_libraries(${TEST_NAME} gtest gtest_main pthread)
+endif()
 
 add_test(
     NAME naru_encoder

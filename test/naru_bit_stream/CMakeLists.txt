@@ -13,9 +13,11 @@ include_directories(${PROJECT_ROOT_PATH}/libs/naru_bit_stream/include)
 
 # リンクするライブラリ
 target_link_libraries(${TEST_NAME} naru_internal)
-target_link_libraries(${TEST_NAME} gtest)
-target_link_libraries(${TEST_NAME} gtest_main)
-target_link_libraries(${TEST_NAME} pthread)
+if (MSVC)
+target_link_libraries(${TEST_NAME} gtest gtest_main)
+else()
+target_link_libraries(${TEST_NAME} gtest gtest_main pthread)
+endif()
 
 add_test(
     NAME naru_bit_stream
