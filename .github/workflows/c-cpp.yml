@@ -10,7 +10,6 @@ jobs:
   build:
 
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -74,3 +73,12 @@ jobs:
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
         msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
+
+    - name: Upload artifacts on UNIX platform
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+      uses: actions/upload-artifact@v2
+      with:
+        name: tools
+        path: |
+          ./tools/naru_codec/build/naru
+          ./tools/naru_player/build/naruplayer
