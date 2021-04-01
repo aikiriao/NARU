@@ -52,12 +52,12 @@ jobs:
         cd tools/naru_codec
         mkdir build
         cd build
-        cmake ..
+        cmake -DCMAKE_BUILD_TYPE=Release ..
         make
         cd ../../naru_player
         mkdir build
         cd build
-        cmake ..
+        cmake -DCMAKE_BUILD_TYPE=Release ..
         make
 
     - name: Build tools on Windows platform
@@ -67,10 +67,10 @@ jobs:
         cd tools/naru_codec
         mkdir build
         cd build
-        cmake ..
+        cmake -DCMAKE_BUILD_TYPE=Release ..
         msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
         cd ../../naru_player
         mkdir build
         cd build
-        cmake ..
+        cmake -DCMAKE_BUILD_TYPE=Release ..
         msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
