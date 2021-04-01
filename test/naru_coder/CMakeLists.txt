@@ -21,6 +21,7 @@ endif()
 
 add_test(
     NAME naru_coder
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_NAME}>/tmp
     COMMAND $<TARGET_FILE:${TEST_NAME}>
     )
 
@@ -34,5 +35,6 @@ set_property(
 add_custom_command(
     TARGET ${TEST_NAME}
     POST_BUILD
-    COMMAND
-    ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/PriChanIcon.png $<TARGET_FILE_DIR:${TEST_NAME}>)
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${TEST_NAME}>/tmp
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/PriChanIcon.png $<TARGET_FILE_DIR:${TEST_NAME}/tmp>
+    )
