@@ -67,12 +67,12 @@ jobs:
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
-        msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
+        cmake --build . --config Release
         cd ../../naru_player
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
-        msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
+        cmake --build . --config Release
 
     - name: Upload artifacts on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
