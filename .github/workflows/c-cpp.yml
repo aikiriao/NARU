@@ -36,6 +36,15 @@ jobs:
         make
         ctest
 
+    - name: Build and test on Windows platform
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
+
     - name: Build tools on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
