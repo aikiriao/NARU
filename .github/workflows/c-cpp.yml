@@ -44,6 +44,7 @@ jobs:
         cd build
         cmake ..
         msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
+        ctest -force-new-ctest-process -C Debug
 
     - name: Build tools on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
@@ -64,6 +65,11 @@ jobs:
       shell: powershell
       run: |
         cd tools/naru_codec
+        mkdir build
+        cd build
+        cmake ..
+        msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
+        cd ../../naru_player
         mkdir build
         cd build
         cmake ..
