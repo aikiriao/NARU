@@ -17,8 +17,35 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: build and test
-      run: mkdir build; cd build; cmake ..; make; ctest
-    - name: build narucodec
-      run: cd tools/naru_codec; mkdir build; cd build; cmake ..; make;
-      
+
+    - name: Preparation on Linux
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install libpulse-dev
+
+    - name: Build and test on UNIX platform
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make
+        ctest
+
+    - name: Build narucodec on UNIX platform
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+      run: |
+        cd tools/naru_codec
+        mkdir build
+        cd build
+        cmake ..
+        make
+
+    - name: Build naruplayer on UNIX platform
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+      run: |
+        cd tools/naru_player
+        mkdir build
+        cd build
+        cmake ..
+        make
