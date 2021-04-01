@@ -44,7 +44,7 @@ jobs:
         cd build
         cmake ..
         msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
-        ctest -force-new-ctest-process -C Debug
+        ctest -C Debug
 
     - name: Build tools on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
