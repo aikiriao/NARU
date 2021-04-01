@@ -45,7 +45,7 @@
 /* ビルトイン関数を使用 */
 __inline uint32_t NARUUTILITY_NLZ(uint32_t x)
 {
-    uint32_t result;
+    unsigned long result;
     return (_BitScanReverse(&result, x) != 0) ? (31U - result) : 32U;
 }
 #else

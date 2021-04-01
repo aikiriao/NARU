@@ -64,7 +64,7 @@ static void NARUEncodeDecodeTest_GenerateSinWave(
 
     for (ch = 0; ch < num_channels; ch++) {
         for (smpl = 0; smpl < num_samples; smpl++) {
-            data[ch][smpl] = sin(440.0f * 2 * M_PI * smpl / 44100.0f);
+            data[ch][smpl] = sin(440.0f * 2 * NARUUTILITY_PI * smpl / 44100.0f);
         }
     }
 }
@@ -96,7 +96,7 @@ static void NARUEncodeDecodeTest_GenerateChirp(
     for (ch = 0; ch < num_channels; ch++) {
         for (smpl = 0; smpl < num_samples; smpl++) {
             period = num_samples - smpl;
-            data[ch][smpl] = sin((2.0f * M_PI * smpl) / period);
+            data[ch][smpl] = sin((2.0f * NARUUTILITY_PI * smpl) / period);
         }
     }
 }
@@ -161,7 +161,7 @@ static void NARUEncodeDecodeTest_GenerateGaussNoise(
             x = (double)rand() / RAND_MAX;
             y = (double)rand() / RAND_MAX;
             /* 分散は0.1f */
-            data[ch][smpl] = 0.25f * sqrt(-2.0f * log(x)) * cos(2.0f * M_PI * y);
+            data[ch][smpl] = 0.25f * sqrt(-2.0f * log(x)) * cos(2.0f * NARUUTILITY_PI * y);
             data[ch][smpl] = (data[ch][smpl] >= 1.0f) ?   1.0f : data[ch][smpl];
             data[ch][smpl] = (data[ch][smpl] <= -1.0f) ? -1.0f : data[ch][smpl];
         }
