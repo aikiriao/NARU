@@ -46,6 +46,7 @@ if(NOT without-test)
     # -> Cとの挙動で差異が生じるかもしれない...
     project(NARUTest CXX)
     if(NOT MSVC)
+        set(CMAKE_CXX_FLAGS "-std=gnu++11") # gtestがGNU独自拡張を使用しているため
         set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
         set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
     endif()
