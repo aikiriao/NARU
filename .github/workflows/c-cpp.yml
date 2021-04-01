@@ -82,3 +82,12 @@ jobs:
         path: |
           ./tools/naru_codec/build/naru
           ./tools/naru_player/build/naruplayer
+
+    - name: Upload artifacts on Windows platform
+      if: runner.os == 'Windows'
+      uses: actions/upload-artifact@v2
+      with:
+        name: tools
+        path: |
+          ./tools/naru_codec/build/Release/naru.exe
+          ./tools/naru_player/build/Release/naruplayer.exe
