@@ -48,33 +48,37 @@ jobs:
     - name: Build tools on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
-        cd tools/naru_codec
+        pushd tools/naru_codec
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
         make
-        cd ../../naru_player
+        popd
+        pushd tools/naru_player
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
         make
-        tar -cvzf artifact_${{ matrix.os }} ~/tools/naru_codec/build/naru ~/tools/naru_player/build/naruplayer
+        popd
+        tar -cvzf artifact_${{ matrix.os }} tools/naru_codec/build/naru tools/naru_player/build/naruplayer
 
     - name: Build tools on Windows platform
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        cd tools/naru_codec
+        pushd tools/naru_codec
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
         cmake --build . --config Release
-        cd ../../naru_player
+        popd
+        pushd tools/naru_player
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
         cmake --build . --config Release
-        tar -cvzf artifact_${{ matrix.os }} ~/tools/build/Release/naru.exe ~/tools/naru_player/build/Release/naruplayer.exe
+        popd
+        tar -cvzf artifact_${{ matrix.os }} tools/build/Release/naru.exe tools/naru_player/build/Release/naruplayer.exe
 
     - name: Upload artifacts on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
