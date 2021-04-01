@@ -36,16 +36,7 @@ jobs:
         make
         ctest
 
-    - name: Build on Windows
-      if: runner.os == 'Windows'
-      shell: powershell
-      run: |
-        mkdir build
-        cd build
-        cmake ..
-        msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
-
-    - name: Build narucodec on UNIX platform
+    - name: Build tools on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
         cd tools/naru_codec
@@ -53,12 +44,18 @@ jobs:
         cd build
         cmake ..
         make
-
-    - name: Build naruplayer on UNIX platform
-      if: runner.os == 'Linux' || runner.os == 'macOS'
-      run: |
-        cd tools/naru_player
+        cd ../../naru_player
         mkdir build
         cd build
         cmake ..
         make
+
+    - name: Build tools on Windows platform
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        cd tools/naru_codec
+        mkdir build
+        cd build
+        cmake ..
+        msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
