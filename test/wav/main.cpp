@@ -87,7 +87,6 @@ TEST(WAVTest, CreateDestroyTest)
         EXPECT_EQ(1, is_ok);
 
         WAV_Destroy(wavfile);
-        EXPECT_TRUE(wavfile->data == NULL);
     }
 
 
