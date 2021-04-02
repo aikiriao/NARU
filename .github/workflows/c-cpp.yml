@@ -58,11 +58,11 @@ jobs:
         mkdir include && mkdir libs && mkdir tools
         popd
         cp include/*.h ${ARTIFACT_ROOT}/include/
-        cp build/libnarucodec.a ${ARTIFACT_ROOT}/libs/
-        cp build/libnarudec.a ${ARTIFACT_ROOT}/libs/
+        cp build_release/libnarucodec.a ${ARTIFACT_ROOT}/libs/
+        cp build_release/libnarudec.a ${ARTIFACT_ROOT}/libs/
         cp tools/naru_codec/build/naru ${ARTIFACT_ROOT}/tools/
         cp tools/naru_player/build/naruplayer ${ARTIFACT_ROOT}/tools/
-        zip -r ${ARTIFACT_ROOT}.zip ${ARTIFACT_ROOT}
+        tar -czf ${ARTIFACT_ROOT}.tar.gz ${ARTIFACT_ROOT} 
 
     - name: Create artifacts on Windows platform
       if: runner.os == 'Windows'
@@ -76,15 +76,15 @@ jobs:
         mkdir tools
         popd
         cp include/*.h ${ARTIFACT_ROOT}/include/
-        cp build/Release/narucodec.lib ${ARTIFACT_ROOT}/libs/
-        cp build/Release/narudec.lib ${ARTIFACT_ROOT}/libs/
+        cp build_release/Release/narucodec.lib ${ARTIFACT_ROOT}/libs/
+        cp build_release/Release/narudec.lib ${ARTIFACT_ROOT}/libs/
         cp tools/naru_codec/build/Release/naru.exe ${ARTIFACT_ROOT}/tools/
         cp tools/naru_player/build/Release/naruplayer.exe ${ARTIFACT_ROOT}/tools/
-        Compress-Archive -Path ${ARTIFACT_ROOT} -DestinationPath "${ARTIFACT_ROOT}.zip"
+        tar -czf "${ARTIFACT_ROOT}.tar.gz" ${ARTIFACT_ROOT} 
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
         name: artifacts
         path: |
-          artifact_${{ matrix.os }}.zip
+          artifact_${{ matrix.os }}.tar.gz
