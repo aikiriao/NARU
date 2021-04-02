@@ -21,8 +21,8 @@ struct NARUEncoder {
     uint32_t max_num_samples_per_block;     /* バッファサンプル数 */
     uint8_t num_encode_trials;              /* エンコード繰り返し回数 */
     uint8_t set_parameter;                  /* パラメータセット済み？ */
-    double *window;                         /* 窓 */
     int32_t **buffer;                       /* 信号バッファ */
+    double *window;                         /* 窓 */
     double *buffer_double;                  /* 信号処理バッファ（浮動小数） */
     uint8_t alloced_by_own;                 /* 領域を自前確保しているか？ */
     void *work;                             /* ワーク領域先頭ポインタ */
@@ -242,11 +242,11 @@ int32_t NARUEncoder_CalculateWorkSize(const struct NARUEncoderConfig *config)
     work_size += tmp_work_size * config->max_num_channels;
 
     /* 窓と信号処理バッファのサイズ */
-    work_size += 2 * sizeof(double) * config->max_num_samples_per_block;
+    work_size += 2 * (sizeof(double) * config->max_num_samples_per_block + NARU_MEMORY_ALIGNMENT);
 
     /* 信号処理バッファのサイズ */
-    work_size += sizeof(int32_t *) * config->max_num_channels;
-    work_size += sizeof(int32_t) * config->max_num_channels * config->max_num_samples_per_block;
+    work_size += sizeof(int32_t *) * config->max_num_channels + NARU_MEMORY_ALIGNMENT;
+    work_size += config->max_num_channels * (sizeof(int32_t) * config->max_num_samples_per_block + NARU_MEMORY_ALIGNMENT);
 
     return work_size;
 }
@@ -330,14 +330,21 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config, v
         }
     }
 
-    /* バッファ領域の確保 */
+    /* バッファ領域の確保 全てのポインタをアラインメント */
+
+    work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work_ptr, NARU_MEMORY_ALIGNMENT);
     encoder->window = (double *)work_ptr;
     work_ptr += sizeof(double) * config->max_num_samples_per_block;
+
+    work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work_ptr, NARU_MEMORY_ALIGNMENT);
     encoder->buffer_double = (double *)work_ptr;
     work_ptr += sizeof(double) * config->max_num_samples_per_block;
+
+    work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work_ptr, NARU_MEMORY_ALIGNMENT);
     encoder->buffer = (int32_t **)work_ptr;
     work_ptr += sizeof(int32_t *) * config->max_num_channels;
     for (ch = 0; ch < config->max_num_channels; ch++) {
+        work_ptr = (uint8_t *)NARUUTILITY_ROUNDUP((uintptr_t)work_ptr, NARU_MEMORY_ALIGNMENT);
         encoder->buffer[ch] = (int32_t *)work_ptr;
         work_ptr += sizeof(int32_t) * config->max_num_samples_per_block;
     }
