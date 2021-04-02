@@ -26,12 +26,18 @@ jobs:
       if: runner.os == 'Windows'
       uses: microsoft/setup-msbuild@v1.0.2
 
-    - name: Build libraries and test
+    - name: Build libraries
       run: |
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Debug ..
         cmake --build . --config Debug
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build . --config Release
+
+    - name: Test
+      run: |
+        cd build
         ctest -C Debug
 
     - name: Build tools
