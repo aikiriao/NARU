@@ -74,7 +74,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        ARTIFACT_ROOT=artifact_${{ matrix.os }}
+        $ARTIFACT_ROOT = "artifact_${{ matrix.os }}"
         mkdir ${ARTIFACT_ROOT} 
         pushd ${ARTIFACT_ROOT}
         mkdir include
@@ -86,7 +86,7 @@ jobs:
         cp build/Release/narudec.lib ${ARTIFACT_ROOT}/libs/
         cp tools/naru_codec/build/Release/naru.exe ${ARTIFACT_ROOT}/tools/
         cp tools/naru_player/build/Release/naruplayer.exe ${ARTIFACT_ROOT}/tools/
-        zip -r ${ARTIFACT_ROOT}.zip ${ARTIFACT_ROOT}
+        Compress-Archive -Path ${ARTIFACT_ROOT} -DestinationPath ${ARTIFACT_ROOT}.zip
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
