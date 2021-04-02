@@ -58,7 +58,17 @@ jobs:
     - name: Create artifacts on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
-        tar -cvzf artifact_${{ matrix.os }}.tar.gz -C tools/naru_codec/build naru -C ../../naru_player/build naruplayer
+        ARTIFACT_ROOT=artifact_${{ matrix.os }}
+        mkdir ${ARTIFACT_ROOT} 
+        pushd ${ARTIFACT_ROOT}
+        mkdir include && mkdir libs && mkdir tools
+        popd
+        cp include/*.h ${ARTIFACT_ROOT}/include/
+        cp build/narucodec.a ${ARTIFACT_ROOT}/libs/
+        cp build/narudec.a ${ARTIFACT_ROOT}/libs/
+        cp tools/naru_codec/build/naru ${ARTIFACT_ROOT}/tools/
+        cp tools/naru_player/build/naruplayer ${ARTIFACT_ROOT}/tools/
+        zip ${ARTIFACT_ROOT}.zip ${ARTIFACT_ROOT}
 
     - name: Create artifacts on Windows platform
       if: runner.os == 'Windows'
@@ -66,18 +76,10 @@ jobs:
       run: |
         tar -cvzf artifact_${{ matrix.os }}.tar.gz -C tools/naru_codec/build/Release naru.exe -C ../../../naru_player/build/Release naruplayer.exe
 
-    - name: Upload artifacts on UNIX platform
+    - name: Upload artifacts
       if: runner.os == 'Linux' || runner.os == 'macOS'
       uses: actions/upload-artifact@v2
       with:
-        name: tools
+        name: artifacts
         path: |
-          artifact_${{ matrix.os }}.tar.gz
-
-    - name: Upload artifacts on Windows platform
-      if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v2
-      with:
-        name: tools
-        path: |
-          artifact_${{ matrix.os }}.tar.gz
+          artifact_${{ matrix.os }}.zip
