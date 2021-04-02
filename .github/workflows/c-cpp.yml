@@ -45,25 +45,7 @@ jobs:
         msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
         ctest -C Debug
 
-    - name: Build tools on UNIX platform
-      if: runner.os == 'Linux' || runner.os == 'macOS'
-      run: |
-        pushd tools/naru_codec
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build . --config Release
-        popd
-        pushd tools/naru_player
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build . --config Release
-        popd
-
-    - name: Build tools on Windows platform
-      if: runner.os == 'Windows'
-      shell: powershell
+    - name: Build tools
       run: |
         pushd tools/naru_codec
         mkdir build
