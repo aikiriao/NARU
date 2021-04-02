@@ -21,9 +21,14 @@ ExternalProject_Get_Property(GoogleTest binary_dir)
 # ライブラリ追加
 add_library(gtest STATIC IMPORTED)
 if(MSVC)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(libgtest_path "${binary_dir}/lib/Release/gtest.lib")
+    else()
+        set(libgtest_path "${binary_dir}/lib/Debug/gtestd.lib")
+    endif()
     set_property(
         TARGET gtest
-        PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/Debug/gtestd.lib
+        PROPERTY IMPORTED_LOCATION ${libgtest_path}
         )
 else()
     set_property(
@@ -35,9 +40,14 @@ endif()
 # メインエントリ追加
 add_library(gtest_main STATIC IMPORTED)
 if(MSVC)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(libgtest_main_path "${binary_dir}/lib/Release/gtest_main.lib")
+    else()
+        set(libgtest_main_path "${binary_dir}/lib/Debug/gtest_maind.lib")
+    endif()
     set_property(
         TARGET gtest_main
-        PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/Debug/gtest_maind.lib
+        PROPERTY IMPORTED_LOCATION ${libgtest_main_path}
         )
 else()
     set_property(
