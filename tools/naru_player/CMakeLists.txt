@@ -35,7 +35,7 @@ target_include_directories(${APP_NAME}
 
 # リンクするライブラリ
 if (UNIX AND NOT APPLE)
-    target_link_libraries(${APP_NAME} narudec pulse-simple pulse)
+    target_link_libraries(${APP_NAME} narudec pulse-simple pulse m)
 else()
     target_link_libraries(${APP_NAME} narudec)
 endif()

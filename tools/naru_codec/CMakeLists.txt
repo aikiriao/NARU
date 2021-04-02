@@ -27,6 +27,9 @@ target_include_directories(${APP_NAME}
 target_link_libraries(${APP_NAME} command_line_parser)
 target_link_libraries(${APP_NAME} wav)
 target_link_libraries(${APP_NAME} narucodec)
+if (UNIX AND NOT APPLE)
+    target_link_libraries(${APP_NAME} m)
+endif()
 
 # コンパイルオプション
 if(MSVC)
