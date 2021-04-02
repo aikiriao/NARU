@@ -41,11 +41,11 @@ jobs:
     - name: Build tools
       run: |
         pushd tools/naru_codec
-        cmake -B build -DCMAKE_BUILD_TYPE=Release ..
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release
         popd
         pushd tools/naru_player
-        cmake -B build -DCMAKE_BUILD_TYPE=Release ..
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release
         popd
 
