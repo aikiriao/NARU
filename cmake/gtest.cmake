@@ -44,7 +44,7 @@ if(MSVC)
         IMPORTED_LOCATION_RELEASE "${binary_dir}/lib/Release/gtest_main.lib"
         )
 else()
-    set_target_properties(gtest
+    set_target_properties(gtest_main
         PROPERTIES
         IMPORTED_LOCATION ${binary_dir}/lib/libgtest_main.a
         )
