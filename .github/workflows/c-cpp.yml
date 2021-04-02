@@ -64,8 +64,8 @@ jobs:
         mkdir include && mkdir libs && mkdir tools
         popd
         cp include/*.h ${ARTIFACT_ROOT}/include/
-        cp build/narucodec.a ${ARTIFACT_ROOT}/libs/
-        cp build/narudec.a ${ARTIFACT_ROOT}/libs/
+        cp build/libnarucodec.a ${ARTIFACT_ROOT}/libs/
+        cp build/libnarudec.a ${ARTIFACT_ROOT}/libs/
         cp tools/naru_codec/build/naru ${ARTIFACT_ROOT}/tools/
         cp tools/naru_player/build/naruplayer ${ARTIFACT_ROOT}/tools/
         zip ${ARTIFACT_ROOT}.zip ${ARTIFACT_ROOT}
