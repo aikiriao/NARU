@@ -21,7 +21,7 @@ cd NARU/tools/naru_codec
 mkdir build
 cd build
 cmake ..
-make
+cmake --build . 
 ```
 
 # Usage
