@@ -18,10 +18,8 @@ Natural-gradient AutoRegressive Unlossy audio compressor
 ```bash
 git clone https://github.com/aikiriao/NARU.git
 cd NARU/tools/naru_codec
-mkdir build
-cd build
-cmake ..
-cmake --build .
+cmake -B build
+cmake --build build
 ```
 
 # Usage
