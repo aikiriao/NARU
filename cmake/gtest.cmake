@@ -21,37 +21,31 @@ ExternalProject_Get_Property(GoogleTest binary_dir)
 # ライブラリ追加
 add_library(gtest STATIC IMPORTED)
 if(MSVC)
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set(libgtest_path "${binary_dir}/lib/Release/gtest.lib")
-    else()
-        set(libgtest_path "${binary_dir}/lib/Debug/gtestd.lib")
-    endif()
-    set_property(
-        TARGET gtest
-        PROPERTY IMPORTED_LOCATION ${libgtest_path}
+    set_target_properties(gtest
+        PROPERTIES 
+        IMPORTED_LOCATION "${binary_dir}/lib/Debug/gtestd.lib"
+        IMPORTED_LOCATION_DEBUG "${binary_dir}/lib/Debug/gtestd.lib"
+        IMPORTED_LOCATION_RELEASE "${binary_dir}/lib/Release/gtest.lib"
         )
 else()
-    set_property(
-        TARGET gtest
-        PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/libgtest.a
+    set_target_properties(gtest
+        PROPERTIES
+	    IMPORTED_LOCATION ${binary_dir}/lib/libgtest.a
         )
 endif()
 
 # メインエントリ追加
 add_library(gtest_main STATIC IMPORTED)
 if(MSVC)
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set(libgtest_main_path "${binary_dir}/lib/Release/gtest_main.lib")
-    else()
-        set(libgtest_main_path "${binary_dir}/lib/Debug/gtest_maind.lib")
-    endif()
-    set_property(
-        TARGET gtest_main
-        PROPERTY IMPORTED_LOCATION ${libgtest_main_path}
+    set_target_properties(gtest_main
+        PROPERTIES 
+        IMPORTED_LOCATION "${binary_dir}/lib/Debug/gtest_maind.lib"
+        IMPORTED_LOCATION_DEBUG "${binary_dir}/lib/Debug/gtest_maind.lib"
+        IMPORTED_LOCATION_RELEASE "${binary_dir}/lib/Release/gtest_main.lib"
         )
 else()
-    set_property(
-        TARGET gtest_main
-        PROPERTY IMPORTED_LOCATION ${binary_dir}/lib/libgtest_main.a
+    set_target_properties(gtest
+        PROPERTIES
+        IMPORTED_LOCATION ${binary_dir}/lib/libgtest_main.a
         )
 endif()
