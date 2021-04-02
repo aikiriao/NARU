@@ -68,7 +68,7 @@ jobs:
         cp build/libnarudec.a ${ARTIFACT_ROOT}/libs/
         cp tools/naru_codec/build/naru ${ARTIFACT_ROOT}/tools/
         cp tools/naru_player/build/naruplayer ${ARTIFACT_ROOT}/tools/
-        zip ${ARTIFACT_ROOT}.zip ${ARTIFACT_ROOT}
+        zip ${ARTIFACT_ROOT}.zip ${ARTIFACT_ROOT}/*
 
     - name: Create artifacts on Windows platform
       if: runner.os == 'Windows'
