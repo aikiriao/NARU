@@ -52,13 +52,13 @@ jobs:
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
-        make
+        cmake --build . --config Release
         popd
         pushd tools/naru_player
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
-        make
+        cmake --build . --config Release
         popd
 
     - name: Build tools on Windows platform
@@ -78,10 +78,12 @@ jobs:
         cmake --build . --config Release
         popd
 
-    - name: Create artifacts 
+    - name: Create artifacts on UNIX platform
       if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
         tar -cvzf artifact_${{ matrix.os }}.tar.gz -C tools/naru_codec/build naru -C ../../naru_player/build naruplayer
+
+    - name: Create artifacts on Windows platform
       if: runner.os == 'Windows'
       shell: powershell
       run: |
