@@ -60,7 +60,6 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=Release ..
         make
         popd
-        tar -cvzf artifact_${{ matrix.os }}.tar.gz -C tools/naru_codec/build naru -C ../../naru_player/build naruplayer
 
     - name: Build tools on Windows platform
       if: runner.os == 'Windows'
@@ -78,6 +77,14 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=Release ..
         cmake --build . --config Release
         popd
+
+    - name: Create artifacts 
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+      run: |
+        tar -cvzf artifact_${{ matrix.os }}.tar.gz -C tools/naru_codec/build naru -C ../../naru_player/build naruplayer
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
         tar -cvzf artifact_${{ matrix.os }}.tar.gz -C tools/naru_codec/build/Release naru.exe -C ../../../naru_player/build/Release naruplayer.exe
 
     - name: Upload artifacts on UNIX platform
