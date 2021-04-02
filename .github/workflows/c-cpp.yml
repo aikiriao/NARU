@@ -86,7 +86,7 @@ jobs:
         cp build/Release/narudec.lib ${ARTIFACT_ROOT}/libs/
         cp tools/naru_codec/build/Release/naru.exe ${ARTIFACT_ROOT}/tools/
         cp tools/naru_player/build/Release/naruplayer.exe ${ARTIFACT_ROOT}/tools/
-        Compress-Archive -Path ${ARTIFACT_ROOT} -DestinationPath ${ARTIFACT_ROOT}.zip
+        Compress-Archive -Path ${ARTIFACT_ROOT} -DestinationPath "${ARTIFACT_ROOT}.zip"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
