@@ -28,31 +28,25 @@ jobs:
 
     - name: Build libraries
       run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug ..
-        cmake --build . --config Debug
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build . --config Release
+        cmake -B build_debug -DCMAKE_BUILD_TYPE=Debug
+        cmake --build build_debug --config Debug
+        cmake -B build_release -DCMAKE_BUILD_TYPE=Release
+        cmake --build build_release --config Release
 
     - name: Test
       run: |
-        cd build
+        cd build_debug
         ctest -C Debug
 
     - name: Build tools
       run: |
         pushd tools/naru_codec
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build . --config Release
+        cmake -B build -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build build --config Release
         popd
         pushd tools/naru_player
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        cmake --build . --config Release
+        cmake -B build -DCMAKE_BUILD_TYPE=Release ..
+        cmake --build build --config Release
         popd
 
     - name: Create artifacts on UNIX platform
