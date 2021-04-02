@@ -68,16 +68,25 @@ jobs:
         cp build/libnarudec.a ${ARTIFACT_ROOT}/libs/
         cp tools/naru_codec/build/naru ${ARTIFACT_ROOT}/tools/
         cp tools/naru_player/build/naruplayer ${ARTIFACT_ROOT}/tools/
-        zip ${ARTIFACT_ROOT}.zip ${ARTIFACT_ROOT}/*
+        zip -r ${ARTIFACT_ROOT}.zip ${ARTIFACT_ROOT}
 
     - name: Create artifacts on Windows platform
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        tar -cvzf artifact_${{ matrix.os }}.tar.gz -C tools/naru_codec/build/Release naru.exe -C ../../../naru_player/build/Release naruplayer.exe
+        ARTIFACT_ROOT=artifact_${{ matrix.os }}
+        mkdir ${ARTIFACT_ROOT} 
+        pushd ${ARTIFACT_ROOT}
+        mkdir include && mkdir libs && mkdir tools
+        popd
+        cp include/*.h ${ARTIFACT_ROOT}/include/
+        cp build/Release/narucodec.lib ${ARTIFACT_ROOT}/libs/
+        cp build/Release/narudec.lib ${ARTIFACT_ROOT}/libs/
+        cp tools/naru_codec/build/Release/naru.exe ${ARTIFACT_ROOT}/tools/
+        cp tools/naru_player/build/Release/naruplayer.exe ${ARTIFACT_ROOT}/tools/
+        zip -r ${ARTIFACT_ROOT}.zip ${ARTIFACT_ROOT}
 
     - name: Upload artifacts
-      if: runner.os == 'Linux' || runner.os == 'macOS'
       uses: actions/upload-artifact@v2
       with:
         name: artifacts
