@@ -77,7 +77,9 @@ jobs:
         ARTIFACT_ROOT=artifact_${{ matrix.os }}
         mkdir ${ARTIFACT_ROOT} 
         pushd ${ARTIFACT_ROOT}
-        mkdir include && mkdir libs && mkdir tools
+        mkdir include
+        mkdir libs
+        mkdir tools
         popd
         cp include/*.h ${ARTIFACT_ROOT}/include/
         cp build/Release/narucodec.lib ${ARTIFACT_ROOT}/libs/
