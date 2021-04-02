@@ -26,23 +26,12 @@ jobs:
       if: runner.os == 'Windows'
       uses: microsoft/setup-msbuild@v1.0.2
 
-    - name: Build and test on UNIX platform
-      if: runner.os == 'Linux' || runner.os == 'macOS'
+    - name: Build libraries and test
       run: |
         mkdir build
         cd build
-        cmake ..
-        make
-        ctest
-
-    - name: Build and test on Windows platform
-      if: runner.os == 'Windows'
-      shell: powershell
-      run: |
-        mkdir build
-        cd build
-        cmake ..
-        msbuild ALL_BUILD.vcxproj /t:build -maxcpucount
+        cmake -DCMAKE_BUILD_TYPE=Debug ..
+        cmake --build . --config Debug
         ctest -C Debug
 
     - name: Build tools
