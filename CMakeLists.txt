@@ -2,38 +2,26 @@ cmake_minimum_required(VERSION 3.1)
 
 # コーデックライブラリ
 project(NARUCodecLibrary C)
-# ライブラリ名
 set(CODEC_LIB_NAME narucodec)
-# ライブラリ
-add_library(${CODEC_LIB_NAME} INTERFACE)
-# リンクするライブラリ
-target_link_libraries(${CODEC_LIB_NAME}
-    INTERFACE naru_encoder naru_decoder naru_coder naru_bit_stream naru_internal lpc_calculator byte_array
-    )
-if(NOT MSVC)
-    target_link_libraries(${CODEC_LIB_NAME} INTERFACE m)
-endif()
-# インクルードパス
-target_include_directories(${CODEC_LIB_NAME}
-    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
+add_library(${CODEC_LIB_NAME}
+    STATIC
+    $<TARGET_OBJECTS:naru_encoder>
+    $<TARGET_OBJECTS:naru_decoder>
+    $<TARGET_OBJECTS:naru_coder>
+    $<TARGET_OBJECTS:naru_bit_stream>
+    $<TARGET_OBJECTS:naru_internal>
+    $<TARGET_OBJECTS:lpc_calculator>
     )
 
 # デコーダライブラリ
 project(NARUDecoderLibrary C)
-# ライブラリ名
 set(DECODER_LIB_NAME narudec)
-# ライブラリ
-add_library(${DECODER_LIB_NAME} INTERFACE)
-# リンクするライブラリ
-target_link_libraries(${DECODER_LIB_NAME}
-    INTERFACE naru_decoder naru_coder naru_bit_stream naru_internal byte_array
-    )
-if(NOT MSVC)
-    target_link_libraries(${DECODER_LIB_NAME} INTERFACE m)
-endif()
-# インクルードパス
-target_include_directories(${DECODER_LIB_NAME}
-    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
+add_library(${DECODER_LIB_NAME}
+    STATIC
+    $<TARGET_OBJECTS:naru_decoder>
+    $<TARGET_OBJECTS:naru_coder>
+    $<TARGET_OBJECTS:naru_bit_stream>
+    $<TARGET_OBJECTS:naru_internal>
     )
 
 # 依存するプロジェクト
