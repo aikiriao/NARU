@@ -22,7 +22,7 @@ ExternalProject_Get_Property(GoogleTest binary_dir)
 add_library(gtest STATIC IMPORTED)
 if(MSVC)
     set_target_properties(gtest
-        PROPERTIES 
+        PROPERTIES
         IMPORTED_LOCATION "${binary_dir}/lib/Debug/gtestd.lib"
         IMPORTED_LOCATION_DEBUG "${binary_dir}/lib/Debug/gtestd.lib"
         IMPORTED_LOCATION_RELEASE "${binary_dir}/lib/Release/gtest.lib"
@@ -30,7 +30,7 @@ if(MSVC)
 else()
     set_target_properties(gtest
         PROPERTIES
-	    IMPORTED_LOCATION ${binary_dir}/lib/libgtest.a
+        IMPORTED_LOCATION ${binary_dir}/lib/libgtest.a
         )
 endif()
 
@@ -38,7 +38,7 @@ endif()
 add_library(gtest_main STATIC IMPORTED)
 if(MSVC)
     set_target_properties(gtest_main
-        PROPERTIES 
+        PROPERTIES
         IMPORTED_LOCATION "${binary_dir}/lib/Debug/gtest_maind.lib"
         IMPORTED_LOCATION_DEBUG "${binary_dir}/lib/Debug/gtest_maind.lib"
         IMPORTED_LOCATION_RELEASE "${binary_dir}/lib/Release/gtest_main.lib"
