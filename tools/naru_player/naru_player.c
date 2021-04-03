@@ -116,8 +116,9 @@ static void NARUPlayer_SampleRequestCallback(int32_t **buffer, uint32_t num_chan
             uint32_t decode_size;
             if (NARUDecoder_DecodeBlock(decoder,
                         &data[decode_offset], data_size - decode_offset,
-                        decode_buffer, header.max_num_samples_per_block,
+                        decode_buffer, header.num_channels, header.max_num_samples_per_block,
                         &decode_size, &num_buffered_samples) != NARU_APIRESULT_OK) {
+                fprintf(stderr, "decoding error! \n");
                 exit(1);
             }
             buffer_pos = 0;
