@@ -11,7 +11,7 @@ Natural-gradient AutoRegressive Unlossy audio compressor
 
 ## Requirement
 
-* [CMake](https://cmake.org) >= 3.1
+* [CMake](https://cmake.org) >= 3.15
 
 ## Build NARU Codec
 

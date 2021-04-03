@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.15)
 
 add_subdirectory(byte_array)
 add_subdirectory(command_line_parser)
