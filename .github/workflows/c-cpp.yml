@@ -35,8 +35,12 @@ jobs:
 
     - name: Test
       run: |
-        cd build_debug
+        pushd build_debug
         ctest -C Debug
+        popd
+        pushd build_release
+        ctest -C Release
+        popd
 
     - name: Build tools
       run: |
