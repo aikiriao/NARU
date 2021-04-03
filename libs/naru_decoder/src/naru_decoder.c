@@ -32,12 +32,14 @@ struct NARUDecoder {
 static NARUApiResult NARUDecoder_DecodeRawData(
         struct NARUDecoder *decoder,
         const uint8_t *data, uint32_t data_size,
-        int32_t **buffer, uint32_t num_decode_samples, uint32_t *decode_size);
+        int32_t **buffer, uint32_t num_channels, uint32_t num_decode_samples,
+        uint32_t *decode_size);
 /* 圧縮データブロックデコード */
 static NARUApiResult NARUDecoder_DecodeCompressData(
         struct NARUDecoder *decoder,
         const uint8_t *data, uint32_t data_size,
-        int32_t **buffer, uint32_t num_decode_samples, uint32_t *decode_size);
+        int32_t **buffer, uint32_t num_channels, uint32_t num_decode_samples,
+        uint32_t *decode_size);
 
 /* ヘッダデコード */
 NARUApiResult NARUDecoder_DecodeHeader(
@@ -351,7 +353,8 @@ NARUApiResult NARUDecoder_SetHeader(
 static NARUApiResult NARUDecoder_DecodeRawData(
         struct NARUDecoder *decoder,
         const uint8_t *data, uint32_t data_size,
-        int32_t **buffer, uint32_t num_decode_samples, uint32_t *decode_size)
+        int32_t **buffer, uint32_t num_channels, uint32_t num_decode_samples,
+        uint32_t *decode_size)
 {
     uint32_t ch, smpl;
     const struct NARUHeader *header;
@@ -368,6 +371,9 @@ static NARUApiResult NARUDecoder_DecodeRawData(
 
     /* ヘッダ取得 */
     header = &(decoder->header);
+
+    /* チャンネル数不足もアサートで落とす */
+    NARU_ASSERT(num_channels >= header->num_channels);
 
     /* データサイズチェック */
     if (data_size < (header->bits_per_sample * num_decode_samples * header->num_channels) / 8) {
@@ -416,7 +422,8 @@ static NARUApiResult NARUDecoder_DecodeRawData(
 static NARUApiResult NARUDecoder_DecodeCompressData(
         struct NARUDecoder *decoder,
         const uint8_t *data, uint32_t data_size,
-        int32_t **buffer, uint32_t num_decode_samples, uint32_t *decode_size)
+        int32_t **buffer, uint32_t num_channels, uint32_t num_decode_samples,
+        uint32_t *decode_size)
 {
     uint32_t ch;
     struct NARUBitStream stream;
@@ -433,6 +440,9 @@ static NARUApiResult NARUDecoder_DecodeCompressData(
 
     /* ヘッダ取得 */
     header = &(decoder->header);
+
+    /* チャンネル数不足もアサートで落とす */
+    NARU_ASSERT(num_channels >= header->num_channels);
 
     /* ビットリーダ作成 */
     NARUBitReader_Open(&stream, (uint8_t *)data, data_size);
@@ -484,7 +494,7 @@ static NARUApiResult NARUDecoder_DecodeCompressData(
 NARUApiResult NARUDecoder_DecodeBlock(
         struct NARUDecoder *decoder,
         const uint8_t *data, uint32_t data_size,
-        int32_t **buffer, uint32_t buffer_num_samples,
+        int32_t **buffer, uint32_t buffer_num_channels, uint32_t buffer_num_samples,
         uint32_t *decode_size, uint32_t *num_decode_samples)
 {
     uint8_t buf8;
@@ -511,6 +521,11 @@ NARUApiResult NARUDecoder_DecodeBlock(
 
     /* ヘッダ取得 */
     header = &(decoder->header);
+
+    /* バッファチャンネル数チェック */
+    if (buffer_num_channels < header->num_channels) {
+        return NARU_APIRESULT_INSUFFICIENT_BUFFER;
+    }
 
     /* ブロックヘッダデコード */
     read_ptr = data;
@@ -553,11 +568,11 @@ NARUApiResult NARUDecoder_DecodeBlock(
     switch (block_type) {
     case NARU_BLOCK_DATA_TYPE_RAWDATA:
         ret = NARUDecoder_DecodeRawData(decoder,
-                read_ptr, data_size - block_header_size, buffer, num_block_samples, &block_data_size);
+                read_ptr, data_size - block_header_size, buffer, header->num_channels, num_block_samples, &block_data_size);
         break;
     case NARU_BLOCK_DATA_TYPE_COMPRESSDATA:
         ret = NARUDecoder_DecodeCompressData(decoder,
-                read_ptr, data_size - block_header_size, buffer, num_block_samples, &block_data_size);
+                read_ptr, data_size - block_header_size, buffer, header->num_channels, num_block_samples, &block_data_size);
         break;
     default:
         return NARU_APIRESULT_INVALID_FORMAT;
@@ -628,7 +643,7 @@ NARUApiResult NARUDecoder_DecodeWhole(
         /* ブロックデコード */
         if ((ret = NARUDecoder_DecodeBlock(decoder,
                         read_pos, data_size - read_offset,
-                        buffer_ptr, buffer_num_samples - progress,
+                        buffer_ptr, buffer_num_channels, buffer_num_samples - progress,
                         &read_block_size, &num_decode_samples)) != NARU_APIRESULT_OK) {
             return ret;
         }

@@ -39,7 +39,7 @@ NARUApiResult NARUDecoder_SetHeader(
 NARUApiResult NARUDecoder_DecodeBlock(
         struct NARUDecoder *decoder,
         const uint8_t *data, uint32_t data_size,
-        int32_t **buffer, uint32_t buffer_num_samples,
+        int32_t **buffer, uint32_t buffer_num_channels, uint32_t buffer_num_samples,
         uint32_t *decode_size, uint32_t *num_decode_samples);
 
 /* ヘッダを含めて全ブロックデコード */

@@ -394,7 +394,7 @@ TEST(NARUDecoderTest, DecodeBlockTest)
 
         /* ヘッダセット前にデコーダしようとする */
         EXPECT_EQ(NARU_APIRESULT_PARAMETER_NOT_SET,
-                NARUDecoder_DecodeBlock(decoder, data, sufficient_size, output, header.max_num_samples_per_block, &output_size, &out_num_samples));
+                NARUDecoder_DecodeBlock(decoder, data, sufficient_size, output, header.num_channels, header.max_num_samples_per_block, &output_size, &out_num_samples));
 
         /* ヘッダをセット */
         EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_SetHeader(decoder, &header));
@@ -462,7 +462,7 @@ TEST(NARUDecoderTest, DecodeBlockTest)
         EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_SetHeader(decoder, &tmp_header));
         EXPECT_EQ(NARU_APIRESULT_OK,
                 NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
-                    output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                    output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
 
         /* 出力チェック */
         EXPECT_EQ(output_size - NARU_HEADER_SIZE, decode_output_size);
@@ -536,20 +536,20 @@ TEST(NARUDecoderTest, DecodeBlockTest)
 
         /* 不正な引数 */
         EXPECT_EQ(NARU_APIRESULT_INVALID_ARGUMENT,
-                NARUDecoder_DecodeBlock(NULL, data, output_size, output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                NARUDecoder_DecodeBlock(NULL, data, output_size, output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
         EXPECT_EQ(NARU_APIRESULT_INVALID_ARGUMENT,
-                NARUDecoder_DecodeBlock(decoder, NULL, output_size, output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                NARUDecoder_DecodeBlock(decoder, NULL, output_size, output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
         EXPECT_EQ(NARU_APIRESULT_INVALID_ARGUMENT,
-                NARUDecoder_DecodeBlock(decoder, data, output_size, NULL, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                NARUDecoder_DecodeBlock(decoder, data, output_size, NULL, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
         EXPECT_EQ(NARU_APIRESULT_INVALID_ARGUMENT,
-                NARUDecoder_DecodeBlock(decoder, data, output_size, output, tmp_header.max_num_samples_per_block, NULL, &out_num_samples));
+                NARUDecoder_DecodeBlock(decoder, data, output_size, output, header.num_channels, tmp_header.max_num_samples_per_block, NULL, &out_num_samples));
         EXPECT_EQ(NARU_APIRESULT_INVALID_ARGUMENT,
-                NARUDecoder_DecodeBlock(decoder, data, output_size, output, tmp_header.max_num_samples_per_block, &decode_output_size, NULL));
+                NARUDecoder_DecodeBlock(decoder, data, output_size, output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, NULL));
 
         /* データサイズ不足 */
         EXPECT_EQ(NARU_APIRESULT_INSUFFICIENT_DATA,
                 NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE - 1,
-                    output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                    output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
 
         /* データを一部破壊した場合にエラーを返すか */
 
@@ -558,30 +558,30 @@ TEST(NARUDecoderTest, DecodeBlockTest)
         data[NARU_HEADER_SIZE] ^= 0xFF;
         EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT,
                 NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
-                    output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                    output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
         EXPECT_EQ(NARU_APIRESULT_OK, NARUEncoder_EncodeWhole(encoder, input, header.max_num_samples_per_block, data, sufficient_size, &output_size));
         data[NARU_HEADER_SIZE + 1] ^= 0xFF;
         EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT,
                 NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
-                    output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                    output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
         /* ブロックデータタイプ不正: データ破損検知 */
         EXPECT_EQ(NARU_APIRESULT_OK, NARUEncoder_EncodeWhole(encoder, input, header.max_num_samples_per_block, data, sufficient_size, &output_size));
         data[NARU_HEADER_SIZE + 8] = 0xC0;
         EXPECT_EQ(NARU_APIRESULT_DETECT_DATA_CORRUPTION,
                 NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
-                    output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                    output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
         /* ブロックチャンネルあたりサンプル数不正: データ破損検知 */
         EXPECT_EQ(NARU_APIRESULT_OK, NARUEncoder_EncodeWhole(encoder, input, header.max_num_samples_per_block, data, sufficient_size, &output_size));
         data[NARU_HEADER_SIZE + 9] ^= 0xFF;
         EXPECT_EQ(NARU_APIRESULT_DETECT_DATA_CORRUPTION,
                 NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
-                    output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                    output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
         /* データの末尾1byteがビット反転: データ破損検知 */
         EXPECT_EQ(NARU_APIRESULT_OK, NARUEncoder_EncodeWhole(encoder, input, header.max_num_samples_per_block, data, sufficient_size, &output_size));
         data[output_size - 1] ^= 0xFF;
         EXPECT_EQ(NARU_APIRESULT_DETECT_DATA_CORRUPTION,
                 NARUDecoder_DecodeBlock(decoder, data + NARU_HEADER_SIZE, output_size - NARU_HEADER_SIZE,
-                    output, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
+                    output, header.num_channels, tmp_header.max_num_samples_per_block, &decode_output_size, &out_num_samples));
 
         /* 領域の開放 */
         for (ch = 0; ch < header.num_channels; ch++) {
