@@ -19,9 +19,9 @@ endif()
 
 # コンパイルオプション
 set_target_properties(${TEST_NAME}
-	PROPERTIES
+    PROPERTIES
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-	)
+    )
 
 add_test(
     NAME lpc_calculator
