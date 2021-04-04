@@ -27,7 +27,7 @@ else()
     set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 endif()
 set_target_properties(${LIB_NAME}
-	PROPERTIES
-	C_STANDARD 90 C_EXTENSIONS OFF
-	MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-	)
+    PROPERTIES
+    C_STANDARD 90 C_EXTENSIONS OFF
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+    )

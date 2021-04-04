@@ -23,9 +23,9 @@ endif()
 
 # コンパイルオプション
 set_target_properties(${TEST_NAME}
-	PROPERTIES
-	MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-	)
+    PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+    )
 
 add_test(
     NAME naru_encoder

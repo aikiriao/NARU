@@ -23,9 +23,9 @@ endif()
 
 # コンパイルオプション
 set_target_properties(${LIB_NAME}
-	PROPERTIES
-	MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-	)
+    PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+    )
 
 # 実行パスをtmp以下に
 add_test(
