@@ -12,11 +12,16 @@ add_executable(${TEST_NAME} main.cpp)
 include_directories(${PROJECT_ROOT_PATH}/libs/lpc_calculator/include)
 
 # リンクするライブラリ
-if (MSVC)
 target_link_libraries(${TEST_NAME} gtest gtest_main)
-else()
-target_link_libraries(${TEST_NAME} gtest gtest_main pthread)
+if (NOT MSVC)
+target_link_libraries(${TEST_NAME} pthread)
 endif()
+
+# コンパイルオプション
+set_target_properties(${TEST_NAME}
+	PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+	)
 
 add_test(
     NAME lpc_calculator

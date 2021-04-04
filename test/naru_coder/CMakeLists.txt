@@ -12,13 +12,18 @@ add_executable(${TEST_NAME} main.cpp)
 include_directories(${PROJECT_ROOT_PATH}/libs/naru_coder/include)
 
 # リンクするライブラリ
-target_link_libraries(${TEST_NAME} naru_bit_stream naru_internal)
-if (MSVC)
-target_link_libraries(${TEST_NAME} gtest gtest_main)
-else()
-target_link_libraries(${TEST_NAME} gtest gtest_main pthread)
+target_link_libraries(${TEST_NAME} gtest gtest_main naru_bit_stream naru_internal)
+if (NOT MSVC)
+target_link_libraries(${TEST_NAME} pthread)
 endif()
 
+# コンパイルオプション
+set_target_properties(${TEST_NAME}
+	PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+	)
+
+# 実行パスをtmp以下に
 add_test(
     NAME naru_coder
     WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_NAME}>/tmp

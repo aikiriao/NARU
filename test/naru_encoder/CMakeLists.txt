@@ -16,12 +16,16 @@ add_executable(${TEST_NAME}
 include_directories(${PROJECT_ROOT_PATH}/libs/naru_encoder/include)
 
 # リンクするライブラリ
-target_link_libraries(${TEST_NAME} byte_array lpc_calculator  naru_internal naru_bit_stream naru_coder)
-if (MSVC)
-target_link_libraries(${TEST_NAME} gtest gtest_main)
-else()
-target_link_libraries(${TEST_NAME} gtest gtest_main pthread)
+target_link_libraries(${TEST_NAME} gtest gtest_main byte_array lpc_calculator  naru_internal naru_bit_stream naru_coder)
+if (NOT MSVC)
+target_link_libraries(${TEST_NAME} pthread)
 endif()
+
+# コンパイルオプション
+set_target_properties(${TEST_NAME}
+	PROPERTIES
+	MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+	)
 
 add_test(
     NAME naru_encoder

@@ -42,11 +42,13 @@ endif()
 # コンパイルオプション
 if(MSVC)
     target_compile_options(${APP_NAME} PRIVATE /W4)
-    set(CMAKE_C_FLAGS_DEBUG "/MTd")
-    set(CMAKE_C_FLAGS_RELEASE "/MT")
 else()
     target_compile_options(${APP_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wformat=2 -Wstrict-aliasing=2 -Wconversion -Wmissing-prototypes -Wstrict-prototypes -Wold-style-definition)
     set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
     set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 endif()
-set_target_properties(${APP_NAME} PROPERTIES C_STANDARD 90 C_EXTENSIONS OFF)
+set_target_properties(${APP_NAME}
+	PROPERTIES
+	C_STANDARD 90 C_EXTENSIONS OFF
+	MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+	)

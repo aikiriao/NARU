@@ -34,9 +34,6 @@ if(NOT without-test)
     # -> Cとの挙動で差異が生じるかもしれない...
     project(NARUTest CXX)
     if(MSVC)
-        # ランタイムライブラリの整合性が取れずリンクエラーが出るためdllを使わない
-        set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
-        set(CMAKE_CXX_FLAGS_RELEASE "/MT")
         set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     else()
         set(CMAKE_CXX_FLAGS "-std=gnu++11") # gtestがGNU独自拡張を使用しているため
