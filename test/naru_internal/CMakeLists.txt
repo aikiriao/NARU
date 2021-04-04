@@ -22,7 +22,7 @@ target_link_libraries(${TEST_NAME} pthread)
 endif()
 
 # コンパイルオプション
-set_target_properties(${LIB_NAME}
+set_target_properties(${TEST_NAME}
     PROPERTIES
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
     )
