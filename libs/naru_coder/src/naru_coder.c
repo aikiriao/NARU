@@ -116,7 +116,7 @@ static uint32_t NARUGolomb_GetCode(struct NARUBitStream *stream, uint32_t m)
     if (rest < (two_b - m)) {
         return (uint32_t)(quot * m + rest);
     } else {
-        uint64_t buf;
+        uint32_t buf;
         rest <<= 1;
         NARUBitReader_GetBits(stream, &buf, 1);
         rest += buf;

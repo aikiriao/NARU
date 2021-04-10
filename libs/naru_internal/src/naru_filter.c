@@ -21,9 +21,9 @@ int32_t NARUSAFilter_CalculateWorkSize(uint8_t max_filter_order)
     /* 構造体本体分のサイズ（+アラインメント） */
     work_size = sizeof(struct NARUSAFilter) + NARU_MEMORY_ALIGNMENT;
     /* 入力データ履歴分のサイズ */
-    work_size += sizeof(int32_t) * 2 * max_filter_order;
+    work_size += (int32_t)sizeof(int32_t) * 2 * max_filter_order;
     /* フィルタ係数サイズ */
-    work_size += sizeof(int32_t) * max_filter_order;
+    work_size += (int32_t)sizeof(int32_t) * max_filter_order;
 
     return work_size;
 }
@@ -110,13 +110,13 @@ int32_t NARUNGSAFilter_CalculateWorkSize(uint8_t max_filter_order)
     /* 構造体本体分のサイズ（+アラインメント） */
     work_size = sizeof(struct NARUNGSAFilter) + NARU_MEMORY_ALIGNMENT;
     /* 入力データ履歴分のサイズ */
-    work_size += sizeof(int32_t) * 2 * max_filter_order;
+    work_size += (int32_t)sizeof(int32_t) * 2 * max_filter_order;
     /* フィルタ係数サイズ */
-    work_size += sizeof(int32_t) * max_filter_order;
+    work_size += (int32_t)sizeof(int32_t) * max_filter_order;
     /* AR係数サイズ */
-    work_size += sizeof(int32_t) * NARU_MAX_ARORDER_FOR_FILTERORDER(max_filter_order);
+    work_size += (int32_t)sizeof(int32_t) * NARU_MAX_ARORDER_FOR_FILTERORDER(max_filter_order);
     /* 自然勾配サイズ */
-    work_size += sizeof(int32_t) * 2 * max_filter_order;
+    work_size += (int32_t)sizeof(int32_t) * 2 * max_filter_order;
 
     return work_size;
 }

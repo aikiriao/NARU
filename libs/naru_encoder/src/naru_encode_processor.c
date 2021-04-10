@@ -98,7 +98,7 @@ static void NARUEncodeProcessor_RoundAndPutSint(
     putval = NARUUTILITY_SINT32_TO_UINT32(roundval);
 
     /* 出力 */
-    NARU_ASSERT(putval < (1 << bitwidth));
+    NARU_ASSERT(putval < (1U << bitwidth));
     NARUBitWriter_PutBits(stream, putval, bitwidth);
 
     /* 左シフトして戻す（シフトしたビットをクリア） */

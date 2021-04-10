@@ -223,7 +223,7 @@ int32_t NARUEncoder_CalculateWorkSize(const struct NARUEncoderConfig *config)
     work_size = sizeof(struct NARUEncoder) + NARU_MEMORY_ALIGNMENT;
 
     /* LPC計算ハンドルのサイズ */
-    if ((tmp_work_size = LPCCalculator_CalculateWorkSize(NARU_MAX_ARORDER_FOR_FILTERORDER(config->max_filter_order))) < 0) {
+    if ((tmp_work_size = LPCCalculator_CalculateWorkSize((uint32_t)NARU_MAX_ARORDER_FOR_FILTERORDER(config->max_filter_order))) < 0) {
         return -1;
     }
     work_size += tmp_work_size;
@@ -242,11 +242,11 @@ int32_t NARUEncoder_CalculateWorkSize(const struct NARUEncoderConfig *config)
     work_size += tmp_work_size * config->max_num_channels;
 
     /* 窓と信号処理バッファのサイズ */
-    work_size += 2 * (sizeof(double) * config->max_num_samples_per_block + NARU_MEMORY_ALIGNMENT);
+    work_size += 2 * ((int32_t)sizeof(double) * config->max_num_samples_per_block + NARU_MEMORY_ALIGNMENT);
 
     /* 信号処理バッファのサイズ */
-    work_size += sizeof(int32_t *) * config->max_num_channels + NARU_MEMORY_ALIGNMENT;
-    work_size += config->max_num_channels * (sizeof(int32_t) * config->max_num_samples_per_block + NARU_MEMORY_ALIGNMENT);
+    work_size += (int32_t)sizeof(int32_t *) * config->max_num_channels + NARU_MEMORY_ALIGNMENT;
+    work_size += config->max_num_channels * ((int32_t)sizeof(int32_t) * config->max_num_samples_per_block + NARU_MEMORY_ALIGNMENT);
 
     return work_size;
 }
@@ -299,7 +299,7 @@ struct NARUEncoder *NARUEncoder_Create(const struct NARUEncoderConfig *config, v
 
     /* LPC計算ハンドルの作成 */
     {
-        const uint32_t max_ar_order = NARU_MAX_ARORDER_FOR_FILTERORDER(config->max_filter_order);
+        const uint32_t max_ar_order = (uint32_t)NARU_MAX_ARORDER_FOR_FILTERORDER(config->max_filter_order);
         int32_t lpcc_size = LPCCalculator_CalculateWorkSize(max_ar_order);
         if ((encoder->lpcc = LPCCalculator_Create(max_ar_order, work_ptr, lpcc_size)) == NULL) {
             return NULL;
