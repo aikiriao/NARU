@@ -338,8 +338,8 @@ int32_t NARUCoder_CalculateWorkSize(uint32_t max_num_channels, uint32_t max_num_
     work_size = sizeof(struct NARUCoder) + NARU_MEMORY_ALIGNMENT;
 
     /* パラメータ領域分のサイズ（初期パラメータを含むので2倍） */
-    work_size += 2 * sizeof(NARURecursiveRiceParameter *) * max_num_channels;
-    work_size += 2 * sizeof(NARURecursiveRiceParameter) * max_num_channels * max_num_parameters;
+    work_size += (int32_t)(2 * sizeof(NARURecursiveRiceParameter *) * max_num_channels);
+    work_size += (int32_t)(2 * sizeof(NARURecursiveRiceParameter) * max_num_channels * max_num_parameters);
 
     return work_size;
 }

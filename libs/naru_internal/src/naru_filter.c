@@ -157,7 +157,7 @@ struct NARUNGSAFilter* NARUNGSAFilter_Create(uint8_t max_filter_order, void *wor
 
     /* AR係数配置 */
     filter->ar_coef = (int32_t *)work_ptr;
-    work_ptr += sizeof(int32_t) * NARU_MAX_ARORDER_FOR_FILTERORDER(max_filter_order);
+    work_ptr += sizeof(int32_t) * (uint32_t)NARU_MAX_ARORDER_FOR_FILTERORDER(max_filter_order);
 
     /* 自然勾配配置 */
     filter->ngrad = (int32_t *)work_ptr;

@@ -62,9 +62,9 @@ int32_t LPCCalculator_CalculateWorkSize(uint32_t max_order)
     }
 
     work_size = sizeof(struct LPCCalculator) + LPCCALCULATOR_ALIGNMENT;
-    work_size += sizeof(double) * (max_order + 2) * 4; /* a, e, u, v ベクトル分の領域 */
-    work_size += sizeof(double) * (max_order + 1); /* 標本自己相関の領域 */
-    work_size += sizeof(double) * (max_order + 1) * 2; /* 係数ベクトルの領域 */
+    work_size += (int32_t)(sizeof(double) * (max_order + 2) * 4); /* a, e, u, v ベクトル分の領域 */
+    work_size += (int32_t)(sizeof(double) * (max_order + 1)); /* 標本自己相関の領域 */
+    work_size += (int32_t)(sizeof(double) * (max_order + 1) * 2); /* 係数ベクトルの領域 */
 
     return work_size;
 }
