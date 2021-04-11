@@ -22,7 +22,6 @@
     do {\
         uint32_t tmpbuf;\
         NARU_ASSERT((stream) != NULL);\
-        NARU_ASSERT((pval) != NULL);\
         NARU_ASSERT((bitwidth) > 0 && (bitwidth) <= 32);\
         NARUBitReader_GetBits((stream), &tmpbuf, (bitwidth));\
         (*pval) = tmpbuf;\
