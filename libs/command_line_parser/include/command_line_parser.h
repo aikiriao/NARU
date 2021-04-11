@@ -51,7 +51,7 @@ const char* CommandLineParser_GetArgumentString(
 /* 引数のパース */
 CommandLineParserResult CommandLineParser_ParseArguments(
         struct CommandLineParserSpecification* clps,
-        int32_t argc, char** argv,
+        int32_t argc, const char* const* argv,
         const char** other_string_array, uint32_t other_string_array_size);
 
 #ifdef __cplusplus

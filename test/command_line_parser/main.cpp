@@ -21,9 +21,9 @@ TEST(CommandLineParserTest, GetShortOptionTest)
             { 0, }
         };
         struct CommandLineParserSpecification get_specs[sizeof(specs) / sizeof(specs[0])];
-        char* test_argv1[] = { "progname", "-i", INPUT_FILE_NAME, "-p" };
-        char* test_argv2[] = { "progname", "-p", "-i", INPUT_FILE_NAME };
-        char* test_argv3[] = { "progname", "-pi", INPUT_FILE_NAME };
+        const char* test_argv1[] = { "progname", "-i", INPUT_FILE_NAME, "-p" };
+        const char* test_argv2[] = { "progname", "-p", "-i", INPUT_FILE_NAME };
+        const char* test_argv3[] = { "progname", "-pi", INPUT_FILE_NAME };
 
         /* パースしてみる */
         memcpy(get_specs, specs, sizeof(get_specs));
@@ -86,7 +86,7 @@ TEST(CommandLineParserTest, GetShortOptionTest)
             { 'i', NULL, COMMAND_LINE_PARSER_TRUE,  "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "-i" };
+        const char* test_argv[] = { "progname", "-i" };
 
         EXPECT_EQ(
                 COMMAND_LINE_PARSER_RESULT_NOT_SPECIFY_ARGUMENT_TO_OPTION,
@@ -102,8 +102,8 @@ TEST(CommandLineParserTest, GetShortOptionTest)
             { 'i', NULL, COMMAND_LINE_PARSER_TRUE, "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv1[] = { "progname", "-i", "-p" };
-        char* test_argv2[] = { "progname", "-i", "--pripara" };
+        const char* test_argv1[] = { "progname", "-i", "-p" };
+        const char* test_argv2[] = { "progname", "-i", "--pripara" };
 
         EXPECT_EQ(
                 CommandLineParser_ParseArguments(
@@ -127,7 +127,7 @@ TEST(CommandLineParserTest, GetShortOptionTest)
             { 'p', NULL, COMMAND_LINE_PARSER_FALSE, "output file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "-i", "kiriya aoi", "-p", "-s" };
+        const char* test_argv[] = { "progname", "-i", "kiriya aoi", "-p", "-s" };
 
         EXPECT_EQ(
                 CommandLineParser_ParseArguments(
@@ -143,7 +143,7 @@ TEST(CommandLineParserTest, GetShortOptionTest)
             { 'i', NULL, COMMAND_LINE_PARSER_TRUE,  "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "-i", "kiriya aoi", "-i", "shibuki ran" };
+        const char* test_argv[] = { "progname", "-i", "kiriya aoi", "-i", "shibuki ran" };
 
         EXPECT_EQ(
                 CommandLineParser_ParseArguments(
@@ -160,7 +160,7 @@ TEST(CommandLineParserTest, GetShortOptionTest)
             { 'p', NULL, COMMAND_LINE_PARSER_FALSE, "prichan", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "-p", "-i", "kiriya aoi", "-p" };
+        const char* test_argv[] = { "progname", "-p", "-i", "kiriya aoi", "-p" };
 
         EXPECT_EQ(
                 CommandLineParser_ParseArguments(
@@ -177,7 +177,7 @@ TEST(CommandLineParserTest, GetShortOptionTest)
             { 'p', NULL, COMMAND_LINE_PARSER_FALSE, "prichan",    NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "-ip", "filename" };
+        const char* test_argv[] = { "progname", "-ip", "filename" };
 
         EXPECT_EQ(
                 CommandLineParser_ParseArguments(
@@ -194,7 +194,7 @@ TEST(CommandLineParserTest, GetShortOptionTest)
             { 'p', NULL, COMMAND_LINE_PARSER_TRUE, "prichan",    NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "-ip", "filename" };
+        const char* test_argv[] = { "progname", "-ip", "filename" };
 
         EXPECT_EQ(
                 CommandLineParser_ParseArguments(
@@ -218,7 +218,7 @@ TEST(CommandLineParserTest, GetLongOptionTest)
             { 'a', "aikatsu", COMMAND_LINE_PARSER_FALSE, "aikatsu dakega boku no shinri datta",  NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "--input", INPUT_FILE_NAME, "--aikatsu" };
+        const char* test_argv[] = { "progname", "--input", INPUT_FILE_NAME, "--aikatsu" };
 
         /* パースしてみる */
         EXPECT_EQ(
@@ -247,7 +247,7 @@ TEST(CommandLineParserTest, GetLongOptionTest)
             { 'a', "aikatsu", COMMAND_LINE_PARSER_FALSE, "aikatsu dakega boku no shinri datta",  NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "--input=" INPUT_FILE_NAME, "--aikatsu" };
+        const char* test_argv[] = { "progname", "--input=" INPUT_FILE_NAME, "--aikatsu" };
 
         /* パースしてみる */
         EXPECT_EQ(
@@ -276,7 +276,7 @@ TEST(CommandLineParserTest, GetLongOptionTest)
             { 'i', "input", COMMAND_LINE_PARSER_TRUE, "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "--input" };
+        const char* test_argv[] = { "progname", "--input" };
 
         EXPECT_EQ(
                 COMMAND_LINE_PARSER_RESULT_NOT_SPECIFY_ARGUMENT_TO_OPTION,
@@ -292,8 +292,8 @@ TEST(CommandLineParserTest, GetLongOptionTest)
             { 'i', "input", COMMAND_LINE_PARSER_TRUE, "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv1[] = { "progname", "--input", "-a" };
-        char* test_argv2[] = { "progname", "--input", "--aikatsu" };
+        const char* test_argv1[] = { "progname", "--input", "-a" };
+        const char* test_argv2[] = { "progname", "--input", "--aikatsu" };
 
         EXPECT_EQ(
                 COMMAND_LINE_PARSER_RESULT_NOT_SPECIFY_ARGUMENT_TO_OPTION,
@@ -317,7 +317,7 @@ TEST(CommandLineParserTest, GetLongOptionTest)
             { 'p', "aikatsu", COMMAND_LINE_PARSER_FALSE, "aikatsu mode", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "--input", "kiriya aoi", "--aikatsu", "--unknown" };
+        const char* test_argv[] = { "progname", "--input", "kiriya aoi", "--aikatsu", "--unknown" };
 
         EXPECT_EQ(
                 COMMAND_LINE_PARSER_RESULT_UNKNOWN_OPTION,
@@ -333,7 +333,7 @@ TEST(CommandLineParserTest, GetLongOptionTest)
             { 'i', "input", COMMAND_LINE_PARSER_TRUE, "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "--input", "kiriya aoi", "--input", "shibuki ran" };
+        const char* test_argv[] = { "progname", "--input", "kiriya aoi", "--input", "shibuki ran" };
 
         EXPECT_EQ(
                 COMMAND_LINE_PARSER_RESULT_OPTION_MULTIPLY_SPECIFIED,
@@ -349,7 +349,7 @@ TEST(CommandLineParserTest, GetLongOptionTest)
             { 'i', "input", COMMAND_LINE_PARSER_TRUE, "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "--input=kiriya aoi", "--input=shibuki ran" };
+        const char* test_argv[] = { "progname", "--input=kiriya aoi", "--input=shibuki ran" };
 
         EXPECT_EQ(
                 COMMAND_LINE_PARSER_RESULT_OPTION_MULTIPLY_SPECIFIED,
@@ -365,7 +365,7 @@ TEST(CommandLineParserTest, GetLongOptionTest)
             { 'i', "input", COMMAND_LINE_PARSER_TRUE, "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "--input=kiriya aoi", "--input", "shibuki ran" };
+        const char* test_argv[] = { "progname", "--input=kiriya aoi", "--input", "shibuki ran" };
 
         EXPECT_EQ(
                 COMMAND_LINE_PARSER_RESULT_OPTION_MULTIPLY_SPECIFIED,
@@ -386,7 +386,7 @@ TEST(CommandLineParserTest, GetOtherStringTest)
             { 'i', "input", COMMAND_LINE_PARSER_TRUE, "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "Ichgo Hoshimiya", "Aoi Kiriya", "Ran Shibuki" };
+        const char* test_argv[] = { "progname", "Ichgo Hoshimiya", "Aoi Kiriya", "Ran Shibuki" };
         const char* other_string_array[3];
 
         EXPECT_EQ(
@@ -408,7 +408,7 @@ TEST(CommandLineParserTest, GetOtherStringTest)
             { 'i', "input", COMMAND_LINE_PARSER_TRUE, "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "Ichgo Hoshimiya", "-i", "inputfile", "Aoi Kiriya", "Ran Shibuki" };
+        const char* test_argv[] = { "progname", "Ichgo Hoshimiya", "-i", "inputfile", "Aoi Kiriya", "Ran Shibuki" };
         const char* other_string_array[3];
 
         EXPECT_EQ(
@@ -433,7 +433,7 @@ TEST(CommandLineParserTest, GetOtherStringTest)
             { 'i', "input", COMMAND_LINE_PARSER_TRUE, "input file", NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "Ichgo Hoshimiya", "Aoi Kiriya", "Ran Shibuki" };
+        const char* test_argv[] = { "progname", "Ichgo Hoshimiya", "Aoi Kiriya", "Ran Shibuki" };
         const char* other_string_array[2];
 
         EXPECT_EQ(
@@ -459,7 +459,7 @@ TEST(CommandLineParserTest, ParseVariousStringTest)
             { 'i', NULL, COMMAND_LINE_PARSER_FALSE, "aikatsu dakega boku no shinri datta",  NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "--input", "inputfile", "--aikatsu" };
+        const char* test_argv[] = { "progname", "--input", "inputfile", "--aikatsu" };
 
         EXPECT_EQ(
                 COMMAND_LINE_PARSER_RESULT_INVALID_SPECIFICATION,
@@ -477,7 +477,7 @@ TEST(CommandLineParserTest, ParseVariousStringTest)
             { 'p', "input",   COMMAND_LINE_PARSER_FALSE, "aikatsu dakega boku no shinri datta",  NULL, COMMAND_LINE_PARSER_FALSE },
             { 0, }
         };
-        char* test_argv[] = { "progname", "--input", "inputfile", "--aikatsu" };
+        const char* test_argv[] = { "progname", "--input", "inputfile", "--aikatsu" };
 
         EXPECT_EQ(
                 COMMAND_LINE_PARSER_RESULT_INVALID_SPECIFICATION,

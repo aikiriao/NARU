@@ -264,7 +264,7 @@ int main(int argc, char** argv)
 
     /* コマンドライン解析 */
     if (CommandLineParser_ParseArguments(command_line_spec,
-                argc, argv, filename_ptr, sizeof(filename_ptr) / sizeof(filename_ptr[0]))
+                argc, (const char* const*)argv, filename_ptr, sizeof(filename_ptr) / sizeof(filename_ptr[0]))
             != COMMAND_LINE_PARSER_RESULT_OK) {
         return 1;
     }
