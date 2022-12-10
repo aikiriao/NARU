@@ -109,9 +109,6 @@ TEST(NARUEncoderTest, EncodeHeaderTest)
 
         /* 異常なフィルタ次数 */
         NARU_SetValidHeader(&header);
-        header.filter_order = 0;
-        EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT, NARUEncoder_EncodeHeader(&header, data, sizeof(data)));
-        NARU_SetValidHeader(&header);
         header.filter_order = 1;
         EXPECT_EQ(NARU_APIRESULT_INVALID_FORMAT, NARUEncoder_EncodeHeader(&header, data, sizeof(data)));
 

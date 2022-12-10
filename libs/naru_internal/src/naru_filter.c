@@ -86,14 +86,13 @@ void NARUSAFilter_SetFilterOrder(struct NARUSAFilter *filter, int32_t order)
     NARU_ASSERT(filter != NULL);
 
     /* 範囲チェック */
-    NARU_ASSERT(order > 0);
     NARU_ASSERT(order <= filter->max_filter_order);
 
     /* フィルタ次数は2の冪数を要求（高速化目的） */
     NARU_ASSERT(NARUUTILITY_IS_POWERED_OF_2(order));
 
     filter->filter_order = order;
-    filter->buffer_pos_mask = order - 1;
+    filter->buffer_pos_mask = (order > 0) ? (order - 1) : 0;
 }
 
 /* NGSAフィルタの作成に必要なワークサイズ計算 */
@@ -192,8 +191,7 @@ void NARUNGSAFilter_SetFilterOrder(struct NARUNGSAFilter *filter, int32_t filter
     NARU_ASSERT(filter != NULL);
 
     /* 範囲チェック */
-    NARU_ASSERT(filter_order > 0);
-    NARU_ASSERT(ar_order > 0);
+    NARU_ASSERT(((filter_order > 0) && (ar_order > 0)) || ((filter_order == 0) && (ar_order == 0)));
     NARU_ASSERT(filter_order <= filter->max_filter_order);
     NARU_ASSERT(ar_order <= NARU_MAX_ARORDER_FOR_FILTERORDER(filter->max_filter_order));
 
@@ -202,7 +200,7 @@ void NARUNGSAFilter_SetFilterOrder(struct NARUNGSAFilter *filter, int32_t filter
 
     filter->ar_order = ar_order;
     filter->filter_order = filter_order;
-    filter->buffer_pos_mask = filter_order - 1;
+    filter->buffer_pos_mask = (filter_order > 0) ? (filter_order - 1) : 0;
 
     filter->delta_rshift = NARUNGSA_STEPSIZE_SCALE_BITWIDTH + (int32_t)NARUUTILITY_LOG2CEIL((uint32_t)filter_order);
 }

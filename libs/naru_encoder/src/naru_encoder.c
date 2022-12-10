@@ -85,12 +85,12 @@ NARUApiResult NARUEncoder_EncodeHeader(
         return NARU_APIRESULT_INVALID_FORMAT;
     }
     /* フィルタ次数: 2の冪数限定 */
-    if ((header->filter_order == 0)
-            || !NARUUTILITY_IS_POWERED_OF_2(header->filter_order)) {
+    if (!NARUUTILITY_IS_POWERED_OF_2(header->filter_order)) {
         return NARU_APIRESULT_INVALID_FORMAT;
     }
     /* AR次数: filter_order > 2 * ar_order を満たす必要がある */
-    if (header->filter_order <= (2 * header->ar_order)) {
+    if ((header->filter_order > 0) && (header->ar_order > 0)
+            && (header->filter_order <= (2 * header->ar_order))) {
         return NARU_APIRESULT_INVALID_FORMAT;
     }
     /* マルチチャンネル処理法 */
@@ -168,15 +168,14 @@ static NARUError NARUEncoder_ConvertParameterToHeader(
     if (parameter->num_samples_per_block == 0) {
         return NARU_ERROR_INVALID_FORMAT;
     }
-    if ((parameter->filter_order == 0)
-            || !NARUUTILITY_IS_POWERED_OF_2(parameter->filter_order)) {
+    if (!NARUUTILITY_IS_POWERED_OF_2(parameter->filter_order)) {
         return NARU_ERROR_INVALID_FORMAT;
     }
-    if (parameter->filter_order <= (2 * parameter->ar_order)) {
+    if ((parameter->filter_order > 0) && (parameter->ar_order > 0)
+            && (parameter->filter_order <= (2 * parameter->ar_order))) {
         return NARU_ERROR_INVALID_FORMAT;
     }
-    if ((parameter->second_filter_order == 0)
-            || !NARUUTILITY_IS_POWERED_OF_2(parameter->second_filter_order)) {
+    if (!NARUUTILITY_IS_POWERED_OF_2(parameter->second_filter_order)) {
         return NARU_ERROR_INVALID_FORMAT;
     }
     if (parameter->ch_process_method >= NARU_CH_PROCESS_METHOD_INVALID) {
@@ -459,7 +458,7 @@ static NARUBlockDataType NARUEncoder_DecideBlockDataType(
     /* データタイプ判定 */
 
     /* 圧縮が効きにくい: 生データ出力 */
-    if (mean_length >= NARU_ESTIMATED_CODELENGTH_THRESHOLD) {
+    if ((header->ar_order > 0) && (mean_length >= NARU_ESTIMATED_CODELENGTH_THRESHOLD)) {
         return NARU_BLOCK_DATA_TYPE_RAWDATA;
     }
 

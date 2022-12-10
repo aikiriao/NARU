@@ -158,17 +158,16 @@ static NARUError NARUDecoder_CheckHeaderFormat(const struct NARUHeader *header)
         return NARU_ERROR_INVALID_FORMAT;
     }
     /* フィルタ次数: 2の冪数限定 */
-    if ((header->filter_order == 0)
-            || !NARUUTILITY_IS_POWERED_OF_2(header->filter_order)) {
+    if (!NARUUTILITY_IS_POWERED_OF_2(header->filter_order)) {
         return NARU_ERROR_INVALID_FORMAT;
     }
     /* AR次数: filter_order > 2 * ar_order を満たす必要がある */
-    if (header->filter_order <= (2 * header->ar_order)) {
+    if ((header->filter_order > 0) && (header->ar_order > 0)
+            && (header->filter_order <= (2 * header->ar_order))) {
         return NARU_ERROR_INVALID_FORMAT;
     }
     /* 2段目フィルタ次数: 2の冪数限定 */
-    if ((header->second_filter_order == 0)
-            || !NARUUTILITY_IS_POWERED_OF_2(header->second_filter_order)) {
+    if (!NARUUTILITY_IS_POWERED_OF_2(header->second_filter_order)) {
         return NARU_ERROR_INVALID_FORMAT;
     }
     /* マルチチャンネル処理法 */

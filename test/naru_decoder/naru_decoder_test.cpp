@@ -171,11 +171,6 @@ TEST(NARUDecoderTest, DecodeHeaderTest)
         /* 異常なフィルタ次数 */
         memcpy(data, valid_data, sizeof(valid_data));
         memset(&getheader, 0xCD, sizeof(getheader));
-        ByteArray_WriteUint8(&data[28], 0);
-        EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
-        EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
-        memcpy(data, valid_data, sizeof(valid_data));
-        memset(&getheader, 0xCD, sizeof(getheader));
         ByteArray_WriteUint8(&data[28], 3);
         EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
         EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
@@ -193,11 +188,6 @@ TEST(NARUDecoderTest, DecodeHeaderTest)
         EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
 
         /* 異常な2段目フィルタ次数 */
-        memcpy(data, valid_data, sizeof(valid_data));
-        memset(&getheader, 0xCD, sizeof(getheader));
-        ByteArray_WriteUint8(&data[30], 0);
-        EXPECT_EQ(NARU_APIRESULT_OK, NARUDecoder_DecodeHeader(data, sizeof(data), &getheader));
-        EXPECT_EQ(NARU_ERROR_INVALID_FORMAT, NARUDecoder_CheckHeaderFormat(&getheader));
         memcpy(data, valid_data, sizeof(valid_data));
         memset(&getheader, 0xCD, sizeof(getheader));
         ByteArray_WriteUint8(&data[30], 3);

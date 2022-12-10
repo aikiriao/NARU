@@ -41,8 +41,11 @@ static uint32_t NARUEncodeProcessor_CalculateBitShift(const int32_t *data, int32
     int32_t bitwidth;
 
     NARU_ASSERT(data != NULL);
-    NARU_ASSERT(num_data > 0);
     NARU_ASSERT(maxbit > 0);
+
+    if (num_data == 0) {
+        return 0;
+    }
 
     bitwidth = (int32_t)NARUUtility_GetDataBitWidth(data, (uint32_t)num_data);
 
@@ -57,8 +60,11 @@ static void NARUEncodeProcessor_ClippingFilterWeight(
     double maxabs, inv_scale;
 
     NARU_ASSERT(weight != NULL);
-    NARU_ASSERT(filter_order > 0);
     NARU_ASSERT((bitwidth > 0) && (bitwidth < 32));
+
+    if (filter_order == 0) {
+        return;
+    }
 
     /* [-1,1]に丸めた中で、最大絶対値を計測 */
     maxabs = 0.0f;
@@ -474,7 +480,8 @@ void NARUEncodeProcessor_Predict(
     /* フィルタ次数チェック */
     NARU_ASSERT(processor->ngsa->filter_order <= processor->ngsa->max_filter_order);
     NARU_ASSERT(processor->ngsa->ar_order <= processor->ngsa->max_filter_order);
-    NARU_ASSERT(processor->ngsa->filter_order > (2 * processor->ngsa->ar_order));
+    NARU_ASSERT(((processor->ngsa->filter_order == 0) && ((processor->ngsa->ar_order == 0)))
+                || (processor->ngsa->filter_order > (2 * processor->ngsa->ar_order)));
     NARU_ASSERT(processor->sa->filter_order <= processor->sa->max_filter_order);
 
     /* 自然勾配の初期化 */
