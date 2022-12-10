@@ -370,7 +370,7 @@ void NARUDecodeProcessor_Synthesize(
     NARU_ASSERT(processor->ngsa->filter_order <= processor->ngsa->max_filter_order);
     NARU_ASSERT(processor->ngsa->ar_order <= processor->ngsa->max_filter_order);
     NARU_ASSERT(((processor->ngsa->filter_order == 0) && ((processor->ngsa->ar_order == 0)))
-              || (processor->ngsa->filter_order > (2 * processor->ngsa->ar_order)));
+                || (processor->ngsa->filter_order > (2 * processor->ngsa->ar_order)));
     NARU_ASSERT(processor->sa->filter_order <= processor->sa->max_filter_order);
 
     /* 自然勾配の初期化 */
