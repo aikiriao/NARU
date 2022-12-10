@@ -6,7 +6,7 @@ include(ExternalProject)
 # gtest追加
 ExternalProject_Add(GoogleTest
     GIT_REPOSITORY  https://github.com/google/googletest.git
-    GIT_TAG         release-1.10.0
+    GIT_TAG         release-1.12.0
     INSTALL_COMMAND   ""
     LOG_DOWNLOAD ON
     )
