@@ -23,8 +23,8 @@ add_library(gtest STATIC IMPORTED)
 if(MSVC)
     set_target_properties(gtest
         PROPERTIES
-        IMPORTED_LOCATION "${binary_dir}/lib/Debug/gtestd.lib"
-        IMPORTED_LOCATION_DEBUG "${binary_dir}/lib/Debug/gtestd.lib"
+        IMPORTED_LOCATION "${binary_dir}/lib/Debug/gtest.lib"
+        IMPORTED_LOCATION_DEBUG "${binary_dir}/lib/Debug/gtest.lib"
         IMPORTED_LOCATION_RELEASE "${binary_dir}/lib/Release/gtest.lib"
         )
 else()
@@ -39,8 +39,8 @@ add_library(gtest_main STATIC IMPORTED)
 if(MSVC)
     set_target_properties(gtest_main
         PROPERTIES
-        IMPORTED_LOCATION "${binary_dir}/lib/Debug/gtest_maind.lib"
-        IMPORTED_LOCATION_DEBUG "${binary_dir}/lib/Debug/gtest_maind.lib"
+        IMPORTED_LOCATION "${binary_dir}/lib/Debug/gtest_main.lib"
+        IMPORTED_LOCATION_DEBUG "${binary_dir}/lib/Debug/gtest_main.lib"
         IMPORTED_LOCATION_RELEASE "${binary_dir}/lib/Release/gtest_main.lib"
         )
 else()
